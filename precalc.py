@@ -14,6 +14,10 @@ import math
 import random
 random.seed(125)
 
+
+APPLE_YRES = 64*3 # 192
+APPLE_XRES = 40*7 # 280
+
 TILE_SIZE = 7
 
 def is_int(val):
@@ -81,7 +85,7 @@ def bits_to_hgr(b):
 
 def hgr_address( y, page=0x2000, format=0):
     assert page == 0x2000 or page == 0x4000, "I'll work only for legal pages"
-    assert 0 <= y < 3*64, "You're outside Apple's veritcal resolution"
+    assert 0 <= y < APPLE_YRES, "You're outside Apple's veritcal resolution"
 
     if 0 <= y < 64:
         ofs = 0
@@ -189,7 +193,7 @@ def gen_code_vertical_tile_draw( fo, page):
 """)
 
 
-    for y in range(0,64*3):
+    for y in range(0,APPLE_YRES):
 
 
         if y % 11 == 0:
@@ -245,7 +249,7 @@ def gen_code_vertical_tile_blank( fo, page):
 ; is at least 10 times that. So it's worth only for tall lines.
 """)
 
-    for y in range(0,64*3):
+    for y in range(0,APPLE_YRES):
 
         if y % 11 == 0:
             eo_label = f"blank_early_out_p{page}_{early_out_count}"
@@ -536,7 +540,7 @@ def rotate_quat(quat, vect):
 import pygame
 pygame.init()
 
-size = width, height = 7*40, 64*3
+size = width, height = 7*40, APPLE_YRES
 speed = [2, 2]
 black = 0, 0, 0
 
@@ -550,11 +554,9 @@ screen = pygame.display.set_mode(size)
 # 70/8.3 = 8.4
 
 def persp( v):
-    width = 270
-    height = 192
-    zoom = 265 # 250 is the ref, 590 is max for tetrahedron
+    zoom = 250 # 250 is the ref, 590 is max for tetrahedron
     d = (v.z + 5) / zoom
-    return Vtx( v.x / d + width / 2, v.y / d + height / 2, 0 )
+    return Vtx( v.x / d + APPLE_XRES / 2, v.y / d + APPLE_YRES / 2, 0 )
 
 recorded_lines = []
 NB_FRAMES = 40*1
@@ -1036,9 +1038,9 @@ def compute_horizontal_tiles_up(fo):
 
 
 def compute_hgr_offsets(fo):
-    make_lo_hi_ptr_table( fo, "hgr2_offsets", [hgr_address(y,page=0x2000,format=1) for y in range(64*3)])
+    make_lo_hi_ptr_table( fo, "hgr2_offsets", [hgr_address(y,page=0x2000,format=1) for y in range(APPLE_YRES)])
     fo.write("\n")
-    make_lo_hi_ptr_table( fo, "hgr4_offsets", [hgr_address(y,page=0x4000,format=1) for y in range(64*3)])
+    make_lo_hi_ptr_table( fo, "hgr4_offsets", [hgr_address(y,page=0x4000,format=1) for y in range(APPLE_YRES)])
 
 def clip( a, b):
 
@@ -1081,7 +1083,7 @@ def gen_data_line( fo, a, b):
 
     # print(b-a)
     if dx*dx > dy*dy:
-        return
+        #return
 
         # mostly horizonta line
         if a.x > b.x:

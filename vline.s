@@ -28,7 +28,7 @@ modulo7_times8:
 
 	.scope
 
-	LDA #7 - 4
+	LDA #7-1
 	STA count+1
 
 	LDX length
