@@ -34,8 +34,10 @@ dummy_ptr		= 254
 LINES_TO_DO	= 6
 BYTES_PER_LINE	= 6
 
-	;; sub16 l_slope, sub_test
-	;; rts
+;; dummytest:
+;; 	LDA #$10
+;; 	CMP #$06
+;; 	BPL dummytest
 
 
 	jsr clear_hgr
@@ -451,6 +453,7 @@ div7:
 	;; .include "player.s"
 
 	;; Macros to generate line drawing code
+	NO_BREAK_INDICATOR = $7F
 	RIGHT_TO_LEFT = 1
 	LEFT_TO_RIGHT = 2
 	.include "vline.s"

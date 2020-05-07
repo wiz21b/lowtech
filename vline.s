@@ -2,11 +2,14 @@
 	OPCODE_DEX = $CA
 	OPCODE_INX = $E8
 	OPCODE_BMI = $30
+	OPCODE_BEQ = $F0
+	OPCODE_BPL = $10
 
 old_opcode:	.byte 0
 self_mod_flag:	.byte 0
 length_mod7:	.byte 0
 length_div7:	.byte 0
+tiles_length:	.byte 2		; length - 1 (so length is always >= 1)
 
 modulo7_times8:
 	;; This table is tricky. It's not actually mod 7
@@ -28,8 +31,8 @@ modulo7_times8:
 
 	.scope
 
-	LDA #7-1
-	STA count+1
+	LDA #6
+	STA tiles_length
 
 	LDX length
 	LDA modulo7, X
@@ -108,24 +111,6 @@ loop_start:
 
 	;; Self modify the drawing code to handle the "tile break" moment
 
-	;; Choose the code segment to run to draw or clear
-	;; the line. self_mod will contain a pointer to
-	;; that code and it's part of a JSR opcode whic will
-	;; do the jump.
-
-	.ifblank clearing
-	LDY fy + 1
-	LDA (line_code_ptr_lo), Y
-	STA self_mod + 1
-	LDA (line_code_ptr_hi), Y
-	STA self_mod +1 + 1
-	.else
-	LDY fy + 1
-	LDA (blank_line_code_ptr_lo), Y
-	STA self_mod + 1
-	LDA (blank_line_code_ptr_hi), Y
-	STA self_mod +1 + 1
-	.endif
 
 	;; X = number of the tile we will draw
 
@@ -137,8 +122,10 @@ loop_start:
 
 	STA self_mod_flag
 
-	CMP #$FF		; 2/3 of times, no self mod is necessary
-	BEQ no_self_mod
+	STOPPER = 0
+
+	CMP tiles_length		; 2/3 of times, no self mod is necessary
+	BPL no_self_mod
 
 	CLC
 	ADC fy + 1
@@ -186,9 +173,42 @@ loop_start:
 no_self_mod:
 
 
-	;; Y = how many lines to draw
+	;; Choose the code segment to run to draw or clear
+	;; the line. self_mod will contain a pointer to
+	;; that code and it's part of a JSR opcode whic will
+	;; do the jump.
+
+	.ifblank clearing
+	LDY fy + 1
+	LDA (line_code_ptr_lo), Y
+	STA self_mod + 1
+	LDA (line_code_ptr_hi), Y
+	STA self_mod +1 + 1
+	.else
+	LDY fy + 1
+	LDA (blank_line_code_ptr_lo), Y
+	STA self_mod + 1
+	LDA (blank_line_code_ptr_hi), Y
+	STA self_mod +1 + 1
+	.endif
+
+
+	;; Y = how many lines to draw (zero included => if Y = 2
+	;; then 3 lines will be drawn)
 count:
-	LDY #7-1
+	LDY tiles_length
+
+	LDA #6
+	SEC
+	SBC tiles_length
+	CLC
+	ADC tile_ptr
+	STA tile_ptr
+	LDA #0
+	ADC tile_ptr + 1
+	STA tile_ptr + 1
+
+	;add_const_to_16 tile_ptr, + STOPPER
 
 	;; X = x position of the tile to draw
 	LDX old_fx
@@ -198,7 +218,7 @@ count:
 	.ifblank clearing
 	.else
 	;; When clearing, A is the color.
-	lda #$00
+	LDA #$00
 	.endif
 
 	CLV			; Prepare for unconditional branching
@@ -208,7 +228,7 @@ self_mod:
 
 undo_self_mod:
 	LDA self_mod_flag
-	CMP #$FF
+	CMP #NO_BREAK_INDICATOR
 	BEQ no_undo_self_mod
 
 	;; Undo the self modifications
@@ -237,9 +257,7 @@ tile_done:
 	CMP #0
 	BEQ really_done
 
-	LDA #7 - 1
-	STA count+1
-
+	STA tiles_length
 	LDA #1
 	STA length_div7
 	LDA #0
