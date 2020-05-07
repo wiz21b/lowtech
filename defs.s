@@ -88,22 +88,17 @@ j:
 	STA target + 1
 .endmacro
 
-
-.macro	sub_a_to_16 target
-	;; DEPRECATED Use add_mem_16 instead !
-
-	STA self_mod + 1
+; 16 bit word := 16 bit word - 16 bit const
+.macro sub_const_to_16 target, const
 	SEC
-	LDA target
-self_mod:
-	SBC #$FF
+	LDA target     ; low byte
+	SBC #<(const)
 	STA target
-	LDA target + 1
-	SBC #0
-	STA target + 1
 
+	LDA target+1	; high byte
+	SBC #>(const)
+	STA target+1
 .endmacro
-
 
 ; 16 bit word := 16 bit word + 16 bit const
 .macro add_mem_16 target, source
