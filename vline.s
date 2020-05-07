@@ -124,7 +124,7 @@ loop_start:
 
 	STOPPER = 0
 
-	CMP tiles_length		; 2/3 of times, no self mod is necessary
+	CMP tiles_length		; 2/3d of times, no self mod is necessary
 	BPL no_self_mod
 
 	CLC
@@ -198,6 +198,9 @@ no_self_mod:
 count:
 	LDY tiles_length
 
+	;; FIXME This block should be optimized (ie it is only needed
+	;; when tiles_length is not 6, that is when a tile is clipped
+
 	LDA #6
 	SEC
 	SBC tiles_length
@@ -208,7 +211,6 @@ count:
 	ADC tile_ptr + 1
 	STA tile_ptr + 1
 
-	;add_const_to_16 tile_ptr, + STOPPER
 
 	;; X = x position of the tile to draw
 	LDX old_fx

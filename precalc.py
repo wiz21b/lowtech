@@ -216,13 +216,31 @@ def gen_code_vertical_tile_draw( fo, page):
 
         # The self modified NOP will be replaced by DEX or INX.
 
-        # 13 bytes * 192 = 2496 bytes
+        # When BPL is self mod to soething else, remember
+        # that the INY before is increased but it is not tested
+        # So testing Y on being 0 doesn't work ('cos you might
+        # skip that 0). So one has to use a test that is a bit
+        # stronger (BMI/BPL).
+
+        # DEY approach
+        # DEY works well with BPL : 6,5,4..,1,0 : once at zero, addr+Y still wroks fine
+
+        # INY approach with BPL :
+        # 254,255,0,1 => problem, once at zero,
+        # addr+Y wraps by 256 bytes !  So we need to prevent 0. So we
+        # could use BEQ.  Problem with BEQ is because self mod. If BEQ
+        # is self modded when Y reaches 0, the next iteration will be
+        # Y = 1 and BEQ won't trigger... Solution 1, join BPL and BEQ,
+        # but that's two instructions instead of one Solution 2,
+        # ensure that the BEQ is never self modded at the wrong
+        # position.
+
         fo.write(f"""
 {prefix}line{y}:
         LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
         ORA {line_base},X             ; 4+
         STA {line_base},X             ; 5
-        DEY                  ; 2
+        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
 {prefix}pcsm{y}:
         BMI {eo_label}
 """)
@@ -272,7 +290,7 @@ def gen_code_vertical_tile_blank( fo, page):
         # 13 bytes * 192 = 2496 bytes
         fo.write(f"""
 {prefix}blank_line{y}:
-	STA {line_base},X ; A must be the color
+	STA {line_base},X
 	DEY
 {prefix}blank_pcsm{y}:
         BMI {eo_label}
@@ -640,8 +658,8 @@ for frame_ndx in range(NB_FRAMES):
         v1 = vp[0] - vp[1]
         v2 = vp[0] - vp[2]
         if v1.cross(v2).z < 0:
-            pass
-            #continue
+            #pass
+            continue
 
         for i in range( len( face.vertices)):
             a,b = vp[i], vp[(i+1)%len(face.vertices)]
@@ -885,7 +903,7 @@ def compute_vertical_tiles():
                     else:
                          tile_breaks.append( "$FFFF")
                          blank_tile_breaks.append( "$FFFF")
-                         tile_breaks_indices.append("$FF")
+                         tile_breaks_indices.append("$7F")
 
                     # prepare next iteration by rotating the tile
                     # one bit to the right
