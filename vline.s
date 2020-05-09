@@ -31,6 +31,9 @@ modulo7_times8:
 
 	.scope
 
+
+
+
 	LDA #6
 	STA tiles_length
 

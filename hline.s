@@ -1,4 +1,6 @@
-.macro hline_7pixels_masked
+start_y:	.byte 0
+
+.macro hline_7pixels_masked clearing
 	.scope
 
 	;; slope is for 7 pixels jumps
@@ -12,24 +14,24 @@
 	;; so 2,3,5
 
 tile_loop:
-	;;  dummy_ptr := hgr2_offset[ y_current]
+	;;  dummy_ptr := hgr2_offset[ old_y]
 
-	LDY y_current 		; old_fy
+	;LDY fy + 1 		; old_fy
+	LDY start_y
 	LDA (hgr_offsets_lo),Y
 	STA dummy_ptr
 	LDA (hgr_offsets_hi),Y
 	STA dummy_ptr + 1
 
 .ifblank clearing
-	;; A := tile[ y_count]
 	LDY y_count
-	LDA (dummy_ptr2),Y
+	LDA (tile_ptr),Y	; A := tile[ y_count]
+	AND mask		; A := tile[ y_count] & mask
+	;ORA #128+64
 
-	AND mask
-
+	;LDA #$ff
 	LDY fx+1
-	ORA (dummy_ptr),Y
-	;; LDA #$FF
+	ORA (dummy_ptr),Y	; A := (tile[ y_count] & mask) | hgr[fx]
 .else
 	LDY fx+1
 	LDA #$00
@@ -37,8 +39,8 @@ tile_loop:
 
 	STA (dummy_ptr),Y
 
-	INC y_current
-	DEC y_count
+	INC start_y
+	DEC y_count		; 0 included in the loop
 	BPL tile_loop
 
 	.endscope
@@ -62,39 +64,56 @@ tile_loop:
 	;;  - y_count : number of lines to go down while drawing
 	;;    the next 7 horizontal pixels
 	;;  - fy as old fy + slope
+	;;  - tile_ptr : the pointer to tiles data (if not clearing screen)
 
 	;; old_fy := int(fy)
 	lda fy + 1
+	;; old_fy = 42 ($2A)
+	sta old_fy
 	sta self_mod_delta + 1
 
 	;; the slope gives how many pixels we go down every 7 horizontal
 	;; pixels
 	;; fy := fy + slope
 	add16 fy, slope
+	;;  fy+1 : $24 (36) -- 93ac
 
-	;; y_count = int(fy) - old_fy == how many pixel we will go
+	;; y_count = int(fy) - old_fy == how many pixels we will go
 	;; down while drawing horizontal pixels.
 
 	.if ::direction = ::LEFT_TO_RIGHT
-	LDA fy + 1
+	LDA old_fy
+	STA start_y
+
+	LDA fy + 1		; =36
 	SEC
 self_mod_delta:
-	SBC #00			; self-mod
-	STA y_count
+	SBC #0			; self-mod (= old_fy)
+	;;  y_count = 6
+	STA y_count		; y_count := fy - old_fy
+
 	.else
+
+	;; Direction of decreasing Y (bottom of screen to top)
+
+	LDA fy + 1
+	STA start_y
 self_mod_delta:
-	LDA #0			;self-mod
+	LDA #0			;self-mod (= old_fy)
 	SEC
 	SBC fy + 1
-	STA y_count
+	STA y_count		; y_count := old_fy - fy
 	.endif
 
-	;;  Figure out the tile we'll draw
+	;; Figure out the tile we'll draw
+	;; (note we don't set up anything if we clear
+	;; the drawings :-))
 
 .ifblank clearing
 	.if ::direction = ::LEFT_TO_RIGHT
 	;; store_16 self_mod + 1, HTILE_0
 	store_16 tile_ptr, HTILE_0
+	;; here !!!!
 	.else
 	;; store_16 self_mod + 1, HTILE_UP
 	store_16 tile_ptr, HTILE_UP
@@ -106,6 +125,7 @@ self_mod_delta:
 	ASL
 	;; add_a_to_16 self_mod + 1
 	add_a_to_16 tile_ptr
+	;;  HTILE_UP_6
 .endif
 
 	.endscope
@@ -118,27 +138,75 @@ self_mod_delta:
 .macro draw_hline direction, clearing
 	.scope
 
+	;; fy + 1 = 2A (42)
 
-	ldy fx + 1
-	lda modulo7,Y		; a mask actually
-	beq no_special_left
+	LDY fy+1
+	LDA (hgr_offsets_lo),Y
+	STA dummy_ptr
+	LDA (hgr_offsets_hi),Y
+	STA dummy_ptr + 1
+
+	;; length byte contains a length (5 bits) and a mask index
+	;; (3 bits)
+
+	LDA length
+	AND #$7
+	TAY
+	LDA hline_masks_left, Y
+	STA mask
+
+	LDA length
+	LSR
+	LSR
+	LSR
+	STA length
+
+	;; ;; fx + 1 = $5A (90)
+	;; LDY fx + 1
+	;; LDA div7,Y
+	;; ;; div7 = 12 (90/7=12.85 => 12*7 = 84)
+	;; TAY
+	;; LDA #%001010101
+	;; STA (dummy_ptr),Y
+
+
+	lda length
+	cmp #1
+	bpl draw		; greater or equal
+	rts
+draw:
+
+	ldy fx+1
+	lda div7,Y
+	sta fx+1
+
+	hline_7pixels_setup direction, clearing
+	hline_7pixels_masked clearing
+	inc fx+1
+	dec length
+	bne no_special_left
+	rts
+
 no_special_left:
 
-
-
+	LDA length
+	cmp #2			; length >= 2
+	bpl loop
+	jmp rightmost_tile
 loop:
 	hline_7pixels_setup direction, clearing
 
 	;; Choose the code segment to run to draw the line
 
+	;LDY fy + 1
+	LDY start_y
+
 	.ifblank clearing
-	LDY fy + 1
 	LDA (line_code_ptr_lo), Y
 	STA jsr_self_mod + 1
 	LDA (line_code_ptr_hi), Y
 	STA jsr_self_mod +1 + 1
 	.else
-	LDY fy + 1
 	LDA (blank_line_code_ptr_lo), Y
 	STA jsr_self_mod + 1
 	LDA (blank_line_code_ptr_hi), Y
@@ -149,15 +217,38 @@ loop:
 	LDY y_count
 	LDX fx+1
 	CLV
+
 jsr_self_mod:
 	jsr line0		; This address will be self modified
 
-
-	inc fx+1
+	inc fx+1		; we always draw from left to right
 	dec length 		; length := length - 1
-	BNE loop
+	;BNE loop
 
-	rts
+	LDA length
+	CMP #2
+	BPL loop
+
+	CMP #0
+	BEQ all_done
+
+rightmost_tile:
+	LDY #0
+	LDA (line_data_ptr),Y
+	LSR
+	LSR
+	LSR
+	LSR
+	LSR
+	AND #$7
+	TAY
+	LDA hline_masks_right, Y
+	STA mask
+
+	hline_7pixels_setup direction, clearing
+	hline_7pixels_masked clearing
+all_done:
+	RTS
 
 
 	.endscope

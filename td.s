@@ -34,10 +34,12 @@ dummy_ptr		= 254
 LINES_TO_DO	= 6
 BYTES_PER_LINE	= 6
 
-;; dummytest:
-;; 	LDA #$10
-;; 	CMP #$06
-;; 	BPL dummytest
+	jmp dummy_test
+
+dummy_test:
+	;; LDA #$1
+	;; CMP #$1
+	;; BPL dummytest
 
 
 	jsr clear_hgr
@@ -79,6 +81,7 @@ demo3:
 	.endif
 
 
+
 ;; 	jsr draw_to_page2
 ;; 	store_16 line_data_ptr, lines_data + 0*BYTES_PER_LINE
 ;; 	LDA #1
@@ -96,28 +99,26 @@ demo3:
 
 	;; 1.04 pour 27 images => 25 fps
 
-	LDA #27
-	STA loops
-
-
-
 all_lines:
+
 	jsr draw_to_page4
 
 	copy_16 line_data_ptr, line_data_ptr1
 	LDA #0
 	STA color
 	JSR draw_or_erase_multiple_lines
-	copy_16 line_data_ptr1, line_data_ptr
+	nop
+	nop
 
+	copy_16 line_data_ptr1, line_data_ptr
 
 	LDA #1
 	STA color
 	JSR draw_or_erase_multiple_lines
 
-	LDA $C055		; Show page 4
+	LDA $C055	; Show page 4
 	LDA $C057
-	LDA $C050 ; display graphics; last for cleaner mode change (accor
+	LDA $C050 	; display graphics; last for cleaner mode change (accor
 	;; -----------------------------------------------
 	jsr draw_to_page2
 
@@ -137,10 +138,9 @@ all_lines:
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change (accor
 
-	DEC loops
-	BEQ all_done
+	;jsr $FD0C		; wait key hit
 
-	;; jsr  pause
+	;jsr  pause
 	JMP all_lines
 all_done:
 
@@ -166,6 +166,8 @@ one_more_line:
 
 	LDY #0
 	LDA (line_data_ptr),Y
+
+	AND #31
 	CMP #3
 	BMI one_more_line	; A < 3 ?
 
@@ -196,6 +198,8 @@ lines_to_do:	.byte 0
 
 	LDY #0
 	LDA (line_data_ptr),Y
+	AND #31
+
 	CMP #0
 	BNE vline
 	jsr draw_hline_full
@@ -311,7 +315,7 @@ x7_end:	.byte 0
 	BEQ erase
 
 	LDA slope + 1
-	AND #80
+	AND #$80
 	BEQ draw_down
 
 	JSR draw_hline_up
@@ -322,7 +326,7 @@ draw_down:
 
 erase:
 	LDA slope + 1
-	AND #80
+	AND #$80
 	BEQ erase_down
 
 	JSR erase_hline_up
@@ -431,11 +435,11 @@ modulo7:
 	.byte	I .MOD 7
 	.endrep
 
-
 div7:
 	.repeat 256,I
-	.byte I / 7
+	.byte I / 7		; integer division, no rounding
 	.endrep
+
 
 	;; .repeat 256/7+1,I
 	;; .repeat 7

@@ -2,1613 +2,1458 @@
 ; Optimizing the BPL away is not worth it.
 ; A branch takes 2 or 3 cycles, but setting it up with self modifying code
 ; is at least 10 times that. So it's worth only for tall lines.
+
 	BVC early_out_p1_1_skip	; always taken
 early_out_p1_1:
 	RTS
 early_out_p1_1_skip:
 
+
 line0:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2000 + $0,X             ; 4+
-        STA $2000 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2000 + $0,X	; 4+
+        STA $2000 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
 pcsm0:
         BMI early_out_p1_1
 
 line1:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2000 + $400,X             ; 4+
-        STA $2000 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm1:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2000 + $400,X	; 4+
+        STA $2000 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_1
 
 line2:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2000 + $800,X             ; 4+
-        STA $2000 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm2:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2000 + $800,X	; 4+
+        STA $2000 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_1
 
 line3:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2000 + $C00,X             ; 4+
-        STA $2000 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm3:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2000 + $C00,X	; 4+
+        STA $2000 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_1
 
 line4:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2000 + $1000,X             ; 4+
-        STA $2000 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm4:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2000 + $1000,X	; 4+
+        STA $2000 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_1
 
 line5:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2000 + $1400,X             ; 4+
-        STA $2000 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm5:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2000 + $1400,X	; 4+
+        STA $2000 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_1
 
 line6:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2000 + $1800,X             ; 4+
-        STA $2000 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm6:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2000 + $1800,X	; 4+
+        STA $2000 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_1
 
 line7:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2000 + $1C00,X             ; 4+
-        STA $2000 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm7:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2000 + $1C00,X	; 4+
+        STA $2000 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_1
 
 line8:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2080 + $0,X             ; 4+
-        STA $2080 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm8:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2080 + $0,X	; 4+
+        STA $2080 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_1
 
 line9:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2080 + $400,X             ; 4+
-        STA $2080 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm9:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2080 + $400,X	; 4+
+        STA $2080 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_1
 
 line10:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2080 + $800,X             ; 4+
-        STA $2080 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm10:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2080 + $800,X	; 4+
+        STA $2080 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_1
+
 	BVC early_out_p1_2_skip	; always taken
 early_out_p1_2:
 	RTS
 early_out_p1_2_skip:
 
+
 line11:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2080 + $C00,X             ; 4+
-        STA $2080 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm11:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2080 + $C00,X	; 4+
+        STA $2080 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_2
 
 line12:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2080 + $1000,X             ; 4+
-        STA $2080 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm12:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2080 + $1000,X	; 4+
+        STA $2080 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_2
 
 line13:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2080 + $1400,X             ; 4+
-        STA $2080 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm13:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2080 + $1400,X	; 4+
+        STA $2080 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_2
 
 line14:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2080 + $1800,X             ; 4+
-        STA $2080 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm14:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2080 + $1800,X	; 4+
+        STA $2080 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_2
 
 line15:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2080 + $1C00,X             ; 4+
-        STA $2080 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm15:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2080 + $1C00,X	; 4+
+        STA $2080 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_2
 
 line16:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2100 + $0,X             ; 4+
-        STA $2100 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm16:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2100 + $0,X	; 4+
+        STA $2100 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_2
 
 line17:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2100 + $400,X             ; 4+
-        STA $2100 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm17:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2100 + $400,X	; 4+
+        STA $2100 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_2
 
 line18:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2100 + $800,X             ; 4+
-        STA $2100 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm18:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2100 + $800,X	; 4+
+        STA $2100 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_2
 
 line19:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2100 + $C00,X             ; 4+
-        STA $2100 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm19:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2100 + $C00,X	; 4+
+        STA $2100 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_2
 
 line20:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2100 + $1000,X             ; 4+
-        STA $2100 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm20:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2100 + $1000,X	; 4+
+        STA $2100 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_2
 
 line21:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2100 + $1400,X             ; 4+
-        STA $2100 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm21:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2100 + $1400,X	; 4+
+        STA $2100 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_2
+
 	BVC early_out_p1_3_skip	; always taken
 early_out_p1_3:
 	RTS
 early_out_p1_3_skip:
 
+
 line22:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2100 + $1800,X             ; 4+
-        STA $2100 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm22:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2100 + $1800,X	; 4+
+        STA $2100 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_3
 
 line23:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2100 + $1C00,X             ; 4+
-        STA $2100 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm23:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2100 + $1C00,X	; 4+
+        STA $2100 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_3
 
 line24:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2180 + $0,X             ; 4+
-        STA $2180 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm24:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2180 + $0,X	; 4+
+        STA $2180 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_3
 
 line25:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2180 + $400,X             ; 4+
-        STA $2180 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm25:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2180 + $400,X	; 4+
+        STA $2180 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_3
 
 line26:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2180 + $800,X             ; 4+
-        STA $2180 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm26:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2180 + $800,X	; 4+
+        STA $2180 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_3
 
 line27:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2180 + $C00,X             ; 4+
-        STA $2180 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm27:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2180 + $C00,X	; 4+
+        STA $2180 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_3
 
 line28:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2180 + $1000,X             ; 4+
-        STA $2180 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm28:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2180 + $1000,X	; 4+
+        STA $2180 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_3
 
 line29:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2180 + $1400,X             ; 4+
-        STA $2180 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm29:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2180 + $1400,X	; 4+
+        STA $2180 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_3
 
 line30:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2180 + $1800,X             ; 4+
-        STA $2180 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm30:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2180 + $1800,X	; 4+
+        STA $2180 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_3
 
 line31:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2180 + $1C00,X             ; 4+
-        STA $2180 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm31:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2180 + $1C00,X	; 4+
+        STA $2180 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_3
 
 line32:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2200 + $0,X             ; 4+
-        STA $2200 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm32:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2200 + $0,X	; 4+
+        STA $2200 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_3
+
 	BVC early_out_p1_4_skip	; always taken
 early_out_p1_4:
 	RTS
 early_out_p1_4_skip:
 
+
 line33:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2200 + $400,X             ; 4+
-        STA $2200 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm33:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2200 + $400,X	; 4+
+        STA $2200 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_4
 
 line34:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2200 + $800,X             ; 4+
-        STA $2200 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm34:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2200 + $800,X	; 4+
+        STA $2200 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_4
 
 line35:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2200 + $C00,X             ; 4+
-        STA $2200 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm35:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2200 + $C00,X	; 4+
+        STA $2200 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_4
 
 line36:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2200 + $1000,X             ; 4+
-        STA $2200 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm36:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2200 + $1000,X	; 4+
+        STA $2200 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_4
 
 line37:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2200 + $1400,X             ; 4+
-        STA $2200 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm37:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2200 + $1400,X	; 4+
+        STA $2200 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_4
 
 line38:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2200 + $1800,X             ; 4+
-        STA $2200 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm38:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2200 + $1800,X	; 4+
+        STA $2200 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_4
 
 line39:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2200 + $1C00,X             ; 4+
-        STA $2200 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm39:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2200 + $1C00,X	; 4+
+        STA $2200 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_4
 
 line40:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2280 + $0,X             ; 4+
-        STA $2280 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm40:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2280 + $0,X	; 4+
+        STA $2280 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_4
 
 line41:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2280 + $400,X             ; 4+
-        STA $2280 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm41:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2280 + $400,X	; 4+
+        STA $2280 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_4
 
 line42:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2280 + $800,X             ; 4+
-        STA $2280 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm42:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2280 + $800,X	; 4+
+        STA $2280 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_4
 
 line43:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2280 + $C00,X             ; 4+
-        STA $2280 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm43:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2280 + $C00,X	; 4+
+        STA $2280 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_4
+
 	BVC early_out_p1_5_skip	; always taken
 early_out_p1_5:
 	RTS
 early_out_p1_5_skip:
 
+
 line44:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2280 + $1000,X             ; 4+
-        STA $2280 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm44:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2280 + $1000,X	; 4+
+        STA $2280 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_5
 
 line45:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2280 + $1400,X             ; 4+
-        STA $2280 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm45:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2280 + $1400,X	; 4+
+        STA $2280 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_5
 
 line46:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2280 + $1800,X             ; 4+
-        STA $2280 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm46:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2280 + $1800,X	; 4+
+        STA $2280 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_5
 
 line47:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2280 + $1C00,X             ; 4+
-        STA $2280 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm47:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2280 + $1C00,X	; 4+
+        STA $2280 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_5
 
 line48:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2300 + $0,X             ; 4+
-        STA $2300 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm48:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2300 + $0,X	; 4+
+        STA $2300 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_5
 
 line49:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2300 + $400,X             ; 4+
-        STA $2300 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm49:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2300 + $400,X	; 4+
+        STA $2300 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_5
 
 line50:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2300 + $800,X             ; 4+
-        STA $2300 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm50:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2300 + $800,X	; 4+
+        STA $2300 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_5
 
 line51:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2300 + $C00,X             ; 4+
-        STA $2300 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm51:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2300 + $C00,X	; 4+
+        STA $2300 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_5
 
 line52:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2300 + $1000,X             ; 4+
-        STA $2300 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm52:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2300 + $1000,X	; 4+
+        STA $2300 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_5
 
 line53:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2300 + $1400,X             ; 4+
-        STA $2300 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm53:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2300 + $1400,X	; 4+
+        STA $2300 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_5
 
 line54:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2300 + $1800,X             ; 4+
-        STA $2300 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm54:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2300 + $1800,X	; 4+
+        STA $2300 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_5
+
 	BVC early_out_p1_6_skip	; always taken
 early_out_p1_6:
 	RTS
 early_out_p1_6_skip:
 
+
 line55:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2300 + $1C00,X             ; 4+
-        STA $2300 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm55:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2300 + $1C00,X	; 4+
+        STA $2300 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_6
 
 line56:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2380 + $0,X             ; 4+
-        STA $2380 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm56:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2380 + $0,X	; 4+
+        STA $2380 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_6
 
 line57:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2380 + $400,X             ; 4+
-        STA $2380 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm57:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2380 + $400,X	; 4+
+        STA $2380 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_6
 
 line58:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2380 + $800,X             ; 4+
-        STA $2380 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm58:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2380 + $800,X	; 4+
+        STA $2380 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_6
 
 line59:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2380 + $C00,X             ; 4+
-        STA $2380 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm59:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2380 + $C00,X	; 4+
+        STA $2380 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_6
 
 line60:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2380 + $1000,X             ; 4+
-        STA $2380 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm60:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2380 + $1000,X	; 4+
+        STA $2380 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_6
 
 line61:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2380 + $1400,X             ; 4+
-        STA $2380 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm61:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2380 + $1400,X	; 4+
+        STA $2380 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_6
 
 line62:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2380 + $1800,X             ; 4+
-        STA $2380 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm62:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2380 + $1800,X	; 4+
+        STA $2380 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_6
 
 line63:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2380 + $1C00,X             ; 4+
-        STA $2380 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm63:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2380 + $1C00,X	; 4+
+        STA $2380 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_6
 
 line64:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2028 + $0,X             ; 4+
-        STA $2028 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm64:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2028 + $0,X	; 4+
+        STA $2028 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_6
 
 line65:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2028 + $400,X             ; 4+
-        STA $2028 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm65:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2028 + $400,X	; 4+
+        STA $2028 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_6
+
 	BVC early_out_p1_7_skip	; always taken
 early_out_p1_7:
 	RTS
 early_out_p1_7_skip:
 
+
 line66:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2028 + $800,X             ; 4+
-        STA $2028 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm66:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2028 + $800,X	; 4+
+        STA $2028 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_7
 
 line67:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2028 + $C00,X             ; 4+
-        STA $2028 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm67:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2028 + $C00,X	; 4+
+        STA $2028 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_7
 
 line68:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2028 + $1000,X             ; 4+
-        STA $2028 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm68:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2028 + $1000,X	; 4+
+        STA $2028 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_7
 
 line69:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2028 + $1400,X             ; 4+
-        STA $2028 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm69:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2028 + $1400,X	; 4+
+        STA $2028 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_7
 
 line70:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2028 + $1800,X             ; 4+
-        STA $2028 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm70:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2028 + $1800,X	; 4+
+        STA $2028 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_7
 
 line71:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2028 + $1C00,X             ; 4+
-        STA $2028 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm71:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2028 + $1C00,X	; 4+
+        STA $2028 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_7
 
 line72:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20A8 + $0,X             ; 4+
-        STA $20A8 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm72:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20A8 + $0,X	; 4+
+        STA $20A8 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_7
 
 line73:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20A8 + $400,X             ; 4+
-        STA $20A8 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm73:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20A8 + $400,X	; 4+
+        STA $20A8 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_7
 
 line74:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20A8 + $800,X             ; 4+
-        STA $20A8 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm74:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20A8 + $800,X	; 4+
+        STA $20A8 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_7
 
 line75:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20A8 + $C00,X             ; 4+
-        STA $20A8 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm75:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20A8 + $C00,X	; 4+
+        STA $20A8 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_7
 
 line76:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20A8 + $1000,X             ; 4+
-        STA $20A8 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm76:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20A8 + $1000,X	; 4+
+        STA $20A8 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_7
+
 	BVC early_out_p1_8_skip	; always taken
 early_out_p1_8:
 	RTS
 early_out_p1_8_skip:
 
+
 line77:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20A8 + $1400,X             ; 4+
-        STA $20A8 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm77:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20A8 + $1400,X	; 4+
+        STA $20A8 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_8
 
 line78:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20A8 + $1800,X             ; 4+
-        STA $20A8 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm78:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20A8 + $1800,X	; 4+
+        STA $20A8 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_8
 
 line79:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20A8 + $1C00,X             ; 4+
-        STA $20A8 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm79:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20A8 + $1C00,X	; 4+
+        STA $20A8 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_8
 
 line80:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2128 + $0,X             ; 4+
-        STA $2128 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm80:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2128 + $0,X	; 4+
+        STA $2128 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_8
 
 line81:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2128 + $400,X             ; 4+
-        STA $2128 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm81:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2128 + $400,X	; 4+
+        STA $2128 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_8
 
 line82:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2128 + $800,X             ; 4+
-        STA $2128 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm82:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2128 + $800,X	; 4+
+        STA $2128 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_8
 
 line83:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2128 + $C00,X             ; 4+
-        STA $2128 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm83:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2128 + $C00,X	; 4+
+        STA $2128 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_8
 
 line84:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2128 + $1000,X             ; 4+
-        STA $2128 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm84:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2128 + $1000,X	; 4+
+        STA $2128 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_8
 
 line85:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2128 + $1400,X             ; 4+
-        STA $2128 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm85:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2128 + $1400,X	; 4+
+        STA $2128 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_8
 
 line86:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2128 + $1800,X             ; 4+
-        STA $2128 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm86:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2128 + $1800,X	; 4+
+        STA $2128 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_8
 
 line87:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2128 + $1C00,X             ; 4+
-        STA $2128 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm87:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2128 + $1C00,X	; 4+
+        STA $2128 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_8
+
 	BVC early_out_p1_9_skip	; always taken
 early_out_p1_9:
 	RTS
 early_out_p1_9_skip:
 
+
 line88:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21A8 + $0,X             ; 4+
-        STA $21A8 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm88:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21A8 + $0,X	; 4+
+        STA $21A8 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_9
 
 line89:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21A8 + $400,X             ; 4+
-        STA $21A8 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm89:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21A8 + $400,X	; 4+
+        STA $21A8 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_9
 
 line90:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21A8 + $800,X             ; 4+
-        STA $21A8 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm90:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21A8 + $800,X	; 4+
+        STA $21A8 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_9
 
 line91:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21A8 + $C00,X             ; 4+
-        STA $21A8 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm91:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21A8 + $C00,X	; 4+
+        STA $21A8 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_9
 
 line92:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21A8 + $1000,X             ; 4+
-        STA $21A8 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm92:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21A8 + $1000,X	; 4+
+        STA $21A8 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_9
 
 line93:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21A8 + $1400,X             ; 4+
-        STA $21A8 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm93:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21A8 + $1400,X	; 4+
+        STA $21A8 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_9
 
 line94:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21A8 + $1800,X             ; 4+
-        STA $21A8 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm94:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21A8 + $1800,X	; 4+
+        STA $21A8 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_9
 
 line95:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21A8 + $1C00,X             ; 4+
-        STA $21A8 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm95:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21A8 + $1C00,X	; 4+
+        STA $21A8 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_9
 
 line96:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2228 + $0,X             ; 4+
-        STA $2228 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm96:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2228 + $0,X	; 4+
+        STA $2228 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_9
 
 line97:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2228 + $400,X             ; 4+
-        STA $2228 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm97:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2228 + $400,X	; 4+
+        STA $2228 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_9
 
 line98:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2228 + $800,X             ; 4+
-        STA $2228 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm98:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2228 + $800,X	; 4+
+        STA $2228 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_9
+
 	BVC early_out_p1_10_skip	; always taken
 early_out_p1_10:
 	RTS
 early_out_p1_10_skip:
 
+
 line99:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2228 + $C00,X             ; 4+
-        STA $2228 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm99:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2228 + $C00,X	; 4+
+        STA $2228 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_10
 
 line100:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2228 + $1000,X             ; 4+
-        STA $2228 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm100:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2228 + $1000,X	; 4+
+        STA $2228 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_10
 
 line101:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2228 + $1400,X             ; 4+
-        STA $2228 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm101:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2228 + $1400,X	; 4+
+        STA $2228 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_10
 
 line102:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2228 + $1800,X             ; 4+
-        STA $2228 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm102:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2228 + $1800,X	; 4+
+        STA $2228 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_10
 
 line103:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2228 + $1C00,X             ; 4+
-        STA $2228 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm103:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2228 + $1C00,X	; 4+
+        STA $2228 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_10
 
 line104:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22A8 + $0,X             ; 4+
-        STA $22A8 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm104:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22A8 + $0,X	; 4+
+        STA $22A8 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_10
 
 line105:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22A8 + $400,X             ; 4+
-        STA $22A8 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm105:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22A8 + $400,X	; 4+
+        STA $22A8 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_10
 
 line106:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22A8 + $800,X             ; 4+
-        STA $22A8 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm106:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22A8 + $800,X	; 4+
+        STA $22A8 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_10
 
 line107:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22A8 + $C00,X             ; 4+
-        STA $22A8 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm107:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22A8 + $C00,X	; 4+
+        STA $22A8 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_10
 
 line108:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22A8 + $1000,X             ; 4+
-        STA $22A8 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm108:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22A8 + $1000,X	; 4+
+        STA $22A8 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_10
 
 line109:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22A8 + $1400,X             ; 4+
-        STA $22A8 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm109:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22A8 + $1400,X	; 4+
+        STA $22A8 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_10
+
 	BVC early_out_p1_11_skip	; always taken
 early_out_p1_11:
 	RTS
 early_out_p1_11_skip:
 
+
 line110:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22A8 + $1800,X             ; 4+
-        STA $22A8 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm110:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22A8 + $1800,X	; 4+
+        STA $22A8 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_11
 
 line111:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22A8 + $1C00,X             ; 4+
-        STA $22A8 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm111:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22A8 + $1C00,X	; 4+
+        STA $22A8 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_11
 
 line112:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2328 + $0,X             ; 4+
-        STA $2328 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm112:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2328 + $0,X	; 4+
+        STA $2328 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_11
 
 line113:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2328 + $400,X             ; 4+
-        STA $2328 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm113:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2328 + $400,X	; 4+
+        STA $2328 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_11
 
 line114:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2328 + $800,X             ; 4+
-        STA $2328 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm114:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2328 + $800,X	; 4+
+        STA $2328 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_11
 
 line115:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2328 + $C00,X             ; 4+
-        STA $2328 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm115:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2328 + $C00,X	; 4+
+        STA $2328 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_11
 
 line116:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2328 + $1000,X             ; 4+
-        STA $2328 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm116:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2328 + $1000,X	; 4+
+        STA $2328 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_11
 
 line117:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2328 + $1400,X             ; 4+
-        STA $2328 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm117:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2328 + $1400,X	; 4+
+        STA $2328 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_11
 
 line118:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2328 + $1800,X             ; 4+
-        STA $2328 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm118:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2328 + $1800,X	; 4+
+        STA $2328 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_11
 
 line119:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2328 + $1C00,X             ; 4+
-        STA $2328 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm119:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2328 + $1C00,X	; 4+
+        STA $2328 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_11
 
 line120:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23A8 + $0,X             ; 4+
-        STA $23A8 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm120:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23A8 + $0,X	; 4+
+        STA $23A8 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_11
+
 	BVC early_out_p1_12_skip	; always taken
 early_out_p1_12:
 	RTS
 early_out_p1_12_skip:
 
+
 line121:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23A8 + $400,X             ; 4+
-        STA $23A8 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm121:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23A8 + $400,X	; 4+
+        STA $23A8 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_12
 
 line122:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23A8 + $800,X             ; 4+
-        STA $23A8 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm122:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23A8 + $800,X	; 4+
+        STA $23A8 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_12
 
 line123:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23A8 + $C00,X             ; 4+
-        STA $23A8 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm123:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23A8 + $C00,X	; 4+
+        STA $23A8 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_12
 
 line124:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23A8 + $1000,X             ; 4+
-        STA $23A8 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm124:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23A8 + $1000,X	; 4+
+        STA $23A8 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_12
 
 line125:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23A8 + $1400,X             ; 4+
-        STA $23A8 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm125:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23A8 + $1400,X	; 4+
+        STA $23A8 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_12
 
 line126:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23A8 + $1800,X             ; 4+
-        STA $23A8 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm126:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23A8 + $1800,X	; 4+
+        STA $23A8 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_12
 
 line127:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23A8 + $1C00,X             ; 4+
-        STA $23A8 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm127:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23A8 + $1C00,X	; 4+
+        STA $23A8 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_12
 
 line128:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2050 + $0,X             ; 4+
-        STA $2050 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm128:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2050 + $0,X	; 4+
+        STA $2050 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_12
 
 line129:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2050 + $400,X             ; 4+
-        STA $2050 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm129:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2050 + $400,X	; 4+
+        STA $2050 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_12
 
 line130:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2050 + $800,X             ; 4+
-        STA $2050 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm130:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2050 + $800,X	; 4+
+        STA $2050 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_12
 
 line131:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2050 + $C00,X             ; 4+
-        STA $2050 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm131:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2050 + $C00,X	; 4+
+        STA $2050 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_12
+
 	BVC early_out_p1_13_skip	; always taken
 early_out_p1_13:
 	RTS
 early_out_p1_13_skip:
 
+
 line132:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2050 + $1000,X             ; 4+
-        STA $2050 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm132:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2050 + $1000,X	; 4+
+        STA $2050 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_13
 
 line133:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2050 + $1400,X             ; 4+
-        STA $2050 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm133:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2050 + $1400,X	; 4+
+        STA $2050 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_13
 
 line134:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2050 + $1800,X             ; 4+
-        STA $2050 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm134:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2050 + $1800,X	; 4+
+        STA $2050 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_13
 
 line135:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2050 + $1C00,X             ; 4+
-        STA $2050 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm135:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2050 + $1C00,X	; 4+
+        STA $2050 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_13
 
 line136:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20D0 + $0,X             ; 4+
-        STA $20D0 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm136:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20D0 + $0,X	; 4+
+        STA $20D0 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_13
 
 line137:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20D0 + $400,X             ; 4+
-        STA $20D0 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm137:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20D0 + $400,X	; 4+
+        STA $20D0 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_13
 
 line138:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20D0 + $800,X             ; 4+
-        STA $20D0 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm138:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20D0 + $800,X	; 4+
+        STA $20D0 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_13
 
 line139:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20D0 + $C00,X             ; 4+
-        STA $20D0 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm139:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20D0 + $C00,X	; 4+
+        STA $20D0 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_13
 
 line140:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20D0 + $1000,X             ; 4+
-        STA $20D0 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm140:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20D0 + $1000,X	; 4+
+        STA $20D0 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_13
 
 line141:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20D0 + $1400,X             ; 4+
-        STA $20D0 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm141:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20D0 + $1400,X	; 4+
+        STA $20D0 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_13
 
 line142:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20D0 + $1800,X             ; 4+
-        STA $20D0 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm142:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20D0 + $1800,X	; 4+
+        STA $20D0 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_13
+
 	BVC early_out_p1_14_skip	; always taken
 early_out_p1_14:
 	RTS
 early_out_p1_14_skip:
 
+
 line143:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $20D0 + $1C00,X             ; 4+
-        STA $20D0 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm143:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $20D0 + $1C00,X	; 4+
+        STA $20D0 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_14
 
 line144:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2150 + $0,X             ; 4+
-        STA $2150 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm144:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2150 + $0,X	; 4+
+        STA $2150 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_14
 
 line145:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2150 + $400,X             ; 4+
-        STA $2150 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm145:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2150 + $400,X	; 4+
+        STA $2150 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_14
 
 line146:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2150 + $800,X             ; 4+
-        STA $2150 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm146:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2150 + $800,X	; 4+
+        STA $2150 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_14
 
 line147:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2150 + $C00,X             ; 4+
-        STA $2150 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm147:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2150 + $C00,X	; 4+
+        STA $2150 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_14
 
 line148:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2150 + $1000,X             ; 4+
-        STA $2150 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm148:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2150 + $1000,X	; 4+
+        STA $2150 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_14
 
 line149:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2150 + $1400,X             ; 4+
-        STA $2150 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm149:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2150 + $1400,X	; 4+
+        STA $2150 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_14
 
 line150:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2150 + $1800,X             ; 4+
-        STA $2150 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm150:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2150 + $1800,X	; 4+
+        STA $2150 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_14
 
 line151:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2150 + $1C00,X             ; 4+
-        STA $2150 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm151:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2150 + $1C00,X	; 4+
+        STA $2150 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_14
 
 line152:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21D0 + $0,X             ; 4+
-        STA $21D0 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm152:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21D0 + $0,X	; 4+
+        STA $21D0 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_14
 
 line153:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21D0 + $400,X             ; 4+
-        STA $21D0 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm153:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21D0 + $400,X	; 4+
+        STA $21D0 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_14
+
 	BVC early_out_p1_15_skip	; always taken
 early_out_p1_15:
 	RTS
 early_out_p1_15_skip:
 
+
 line154:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21D0 + $800,X             ; 4+
-        STA $21D0 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm154:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21D0 + $800,X	; 4+
+        STA $21D0 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_15
 
 line155:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21D0 + $C00,X             ; 4+
-        STA $21D0 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm155:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21D0 + $C00,X	; 4+
+        STA $21D0 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_15
 
 line156:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21D0 + $1000,X             ; 4+
-        STA $21D0 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm156:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21D0 + $1000,X	; 4+
+        STA $21D0 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_15
 
 line157:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21D0 + $1400,X             ; 4+
-        STA $21D0 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm157:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21D0 + $1400,X	; 4+
+        STA $21D0 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_15
 
 line158:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21D0 + $1800,X             ; 4+
-        STA $21D0 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm158:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21D0 + $1800,X	; 4+
+        STA $21D0 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_15
 
 line159:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $21D0 + $1C00,X             ; 4+
-        STA $21D0 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm159:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $21D0 + $1C00,X	; 4+
+        STA $21D0 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_15
 
 line160:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2250 + $0,X             ; 4+
-        STA $2250 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm160:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2250 + $0,X	; 4+
+        STA $2250 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_15
 
 line161:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2250 + $400,X             ; 4+
-        STA $2250 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm161:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2250 + $400,X	; 4+
+        STA $2250 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_15
 
 line162:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2250 + $800,X             ; 4+
-        STA $2250 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm162:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2250 + $800,X	; 4+
+        STA $2250 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_15
 
 line163:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2250 + $C00,X             ; 4+
-        STA $2250 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm163:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2250 + $C00,X	; 4+
+        STA $2250 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_15
 
 line164:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2250 + $1000,X             ; 4+
-        STA $2250 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm164:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2250 + $1000,X	; 4+
+        STA $2250 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_15
+
 	BVC early_out_p1_16_skip	; always taken
 early_out_p1_16:
 	RTS
 early_out_p1_16_skip:
 
+
 line165:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2250 + $1400,X             ; 4+
-        STA $2250 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm165:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2250 + $1400,X	; 4+
+        STA $2250 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_16
 
 line166:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2250 + $1800,X             ; 4+
-        STA $2250 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm166:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2250 + $1800,X	; 4+
+        STA $2250 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_16
 
 line167:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2250 + $1C00,X             ; 4+
-        STA $2250 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm167:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2250 + $1C00,X	; 4+
+        STA $2250 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_16
 
 line168:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22D0 + $0,X             ; 4+
-        STA $22D0 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm168:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22D0 + $0,X	; 4+
+        STA $22D0 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_16
 
 line169:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22D0 + $400,X             ; 4+
-        STA $22D0 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm169:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22D0 + $400,X	; 4+
+        STA $22D0 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_16
 
 line170:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22D0 + $800,X             ; 4+
-        STA $22D0 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm170:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22D0 + $800,X	; 4+
+        STA $22D0 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_16
 
 line171:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22D0 + $C00,X             ; 4+
-        STA $22D0 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm171:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22D0 + $C00,X	; 4+
+        STA $22D0 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_16
 
 line172:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22D0 + $1000,X             ; 4+
-        STA $22D0 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm172:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22D0 + $1000,X	; 4+
+        STA $22D0 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_16
 
 line173:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22D0 + $1400,X             ; 4+
-        STA $22D0 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm173:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22D0 + $1400,X	; 4+
+        STA $22D0 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_16
 
 line174:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22D0 + $1800,X             ; 4+
-        STA $22D0 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm174:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22D0 + $1800,X	; 4+
+        STA $22D0 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_16
 
 line175:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $22D0 + $1C00,X             ; 4+
-        STA $22D0 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm175:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $22D0 + $1C00,X	; 4+
+        STA $22D0 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_16
+
 	BVC early_out_p1_17_skip	; always taken
 early_out_p1_17:
 	RTS
 early_out_p1_17_skip:
 
+
 line176:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2350 + $0,X             ; 4+
-        STA $2350 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm176:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2350 + $0,X	; 4+
+        STA $2350 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_17
 
 line177:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2350 + $400,X             ; 4+
-        STA $2350 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm177:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2350 + $400,X	; 4+
+        STA $2350 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_17
 
 line178:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2350 + $800,X             ; 4+
-        STA $2350 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm178:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2350 + $800,X	; 4+
+        STA $2350 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_17
 
 line179:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2350 + $C00,X             ; 4+
-        STA $2350 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm179:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2350 + $C00,X	; 4+
+        STA $2350 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_17
 
 line180:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2350 + $1000,X             ; 4+
-        STA $2350 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm180:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2350 + $1000,X	; 4+
+        STA $2350 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_17
 
 line181:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2350 + $1400,X             ; 4+
-        STA $2350 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm181:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2350 + $1400,X	; 4+
+        STA $2350 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_17
 
 line182:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2350 + $1800,X             ; 4+
-        STA $2350 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm182:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2350 + $1800,X	; 4+
+        STA $2350 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_17
 
 line183:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $2350 + $1C00,X             ; 4+
-        STA $2350 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm183:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $2350 + $1C00,X	; 4+
+        STA $2350 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_17
 
 line184:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23D0 + $0,X             ; 4+
-        STA $23D0 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm184:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23D0 + $0,X	; 4+
+        STA $23D0 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_17
 
 line185:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23D0 + $400,X             ; 4+
-        STA $23D0 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm185:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23D0 + $400,X	; 4+
+        STA $23D0 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_17
 
 line186:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23D0 + $800,X             ; 4+
-        STA $23D0 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm186:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23D0 + $800,X	; 4+
+        STA $23D0 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_17
+
 	BVC early_out_p1_18_skip	; always taken
 early_out_p1_18:
 	RTS
 early_out_p1_18_skip:
 
+
 line187:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23D0 + $C00,X             ; 4+
-        STA $23D0 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm187:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23D0 + $C00,X	; 4+
+        STA $23D0 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_18
 
 line188:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23D0 + $1000,X             ; 4+
-        STA $23D0 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm188:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23D0 + $1000,X	; 4+
+        STA $23D0 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_18
 
 line189:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23D0 + $1400,X             ; 4+
-        STA $23D0 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm189:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23D0 + $1400,X	; 4+
+        STA $23D0 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_18
 
 line190:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23D0 + $1800,X             ; 4+
-        STA $23D0 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm190:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23D0 + $1800,X	; 4+
+        STA $23D0 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_18
 
 line191:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $23D0 + $1C00,X             ; 4+
-        STA $23D0 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-pcsm191:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $23D0 + $1C00,X	; 4+
+        STA $23D0 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p1_18
 	RTS
 line_ptrs_lo:
@@ -3616,1613 +3461,1458 @@ blank_line_ptrs_hi:
 ; Optimizing the BPL away is not worth it.
 ; A branch takes 2 or 3 cycles, but setting it up with self modifying code
 ; is at least 10 times that. So it's worth only for tall lines.
+
 	BVC early_out_p2_1_skip	; always taken
 early_out_p2_1:
 	RTS
 early_out_p2_1_skip:
 
+
 p2_line0:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4000 + $0,X             ; 4+
-        STA $4000 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4000 + $0,X	; 4+
+        STA $4000 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
 p2_pcsm0:
         BMI early_out_p2_1
 
 p2_line1:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4000 + $400,X             ; 4+
-        STA $4000 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm1:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4000 + $400,X	; 4+
+        STA $4000 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_1
 
 p2_line2:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4000 + $800,X             ; 4+
-        STA $4000 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm2:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4000 + $800,X	; 4+
+        STA $4000 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_1
 
 p2_line3:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4000 + $C00,X             ; 4+
-        STA $4000 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm3:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4000 + $C00,X	; 4+
+        STA $4000 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_1
 
 p2_line4:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4000 + $1000,X             ; 4+
-        STA $4000 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm4:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4000 + $1000,X	; 4+
+        STA $4000 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_1
 
 p2_line5:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4000 + $1400,X             ; 4+
-        STA $4000 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm5:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4000 + $1400,X	; 4+
+        STA $4000 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_1
 
 p2_line6:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4000 + $1800,X             ; 4+
-        STA $4000 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm6:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4000 + $1800,X	; 4+
+        STA $4000 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_1
 
 p2_line7:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4000 + $1C00,X             ; 4+
-        STA $4000 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm7:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4000 + $1C00,X	; 4+
+        STA $4000 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_1
 
 p2_line8:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4080 + $0,X             ; 4+
-        STA $4080 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm8:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4080 + $0,X	; 4+
+        STA $4080 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_1
 
 p2_line9:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4080 + $400,X             ; 4+
-        STA $4080 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm9:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4080 + $400,X	; 4+
+        STA $4080 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_1
 
 p2_line10:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4080 + $800,X             ; 4+
-        STA $4080 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm10:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4080 + $800,X	; 4+
+        STA $4080 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_1
+
 	BVC early_out_p2_2_skip	; always taken
 early_out_p2_2:
 	RTS
 early_out_p2_2_skip:
 
+
 p2_line11:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4080 + $C00,X             ; 4+
-        STA $4080 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm11:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4080 + $C00,X	; 4+
+        STA $4080 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_2
 
 p2_line12:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4080 + $1000,X             ; 4+
-        STA $4080 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm12:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4080 + $1000,X	; 4+
+        STA $4080 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_2
 
 p2_line13:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4080 + $1400,X             ; 4+
-        STA $4080 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm13:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4080 + $1400,X	; 4+
+        STA $4080 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_2
 
 p2_line14:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4080 + $1800,X             ; 4+
-        STA $4080 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm14:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4080 + $1800,X	; 4+
+        STA $4080 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_2
 
 p2_line15:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4080 + $1C00,X             ; 4+
-        STA $4080 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm15:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4080 + $1C00,X	; 4+
+        STA $4080 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_2
 
 p2_line16:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4100 + $0,X             ; 4+
-        STA $4100 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm16:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4100 + $0,X	; 4+
+        STA $4100 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_2
 
 p2_line17:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4100 + $400,X             ; 4+
-        STA $4100 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm17:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4100 + $400,X	; 4+
+        STA $4100 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_2
 
 p2_line18:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4100 + $800,X             ; 4+
-        STA $4100 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm18:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4100 + $800,X	; 4+
+        STA $4100 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_2
 
 p2_line19:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4100 + $C00,X             ; 4+
-        STA $4100 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm19:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4100 + $C00,X	; 4+
+        STA $4100 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_2
 
 p2_line20:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4100 + $1000,X             ; 4+
-        STA $4100 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm20:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4100 + $1000,X	; 4+
+        STA $4100 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_2
 
 p2_line21:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4100 + $1400,X             ; 4+
-        STA $4100 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm21:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4100 + $1400,X	; 4+
+        STA $4100 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_2
+
 	BVC early_out_p2_3_skip	; always taken
 early_out_p2_3:
 	RTS
 early_out_p2_3_skip:
 
+
 p2_line22:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4100 + $1800,X             ; 4+
-        STA $4100 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm22:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4100 + $1800,X	; 4+
+        STA $4100 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_3
 
 p2_line23:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4100 + $1C00,X             ; 4+
-        STA $4100 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm23:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4100 + $1C00,X	; 4+
+        STA $4100 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_3
 
 p2_line24:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4180 + $0,X             ; 4+
-        STA $4180 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm24:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4180 + $0,X	; 4+
+        STA $4180 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_3
 
 p2_line25:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4180 + $400,X             ; 4+
-        STA $4180 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm25:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4180 + $400,X	; 4+
+        STA $4180 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_3
 
 p2_line26:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4180 + $800,X             ; 4+
-        STA $4180 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm26:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4180 + $800,X	; 4+
+        STA $4180 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_3
 
 p2_line27:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4180 + $C00,X             ; 4+
-        STA $4180 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm27:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4180 + $C00,X	; 4+
+        STA $4180 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_3
 
 p2_line28:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4180 + $1000,X             ; 4+
-        STA $4180 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm28:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4180 + $1000,X	; 4+
+        STA $4180 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_3
 
 p2_line29:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4180 + $1400,X             ; 4+
-        STA $4180 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm29:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4180 + $1400,X	; 4+
+        STA $4180 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_3
 
 p2_line30:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4180 + $1800,X             ; 4+
-        STA $4180 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm30:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4180 + $1800,X	; 4+
+        STA $4180 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_3
 
 p2_line31:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4180 + $1C00,X             ; 4+
-        STA $4180 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm31:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4180 + $1C00,X	; 4+
+        STA $4180 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_3
 
 p2_line32:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4200 + $0,X             ; 4+
-        STA $4200 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm32:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4200 + $0,X	; 4+
+        STA $4200 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_3
+
 	BVC early_out_p2_4_skip	; always taken
 early_out_p2_4:
 	RTS
 early_out_p2_4_skip:
 
+
 p2_line33:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4200 + $400,X             ; 4+
-        STA $4200 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm33:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4200 + $400,X	; 4+
+        STA $4200 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_4
 
 p2_line34:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4200 + $800,X             ; 4+
-        STA $4200 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm34:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4200 + $800,X	; 4+
+        STA $4200 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_4
 
 p2_line35:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4200 + $C00,X             ; 4+
-        STA $4200 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm35:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4200 + $C00,X	; 4+
+        STA $4200 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_4
 
 p2_line36:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4200 + $1000,X             ; 4+
-        STA $4200 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm36:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4200 + $1000,X	; 4+
+        STA $4200 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_4
 
 p2_line37:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4200 + $1400,X             ; 4+
-        STA $4200 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm37:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4200 + $1400,X	; 4+
+        STA $4200 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_4
 
 p2_line38:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4200 + $1800,X             ; 4+
-        STA $4200 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm38:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4200 + $1800,X	; 4+
+        STA $4200 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_4
 
 p2_line39:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4200 + $1C00,X             ; 4+
-        STA $4200 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm39:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4200 + $1C00,X	; 4+
+        STA $4200 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_4
 
 p2_line40:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4280 + $0,X             ; 4+
-        STA $4280 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm40:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4280 + $0,X	; 4+
+        STA $4280 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_4
 
 p2_line41:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4280 + $400,X             ; 4+
-        STA $4280 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm41:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4280 + $400,X	; 4+
+        STA $4280 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_4
 
 p2_line42:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4280 + $800,X             ; 4+
-        STA $4280 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm42:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4280 + $800,X	; 4+
+        STA $4280 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_4
 
 p2_line43:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4280 + $C00,X             ; 4+
-        STA $4280 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm43:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4280 + $C00,X	; 4+
+        STA $4280 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_4
+
 	BVC early_out_p2_5_skip	; always taken
 early_out_p2_5:
 	RTS
 early_out_p2_5_skip:
 
+
 p2_line44:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4280 + $1000,X             ; 4+
-        STA $4280 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm44:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4280 + $1000,X	; 4+
+        STA $4280 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_5
 
 p2_line45:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4280 + $1400,X             ; 4+
-        STA $4280 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm45:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4280 + $1400,X	; 4+
+        STA $4280 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_5
 
 p2_line46:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4280 + $1800,X             ; 4+
-        STA $4280 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm46:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4280 + $1800,X	; 4+
+        STA $4280 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_5
 
 p2_line47:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4280 + $1C00,X             ; 4+
-        STA $4280 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm47:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4280 + $1C00,X	; 4+
+        STA $4280 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_5
 
 p2_line48:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4300 + $0,X             ; 4+
-        STA $4300 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm48:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4300 + $0,X	; 4+
+        STA $4300 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_5
 
 p2_line49:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4300 + $400,X             ; 4+
-        STA $4300 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm49:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4300 + $400,X	; 4+
+        STA $4300 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_5
 
 p2_line50:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4300 + $800,X             ; 4+
-        STA $4300 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm50:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4300 + $800,X	; 4+
+        STA $4300 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_5
 
 p2_line51:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4300 + $C00,X             ; 4+
-        STA $4300 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm51:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4300 + $C00,X	; 4+
+        STA $4300 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_5
 
 p2_line52:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4300 + $1000,X             ; 4+
-        STA $4300 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm52:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4300 + $1000,X	; 4+
+        STA $4300 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_5
 
 p2_line53:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4300 + $1400,X             ; 4+
-        STA $4300 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm53:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4300 + $1400,X	; 4+
+        STA $4300 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_5
 
 p2_line54:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4300 + $1800,X             ; 4+
-        STA $4300 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm54:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4300 + $1800,X	; 4+
+        STA $4300 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_5
+
 	BVC early_out_p2_6_skip	; always taken
 early_out_p2_6:
 	RTS
 early_out_p2_6_skip:
 
+
 p2_line55:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4300 + $1C00,X             ; 4+
-        STA $4300 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm55:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4300 + $1C00,X	; 4+
+        STA $4300 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_6
 
 p2_line56:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4380 + $0,X             ; 4+
-        STA $4380 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm56:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4380 + $0,X	; 4+
+        STA $4380 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_6
 
 p2_line57:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4380 + $400,X             ; 4+
-        STA $4380 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm57:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4380 + $400,X	; 4+
+        STA $4380 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_6
 
 p2_line58:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4380 + $800,X             ; 4+
-        STA $4380 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm58:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4380 + $800,X	; 4+
+        STA $4380 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_6
 
 p2_line59:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4380 + $C00,X             ; 4+
-        STA $4380 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm59:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4380 + $C00,X	; 4+
+        STA $4380 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_6
 
 p2_line60:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4380 + $1000,X             ; 4+
-        STA $4380 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm60:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4380 + $1000,X	; 4+
+        STA $4380 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_6
 
 p2_line61:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4380 + $1400,X             ; 4+
-        STA $4380 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm61:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4380 + $1400,X	; 4+
+        STA $4380 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_6
 
 p2_line62:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4380 + $1800,X             ; 4+
-        STA $4380 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm62:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4380 + $1800,X	; 4+
+        STA $4380 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_6
 
 p2_line63:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4380 + $1C00,X             ; 4+
-        STA $4380 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm63:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4380 + $1C00,X	; 4+
+        STA $4380 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_6
 
 p2_line64:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4028 + $0,X             ; 4+
-        STA $4028 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm64:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4028 + $0,X	; 4+
+        STA $4028 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_6
 
 p2_line65:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4028 + $400,X             ; 4+
-        STA $4028 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm65:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4028 + $400,X	; 4+
+        STA $4028 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_6
+
 	BVC early_out_p2_7_skip	; always taken
 early_out_p2_7:
 	RTS
 early_out_p2_7_skip:
 
+
 p2_line66:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4028 + $800,X             ; 4+
-        STA $4028 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm66:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4028 + $800,X	; 4+
+        STA $4028 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_7
 
 p2_line67:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4028 + $C00,X             ; 4+
-        STA $4028 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm67:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4028 + $C00,X	; 4+
+        STA $4028 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_7
 
 p2_line68:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4028 + $1000,X             ; 4+
-        STA $4028 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm68:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4028 + $1000,X	; 4+
+        STA $4028 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_7
 
 p2_line69:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4028 + $1400,X             ; 4+
-        STA $4028 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm69:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4028 + $1400,X	; 4+
+        STA $4028 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_7
 
 p2_line70:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4028 + $1800,X             ; 4+
-        STA $4028 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm70:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4028 + $1800,X	; 4+
+        STA $4028 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_7
 
 p2_line71:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4028 + $1C00,X             ; 4+
-        STA $4028 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm71:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4028 + $1C00,X	; 4+
+        STA $4028 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_7
 
 p2_line72:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40A8 + $0,X             ; 4+
-        STA $40A8 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm72:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40A8 + $0,X	; 4+
+        STA $40A8 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_7
 
 p2_line73:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40A8 + $400,X             ; 4+
-        STA $40A8 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm73:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40A8 + $400,X	; 4+
+        STA $40A8 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_7
 
 p2_line74:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40A8 + $800,X             ; 4+
-        STA $40A8 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm74:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40A8 + $800,X	; 4+
+        STA $40A8 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_7
 
 p2_line75:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40A8 + $C00,X             ; 4+
-        STA $40A8 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm75:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40A8 + $C00,X	; 4+
+        STA $40A8 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_7
 
 p2_line76:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40A8 + $1000,X             ; 4+
-        STA $40A8 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm76:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40A8 + $1000,X	; 4+
+        STA $40A8 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_7
+
 	BVC early_out_p2_8_skip	; always taken
 early_out_p2_8:
 	RTS
 early_out_p2_8_skip:
 
+
 p2_line77:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40A8 + $1400,X             ; 4+
-        STA $40A8 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm77:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40A8 + $1400,X	; 4+
+        STA $40A8 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_8
 
 p2_line78:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40A8 + $1800,X             ; 4+
-        STA $40A8 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm78:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40A8 + $1800,X	; 4+
+        STA $40A8 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_8
 
 p2_line79:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40A8 + $1C00,X             ; 4+
-        STA $40A8 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm79:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40A8 + $1C00,X	; 4+
+        STA $40A8 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_8
 
 p2_line80:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4128 + $0,X             ; 4+
-        STA $4128 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm80:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4128 + $0,X	; 4+
+        STA $4128 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_8
 
 p2_line81:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4128 + $400,X             ; 4+
-        STA $4128 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm81:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4128 + $400,X	; 4+
+        STA $4128 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_8
 
 p2_line82:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4128 + $800,X             ; 4+
-        STA $4128 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm82:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4128 + $800,X	; 4+
+        STA $4128 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_8
 
 p2_line83:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4128 + $C00,X             ; 4+
-        STA $4128 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm83:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4128 + $C00,X	; 4+
+        STA $4128 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_8
 
 p2_line84:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4128 + $1000,X             ; 4+
-        STA $4128 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm84:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4128 + $1000,X	; 4+
+        STA $4128 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_8
 
 p2_line85:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4128 + $1400,X             ; 4+
-        STA $4128 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm85:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4128 + $1400,X	; 4+
+        STA $4128 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_8
 
 p2_line86:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4128 + $1800,X             ; 4+
-        STA $4128 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm86:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4128 + $1800,X	; 4+
+        STA $4128 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_8
 
 p2_line87:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4128 + $1C00,X             ; 4+
-        STA $4128 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm87:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4128 + $1C00,X	; 4+
+        STA $4128 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_8
+
 	BVC early_out_p2_9_skip	; always taken
 early_out_p2_9:
 	RTS
 early_out_p2_9_skip:
 
+
 p2_line88:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41A8 + $0,X             ; 4+
-        STA $41A8 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm88:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41A8 + $0,X	; 4+
+        STA $41A8 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_9
 
 p2_line89:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41A8 + $400,X             ; 4+
-        STA $41A8 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm89:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41A8 + $400,X	; 4+
+        STA $41A8 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_9
 
 p2_line90:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41A8 + $800,X             ; 4+
-        STA $41A8 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm90:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41A8 + $800,X	; 4+
+        STA $41A8 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_9
 
 p2_line91:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41A8 + $C00,X             ; 4+
-        STA $41A8 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm91:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41A8 + $C00,X	; 4+
+        STA $41A8 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_9
 
 p2_line92:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41A8 + $1000,X             ; 4+
-        STA $41A8 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm92:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41A8 + $1000,X	; 4+
+        STA $41A8 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_9
 
 p2_line93:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41A8 + $1400,X             ; 4+
-        STA $41A8 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm93:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41A8 + $1400,X	; 4+
+        STA $41A8 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_9
 
 p2_line94:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41A8 + $1800,X             ; 4+
-        STA $41A8 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm94:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41A8 + $1800,X	; 4+
+        STA $41A8 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_9
 
 p2_line95:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41A8 + $1C00,X             ; 4+
-        STA $41A8 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm95:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41A8 + $1C00,X	; 4+
+        STA $41A8 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_9
 
 p2_line96:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4228 + $0,X             ; 4+
-        STA $4228 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm96:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4228 + $0,X	; 4+
+        STA $4228 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_9
 
 p2_line97:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4228 + $400,X             ; 4+
-        STA $4228 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm97:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4228 + $400,X	; 4+
+        STA $4228 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_9
 
 p2_line98:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4228 + $800,X             ; 4+
-        STA $4228 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm98:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4228 + $800,X	; 4+
+        STA $4228 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_9
+
 	BVC early_out_p2_10_skip	; always taken
 early_out_p2_10:
 	RTS
 early_out_p2_10_skip:
 
+
 p2_line99:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4228 + $C00,X             ; 4+
-        STA $4228 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm99:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4228 + $C00,X	; 4+
+        STA $4228 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_10
 
 p2_line100:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4228 + $1000,X             ; 4+
-        STA $4228 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm100:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4228 + $1000,X	; 4+
+        STA $4228 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_10
 
 p2_line101:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4228 + $1400,X             ; 4+
-        STA $4228 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm101:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4228 + $1400,X	; 4+
+        STA $4228 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_10
 
 p2_line102:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4228 + $1800,X             ; 4+
-        STA $4228 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm102:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4228 + $1800,X	; 4+
+        STA $4228 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_10
 
 p2_line103:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4228 + $1C00,X             ; 4+
-        STA $4228 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm103:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4228 + $1C00,X	; 4+
+        STA $4228 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_10
 
 p2_line104:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42A8 + $0,X             ; 4+
-        STA $42A8 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm104:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42A8 + $0,X	; 4+
+        STA $42A8 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_10
 
 p2_line105:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42A8 + $400,X             ; 4+
-        STA $42A8 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm105:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42A8 + $400,X	; 4+
+        STA $42A8 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_10
 
 p2_line106:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42A8 + $800,X             ; 4+
-        STA $42A8 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm106:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42A8 + $800,X	; 4+
+        STA $42A8 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_10
 
 p2_line107:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42A8 + $C00,X             ; 4+
-        STA $42A8 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm107:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42A8 + $C00,X	; 4+
+        STA $42A8 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_10
 
 p2_line108:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42A8 + $1000,X             ; 4+
-        STA $42A8 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm108:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42A8 + $1000,X	; 4+
+        STA $42A8 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_10
 
 p2_line109:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42A8 + $1400,X             ; 4+
-        STA $42A8 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm109:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42A8 + $1400,X	; 4+
+        STA $42A8 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_10
+
 	BVC early_out_p2_11_skip	; always taken
 early_out_p2_11:
 	RTS
 early_out_p2_11_skip:
 
+
 p2_line110:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42A8 + $1800,X             ; 4+
-        STA $42A8 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm110:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42A8 + $1800,X	; 4+
+        STA $42A8 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_11
 
 p2_line111:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42A8 + $1C00,X             ; 4+
-        STA $42A8 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm111:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42A8 + $1C00,X	; 4+
+        STA $42A8 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_11
 
 p2_line112:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4328 + $0,X             ; 4+
-        STA $4328 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm112:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4328 + $0,X	; 4+
+        STA $4328 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_11
 
 p2_line113:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4328 + $400,X             ; 4+
-        STA $4328 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm113:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4328 + $400,X	; 4+
+        STA $4328 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_11
 
 p2_line114:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4328 + $800,X             ; 4+
-        STA $4328 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm114:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4328 + $800,X	; 4+
+        STA $4328 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_11
 
 p2_line115:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4328 + $C00,X             ; 4+
-        STA $4328 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm115:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4328 + $C00,X	; 4+
+        STA $4328 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_11
 
 p2_line116:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4328 + $1000,X             ; 4+
-        STA $4328 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm116:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4328 + $1000,X	; 4+
+        STA $4328 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_11
 
 p2_line117:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4328 + $1400,X             ; 4+
-        STA $4328 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm117:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4328 + $1400,X	; 4+
+        STA $4328 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_11
 
 p2_line118:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4328 + $1800,X             ; 4+
-        STA $4328 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm118:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4328 + $1800,X	; 4+
+        STA $4328 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_11
 
 p2_line119:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4328 + $1C00,X             ; 4+
-        STA $4328 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm119:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4328 + $1C00,X	; 4+
+        STA $4328 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_11
 
 p2_line120:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43A8 + $0,X             ; 4+
-        STA $43A8 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm120:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43A8 + $0,X	; 4+
+        STA $43A8 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_11
+
 	BVC early_out_p2_12_skip	; always taken
 early_out_p2_12:
 	RTS
 early_out_p2_12_skip:
 
+
 p2_line121:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43A8 + $400,X             ; 4+
-        STA $43A8 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm121:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43A8 + $400,X	; 4+
+        STA $43A8 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_12
 
 p2_line122:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43A8 + $800,X             ; 4+
-        STA $43A8 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm122:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43A8 + $800,X	; 4+
+        STA $43A8 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_12
 
 p2_line123:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43A8 + $C00,X             ; 4+
-        STA $43A8 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm123:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43A8 + $C00,X	; 4+
+        STA $43A8 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_12
 
 p2_line124:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43A8 + $1000,X             ; 4+
-        STA $43A8 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm124:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43A8 + $1000,X	; 4+
+        STA $43A8 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_12
 
 p2_line125:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43A8 + $1400,X             ; 4+
-        STA $43A8 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm125:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43A8 + $1400,X	; 4+
+        STA $43A8 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_12
 
 p2_line126:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43A8 + $1800,X             ; 4+
-        STA $43A8 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm126:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43A8 + $1800,X	; 4+
+        STA $43A8 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_12
 
 p2_line127:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43A8 + $1C00,X             ; 4+
-        STA $43A8 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm127:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43A8 + $1C00,X	; 4+
+        STA $43A8 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_12
 
 p2_line128:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4050 + $0,X             ; 4+
-        STA $4050 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm128:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4050 + $0,X	; 4+
+        STA $4050 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_12
 
 p2_line129:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4050 + $400,X             ; 4+
-        STA $4050 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm129:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4050 + $400,X	; 4+
+        STA $4050 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_12
 
 p2_line130:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4050 + $800,X             ; 4+
-        STA $4050 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm130:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4050 + $800,X	; 4+
+        STA $4050 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_12
 
 p2_line131:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4050 + $C00,X             ; 4+
-        STA $4050 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm131:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4050 + $C00,X	; 4+
+        STA $4050 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_12
+
 	BVC early_out_p2_13_skip	; always taken
 early_out_p2_13:
 	RTS
 early_out_p2_13_skip:
 
+
 p2_line132:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4050 + $1000,X             ; 4+
-        STA $4050 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm132:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4050 + $1000,X	; 4+
+        STA $4050 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_13
 
 p2_line133:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4050 + $1400,X             ; 4+
-        STA $4050 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm133:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4050 + $1400,X	; 4+
+        STA $4050 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_13
 
 p2_line134:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4050 + $1800,X             ; 4+
-        STA $4050 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm134:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4050 + $1800,X	; 4+
+        STA $4050 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_13
 
 p2_line135:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4050 + $1C00,X             ; 4+
-        STA $4050 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm135:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4050 + $1C00,X	; 4+
+        STA $4050 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_13
 
 p2_line136:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40D0 + $0,X             ; 4+
-        STA $40D0 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm136:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40D0 + $0,X	; 4+
+        STA $40D0 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_13
 
 p2_line137:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40D0 + $400,X             ; 4+
-        STA $40D0 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm137:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40D0 + $400,X	; 4+
+        STA $40D0 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_13
 
 p2_line138:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40D0 + $800,X             ; 4+
-        STA $40D0 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm138:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40D0 + $800,X	; 4+
+        STA $40D0 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_13
 
 p2_line139:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40D0 + $C00,X             ; 4+
-        STA $40D0 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm139:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40D0 + $C00,X	; 4+
+        STA $40D0 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_13
 
 p2_line140:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40D0 + $1000,X             ; 4+
-        STA $40D0 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm140:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40D0 + $1000,X	; 4+
+        STA $40D0 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_13
 
 p2_line141:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40D0 + $1400,X             ; 4+
-        STA $40D0 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm141:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40D0 + $1400,X	; 4+
+        STA $40D0 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_13
 
 p2_line142:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40D0 + $1800,X             ; 4+
-        STA $40D0 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm142:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40D0 + $1800,X	; 4+
+        STA $40D0 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_13
+
 	BVC early_out_p2_14_skip	; always taken
 early_out_p2_14:
 	RTS
 early_out_p2_14_skip:
 
+
 p2_line143:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $40D0 + $1C00,X             ; 4+
-        STA $40D0 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm143:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $40D0 + $1C00,X	; 4+
+        STA $40D0 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_14
 
 p2_line144:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4150 + $0,X             ; 4+
-        STA $4150 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm144:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4150 + $0,X	; 4+
+        STA $4150 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_14
 
 p2_line145:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4150 + $400,X             ; 4+
-        STA $4150 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm145:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4150 + $400,X	; 4+
+        STA $4150 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_14
 
 p2_line146:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4150 + $800,X             ; 4+
-        STA $4150 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm146:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4150 + $800,X	; 4+
+        STA $4150 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_14
 
 p2_line147:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4150 + $C00,X             ; 4+
-        STA $4150 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm147:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4150 + $C00,X	; 4+
+        STA $4150 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_14
 
 p2_line148:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4150 + $1000,X             ; 4+
-        STA $4150 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm148:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4150 + $1000,X	; 4+
+        STA $4150 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_14
 
 p2_line149:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4150 + $1400,X             ; 4+
-        STA $4150 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm149:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4150 + $1400,X	; 4+
+        STA $4150 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_14
 
 p2_line150:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4150 + $1800,X             ; 4+
-        STA $4150 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm150:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4150 + $1800,X	; 4+
+        STA $4150 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_14
 
 p2_line151:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4150 + $1C00,X             ; 4+
-        STA $4150 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm151:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4150 + $1C00,X	; 4+
+        STA $4150 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_14
 
 p2_line152:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41D0 + $0,X             ; 4+
-        STA $41D0 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm152:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41D0 + $0,X	; 4+
+        STA $41D0 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_14
 
 p2_line153:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41D0 + $400,X             ; 4+
-        STA $41D0 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm153:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41D0 + $400,X	; 4+
+        STA $41D0 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_14
+
 	BVC early_out_p2_15_skip	; always taken
 early_out_p2_15:
 	RTS
 early_out_p2_15_skip:
 
+
 p2_line154:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41D0 + $800,X             ; 4+
-        STA $41D0 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm154:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41D0 + $800,X	; 4+
+        STA $41D0 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_15
 
 p2_line155:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41D0 + $C00,X             ; 4+
-        STA $41D0 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm155:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41D0 + $C00,X	; 4+
+        STA $41D0 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_15
 
 p2_line156:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41D0 + $1000,X             ; 4+
-        STA $41D0 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm156:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41D0 + $1000,X	; 4+
+        STA $41D0 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_15
 
 p2_line157:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41D0 + $1400,X             ; 4+
-        STA $41D0 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm157:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41D0 + $1400,X	; 4+
+        STA $41D0 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_15
 
 p2_line158:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41D0 + $1800,X             ; 4+
-        STA $41D0 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm158:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41D0 + $1800,X	; 4+
+        STA $41D0 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_15
 
 p2_line159:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $41D0 + $1C00,X             ; 4+
-        STA $41D0 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm159:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $41D0 + $1C00,X	; 4+
+        STA $41D0 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_15
 
 p2_line160:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4250 + $0,X             ; 4+
-        STA $4250 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm160:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4250 + $0,X	; 4+
+        STA $4250 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_15
 
 p2_line161:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4250 + $400,X             ; 4+
-        STA $4250 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm161:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4250 + $400,X	; 4+
+        STA $4250 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_15
 
 p2_line162:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4250 + $800,X             ; 4+
-        STA $4250 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm162:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4250 + $800,X	; 4+
+        STA $4250 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_15
 
 p2_line163:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4250 + $C00,X             ; 4+
-        STA $4250 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm163:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4250 + $C00,X	; 4+
+        STA $4250 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_15
 
 p2_line164:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4250 + $1000,X             ; 4+
-        STA $4250 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm164:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4250 + $1000,X	; 4+
+        STA $4250 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_15
+
 	BVC early_out_p2_16_skip	; always taken
 early_out_p2_16:
 	RTS
 early_out_p2_16_skip:
 
+
 p2_line165:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4250 + $1400,X             ; 4+
-        STA $4250 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm165:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4250 + $1400,X	; 4+
+        STA $4250 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_16
 
 p2_line166:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4250 + $1800,X             ; 4+
-        STA $4250 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm166:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4250 + $1800,X	; 4+
+        STA $4250 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_16
 
 p2_line167:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4250 + $1C00,X             ; 4+
-        STA $4250 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm167:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4250 + $1C00,X	; 4+
+        STA $4250 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_16
 
 p2_line168:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42D0 + $0,X             ; 4+
-        STA $42D0 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm168:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42D0 + $0,X	; 4+
+        STA $42D0 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_16
 
 p2_line169:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42D0 + $400,X             ; 4+
-        STA $42D0 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm169:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42D0 + $400,X	; 4+
+        STA $42D0 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_16
 
 p2_line170:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42D0 + $800,X             ; 4+
-        STA $42D0 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm170:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42D0 + $800,X	; 4+
+        STA $42D0 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_16
 
 p2_line171:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42D0 + $C00,X             ; 4+
-        STA $42D0 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm171:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42D0 + $C00,X	; 4+
+        STA $42D0 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_16
 
 p2_line172:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42D0 + $1000,X             ; 4+
-        STA $42D0 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm172:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42D0 + $1000,X	; 4+
+        STA $42D0 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_16
 
 p2_line173:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42D0 + $1400,X             ; 4+
-        STA $42D0 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm173:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42D0 + $1400,X	; 4+
+        STA $42D0 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_16
 
 p2_line174:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42D0 + $1800,X             ; 4+
-        STA $42D0 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm174:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42D0 + $1800,X	; 4+
+        STA $42D0 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_16
 
 p2_line175:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $42D0 + $1C00,X             ; 4+
-        STA $42D0 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm175:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $42D0 + $1C00,X	; 4+
+        STA $42D0 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_16
+
 	BVC early_out_p2_17_skip	; always taken
 early_out_p2_17:
 	RTS
 early_out_p2_17_skip:
 
+
 p2_line176:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4350 + $0,X             ; 4+
-        STA $4350 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm176:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4350 + $0,X	; 4+
+        STA $4350 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_17
 
 p2_line177:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4350 + $400,X             ; 4+
-        STA $4350 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm177:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4350 + $400,X	; 4+
+        STA $4350 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_17
 
 p2_line178:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4350 + $800,X             ; 4+
-        STA $4350 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm178:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4350 + $800,X	; 4+
+        STA $4350 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_17
 
 p2_line179:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4350 + $C00,X             ; 4+
-        STA $4350 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm179:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4350 + $C00,X	; 4+
+        STA $4350 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_17
 
 p2_line180:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4350 + $1000,X             ; 4+
-        STA $4350 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm180:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4350 + $1000,X	; 4+
+        STA $4350 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_17
 
 p2_line181:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4350 + $1400,X             ; 4+
-        STA $4350 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm181:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4350 + $1400,X	; 4+
+        STA $4350 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_17
 
 p2_line182:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4350 + $1800,X             ; 4+
-        STA $4350 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm182:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4350 + $1800,X	; 4+
+        STA $4350 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_17
 
 p2_line183:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $4350 + $1C00,X             ; 4+
-        STA $4350 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm183:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $4350 + $1C00,X	; 4+
+        STA $4350 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_17
 
 p2_line184:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43D0 + $0,X             ; 4+
-        STA $43D0 + $0,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm184:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43D0 + $0,X	; 4+
+        STA $43D0 + $0,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_17
 
 p2_line185:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43D0 + $400,X             ; 4+
-        STA $43D0 + $400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm185:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43D0 + $400,X	; 4+
+        STA $43D0 + $400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_17
 
 p2_line186:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43D0 + $800,X             ; 4+
-        STA $43D0 + $800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm186:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43D0 + $800,X	; 4+
+        STA $43D0 + $800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_17
+
 	BVC early_out_p2_18_skip	; always taken
 early_out_p2_18:
 	RTS
 early_out_p2_18_skip:
 
+
 p2_line187:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43D0 + $C00,X             ; 4+
-        STA $43D0 + $C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm187:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43D0 + $C00,X	; 4+
+        STA $43D0 + $C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_18
 
 p2_line188:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43D0 + $1000,X             ; 4+
-        STA $43D0 + $1000,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm188:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43D0 + $1000,X	; 4+
+        STA $43D0 + $1000,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_18
 
 p2_line189:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43D0 + $1400,X             ; 4+
-        STA $43D0 + $1400,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm189:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43D0 + $1400,X	; 4+
+        STA $43D0 + $1400,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_18
 
 p2_line190:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43D0 + $1800,X             ; 4+
-        STA $43D0 + $1800,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm190:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43D0 + $1800,X	; 4+
+        STA $43D0 + $1800,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_18
 
 p2_line191:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA $43D0 + $1C00,X             ; 4+
-        STA $43D0 + $1C00,X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-p2_pcsm191:
+        LDA (tile_ptr),Y	; 5+ (+ = page boundary)
+        ORA $43D0 + $1C00,X	; 4+
+        STA $43D0 + $1C00,X	; 5
+        DEY	; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
         BMI early_out_p2_18
 	RTS
 p2_line_ptrs_lo:

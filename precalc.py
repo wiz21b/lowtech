@@ -2,6 +2,11 @@
 # ;;; It is published under the terms of the
 # ;;; GUN GPL License Version 3.
 
+# The "before it's too late" demo
+# By Wiz/Imphobia!
+# In memory of my scene years and its seasons.
+
+# 617D draw hline full
 
 import sys
 import xxhash
@@ -199,9 +204,9 @@ def gen_code_vertical_tile_draw( fo, page):
         if y % 11 == 0:
             eo_label = f"early_out_p{page}_{early_out_count}"
             #fo.write(f"\tCLV\n")
-            fo.write(f"\tBVC {eo_label}_skip\t; always taken\n")
+            fo.write(f"\n\tBVC {eo_label}_skip\t; always taken\n")
             fo.write(f"{eo_label}:\n\tRTS\n")
-            fo.write(f"{eo_label}_skip:\n")
+            fo.write(f"{eo_label}_skip:\n\n")
             early_out_count += 1
 
         if page == 1:
@@ -211,8 +216,9 @@ def gen_code_vertical_tile_draw( fo, page):
             prefix = "p2_"
             line_base = hgr_address(y, page=0x4000)
 
+        nop_label = f"{prefix}pcsm{y}"
         labels.append( "{}line{}".format(prefix, y))
-        nops_labels.append( "{}pcsm{}".format(prefix, y))
+        nops_labels.append( nop_label)
 
         # The self modified NOP will be replaced by DEX or INX.
 
@@ -235,14 +241,18 @@ def gen_code_vertical_tile_draw( fo, page):
         # ensure that the BEQ is never self modded at the wrong
         # position.
 
+        if y > 0:
+            nop_label_code = ""
+        else:
+            nop_label_code = f"{nop_label}:\n"
+
         fo.write(f"""
 {prefix}line{y}:
-        LDA (tile_ptr),Y     ; 5+ (+ = page boundary)
-        ORA {line_base},X             ; 4+
-        STA {line_base},X             ; 5
-        DEY                  ; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-{prefix}pcsm{y}:
-        BMI {eo_label}
+        LDA (tile_ptr),Y\t; 5+ (+ = page boundary)
+        ORA {line_base},X\t; 4+
+        STA {line_base},X\t; 5
+        DEY\t; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
+{nop_label_code}        BMI {eo_label}
 """)
         # .format( prefix, y,
         #        line_base, line_base,
@@ -577,7 +587,7 @@ def persp( v):
     return Vtx( v.x / d + APPLE_XRES / 2, v.y / d + APPLE_YRES / 2, 0 )
 
 recorded_lines = []
-NB_FRAMES = 40*1
+NB_FRAMES = 80
 axis = [3,2,0.5]
 theta = 0
 
@@ -634,6 +644,7 @@ faces = [ Face(a,b,c,d), # front
 
 
 
+# Animate
 
 for frame_ndx in range(NB_FRAMES):
     for event in pygame.event.get():
@@ -642,8 +653,8 @@ for frame_ndx in range(NB_FRAMES):
 
     screen.fill(black)
 
+    theta = frame_ndx * 2*math.pi / NB_FRAMES
     rot = angle_axis_quat(theta, axis)
-    theta += 2*math.pi / NB_FRAMES
 
     drawn_edges = set()
 
@@ -982,7 +993,8 @@ def compute_horizontal_masks( fo):
             bits_to_hgr( mask), mask))
 
     fo.write("hline_masks_right:\n")
-    for m in rotate_array(reversed(range(7)),-1):
+    #for m in rotate_array(reversed(range(7)),-1):
+    for m in reversed(range(7)):
         mask = ((2**7-1) << m) & 127
         fo.write( "\t.byte %{:08b}\t; {:07b}\n".format(
             bits_to_hgr(mask), mask))
@@ -1022,9 +1034,7 @@ def compute_horizontal_tiles(fo):
 def compute_horizontal_tiles_up(fo):
     fo.write("HTILE_UP:\n")
 
-    column = np.zeros( (TILE_SIZE,1,), dtype=np.bool_)
-
-    for i in range( TILE_SIZE+1):
+    for i in range( TILE_SIZE):
 
         # Off by one protection
         i = min( i, TILE_SIZE - 1)
@@ -1033,14 +1043,13 @@ def compute_horizontal_tiles_up(fo):
         draw_hline( t, 0,i, TILE_SIZE-1, 0, 1)
         image_to_ascii( t, grid_size=TILE_SIZE)
 
+        bm1 = np.packbits( t, axis=1).flatten()
 
-        t1 = np.concatenate( (column, t), axis=1)
-        t1 = t
-
-        bm1 = np.packbits( t1, axis=1).flatten()
+        # Order bits per Apple2 HGR convention
         rb = [ reverse_bits( row) for row in bm1]
 
         rb = list(reversed(rb[0:i+1])) + [0]*(TILE_SIZE - i)
+        assert( len(rb) == 8)
 
 
         # rb += [0] # Make sure we have 8 bytes rows (instead of 7); 8 is easier to use in assembly
@@ -1062,8 +1071,8 @@ def compute_hgr_offsets(fo):
 
 def clip( a, b):
 
-    LIMY = 1
-    BOTY = 182
+    LIMY = TILE_SIZE
+    BOTY = APPLE_YRES - TILE_SIZE
 
     if a.y > b.y:
         a,b = b,a
@@ -1089,53 +1098,108 @@ def clip( a, b):
 
     return ca, cb
 
+def hclip( a, b):
+
+    if a is None or b is None:
+        return None, None
+
+    LIMX = 8
+    BOTX = 255 - TILE_SIZE
+
+    if a.x > b.x:
+        a,b = b,a
+
+    if a.x > BOTX:
+        return None, None
+
+    if b.x < LIMX:
+        return None, None
+
+    d = b-a
+    assert d.x >= 0
+    ca, cb = a, b
+
+    if abs(d.x) > 0:
+        s = d.y/d.x
+        if a.x < LIMX:
+            ca = Vertex( LIMX, a.y + s*abs(LIMX - a.x))
+            assert ca.y >= 0
+
+        if b.x > BOTX:
+            cb = Vertex( BOTX, a.y + s*abs(BOTX - a.x))
+
+    return ca, cb
+
 def gen_data_line( fo, a, b):
-    a,b = clip(a,b)
+    a,b = hclip( *clip(a,b) )
 
     if a == None:
         return
 
-    dx = (b - a).x
-    dy = (b - a).y
 
+    dx, dy = (b - a).x, (b - a).y
 
     # print(b-a)
     if dx*dx > dy*dy:
         #return
 
-        # mostly horizonta line
+        # mostly horizontal line
         if a.x > b.x:
             a,b = b,a
-            dx = dx * -1
-            dy = dy * -1
-        assert dx >= 0
+            dx, dy = (b - a).x, (b - a).y
+
         assert -256*TILE_SIZE < int(256.0*TILE_SIZE*dy/dx) < 256*TILE_SIZE, "{} / {}".format(int(256.0*TILE_SIZE*dy/dx), 256*6)
+        assert dx > 0
 
-        if dy*dx > 0:
+        # The difficult part of mostly horizontal lines is the edges.
+        # The idea is this. We imagine the line goes from a tile aligned
+        # boundary (left) to another (right). That is, screen X position
+        # which are multiple of TILE_SIZE. Doing that we extend an actual
+        # line a bit in both directions. To compensate for that, we'll mask
+        # those extension sot that they are not drawn
 
-            ofs = TILE_SIZE - ( int(a.x) % TILE_SIZE)
+        # We do all of this because we draw the line tile by tile
+        # and have to use full tiles. We must also avoid the
+        # difficulty of computing intersection between the lines and
+        # the modulo TILE_SIZE x position (because this implies multiplication
+        # by slope which is 16 bits => hard to do)
 
-            x_start = int(a.x + ofs) // TILE_SIZE
-            y_start = int(a.y + ofs * dy/dx)
-
-
+        # left part
+        lx = int(a.x)
+        if lx % TILE_SIZE > 0:
+            # we must extend to the left to have a complete tile
+            a = Vertex( int(a.x - (lx % TILE_SIZE)),
+                        int(a.y - (lx % TILE_SIZE) * dy/dx))
+            left_mask = lx % TILE_SIZE
         else:
-            ofs = ( int(a.x) % TILE_SIZE)
+            left_mask = 0
 
-            x_start = int(a.x - ofs) // TILE_SIZE
-            y_start = int(a.y - ofs * dy/dx)
+        rx = int(b.x)
+        if rx % TILE_SIZE < TILE_SIZE-1:
+            f = TILE_SIZE - 1 - (rx % TILE_SIZE)
+            # we must extend to the left to have a complete tile
+            b = Vertex( int(b.x + f),
+                        int(b.y + f * dy/dx))
+            right_mask = rx % TILE_SIZE
+        else:
+            right_mask = 0
 
-        d = [ 0,
-              x_start, y_start,
-              max(1, (int(dx) // TILE_SIZE)),
+        dx, dy = (b - a).x, (b - a).y
+
+        slope = TILE_SIZE * dy/dx
+        dx_int = (int(b.x) // TILE_SIZE) - (int(a.x) // TILE_SIZE) + 1
+        d = [ 0 + (right_mask << 5),
+              int(a.x), int(a.y),
+              (dx_int << 3) + left_mask,
               int_to_16( TILE_SIZE*dy/dx)]
 
     else:
+        #return
         # mostly vertical line ( |dx| < |dy|)
         if a.y > b.y:
             a,b = b,a
-            dx = dx * -1
-            dy = dy * -1
+            dx, dy = (b - a).x, (b - a).y
+
         assert dy >= 0
         assert -256*TILE_SIZE <= int(256.0*TILE_SIZE*dx/dy) <= 256*TILE_SIZE, "dx/dy == {}".format(dx/dy)
 
@@ -1144,14 +1208,16 @@ def gen_data_line( fo, a, b):
         if dx*dx == dy*dy:
             dx = int(dx * 0.99)
 
+        slope = dx/dy
         assert int( abs( TILE_SIZE*dx/dy)) <= TILE_SIZE - 1
 
-        d = [ 1, int(a.x), int(a.y),
+        d = [ 1,
+              int(a.x), int(a.y),
               max(1, int(dy )), #  // TILE_SIZE
               int_to_16( TILE_SIZE*dx/dy)]
 
     fo.write("\t.byte {}\n".format(",".join(map(str,d[0:-1]))))
-    fo.write("\t.word {}\n".format(d[4]))
+    fo.write("\t.word {}\t;{}\n".format(d[4],slope))
 
 compute_vertical_tiles()
 compute_vertical_tiles_right_left()
@@ -1172,18 +1238,23 @@ with open("lines.s","w") as fo:
 
     fo.write("; generated \n")
     fo.write("; line type (0=horiz/1=verti), X start, Y start, length, slope (word) \n")
+
+    # 5:
     for i,frame in enumerate(recorded_lines):
         if i == 0:
-            fo.write("line_data_frame1:\n")
-        for l in frame:
+            fo.write("line_data_frame1:\t;Beginning of first frame\n")
+
+        for li,l in enumerate(frame):
+            # if i > 0 or 10 <= li <= 12:
             gen_data_line( fo, Vertex( l[0],l[1]), Vertex(l[2],l[3]))
+
         if frame != recorded_lines[-1]:
             fo.write("\t.byte 3\t;; end of block\n")
         else:
-            fo.write("\t.byte 4\t;; end of block\n")
+            fo.write("\t.byte 4\t;; end of animation\n")
 
         if i == 0:
-            fo.write("line_data_frame2:\n")
+            fo.write("line_data_frame2:\t;Beginning of second frame\n")
 
 
 with open("precalc.s","w") as fo:
