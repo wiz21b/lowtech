@@ -1,0 +1,21 @@
+@page {
+  size: A4;
+}
+
+pre {
+    font-family: "DejaVu Sans", monospace;
+    font-size : 11pt;
+}
+
+.keyword {
+    font-weight: bold;
+}
+
+.preproc {
+    font-weight: bold;
+}
+
+.comment {
+    font-style: italic;
+    color: gray;
+}
