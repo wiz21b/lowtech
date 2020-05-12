@@ -13,308 +13,22 @@ import xxhash
 from PIL import Image
 import numpy as np
 from collections import OrderedDict
-import colorama
 import io
 import math
 import random
 random.seed(125)
 
+from utils import *
 
-APPLE_YRES = 64*3 # 192
-APPLE_XRES = 40*7 # 280
 
-TILE_SIZE = 7
+DEBUG = False
 
-def is_int(val):
-    if type(val) == int:
-        return True
-    else:
-        if val.is_integer():
-            return True
-        else:
-            return False
+TILE_SIZE = APPLE_HGR_PIXELS_PER_BYTE
 
 
-def int_to_16(x : float):
-    assert -128 <= x <= 127, f"{x} is not representable as signed 8 bit value"
 
-    x = int( round(x * 256))
 
-    if x >= 0:
-        return x
-    else:
-        # remember, 0xFFFF == -1
-        return 65536 + x
 
-def reverse_bits(num,bitSize=8):
-
-    assert num == 0 or math.log( num, 2) < bitSize
-
-    # 100 -> 001 -> 00100000 (bitsize bits)
-
-    # convert number into binary representation
-    # output will be like bin(10) = '0b10101'
-    binary = bin(num)
-
-    # skip first two characters of binary
-    # representation string and reverse
-    # remaining string and then append zeros
-    # after it. binary[-1:1:-1]  --> start
-    # from last character and reverse it until
-    # second last character from left
-    reverse = binary[-1:1:-1]
-    assert len(reverse) <= bitSize
-    reverse = reverse + (bitSize - len(reverse))*'0'
-
-    # converts reversed binary string into integer
-    return int(reverse,2)
-
-def rotate_array(arr,numOfRotations = 1):
-    arr = list(arr)
-    return arr[numOfRotations:]+arr[:numOfRotations]
-
-def logical_or(a,b):
-    if a > 0:
-        return a
-    else:
-        return b
-
-
-
-def bits_to_hgr(b):
-    """ Reorder bits from natural order (MSB is rightmost, LSB is leftmost)
-    into Apple's HGR order
-    """
-    assert 0 <= b < 128
-    return reverse_bits(b) >> 1
-
-def hgr_address( y, page=0x2000, format=0):
-    assert page == 0x2000 or page == 0x4000, "I'll work only for legal pages"
-    assert 0 <= y < APPLE_YRES, "You're outside Apple's veritcal resolution"
-
-    if 0 <= y < 64:
-        ofs = 0
-    elif 64 <= y < 128:
-        ofs = 0x28
-    else:
-        ofs = 0x50
-
-    i = (y % 64) // 8
-    j = (y % 64) % 8
-
-    if format == 0:
-         return "${:X} + ${:X}".format( page + ofs + 0x80*i, 0x400*j)
-    else:
-         return "${:X}".format( page + ofs + 0x80*i + 0x400*j)
-
-def image_to_ascii( pic, grid_size = TILE_SIZE):
-    data = []
-    sym = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-
-    with colorama.colorama_text() as ctx:
-        for y in range( pic.shape[0]):
-            r= []
-            for x in range( pic.shape[1]):
-                if pic[ y][ x] == 0:
-                    if y % grid_size == 0 and x % grid_size == 0:
-                        r += "+-"
-                    elif y % grid_size == 0:
-                        r += "--"
-                    elif x % grid_size == 0:
-                        r += "| "
-                    elif (y+x)%2 == 0:
-                        r += ".."
-                    else:
-                        r += "  "
-                elif pic[ y][ x] == 1:
-                    r += "\u2588\u2588"
-                elif pic[ y][ x] == 2:
-                    r += "##"
-                elif pic[ y][ x] == 3:
-                    r += "//"
-
-            data.append("".join(r))
-
-        for l in data:
-            print(l)
-    print()
-
-    return data
-
-
-def array_to_asm( fo, a, line_prefix, label = ""):
-
-    if type(a[0]) == str:
-        fmt = "{}"
-    elif line_prefix in ('!word','.word'):
-        fmt = "${:04x}"
-    elif line_prefix in ('!byte','.byte'):
-        fmt = "${:02x}"
-    else:
-        raise Exception("Unknown format {}".format( line_prefix))
-
-    if label:
-        label = "{}:".format(label)
-    else:
-        label = ""
-
-    fo.write("{}\t; {} values\n".format(label, len(a)))
-    for i in range( 0, len( a), 10):
-        end = min( i + 10, len( a))
-        fo.write("\t{} {}\n".format( line_prefix, ", ".join( [ fmt.format(x) for x in a[i:end]])))
-
-
-def make_lo_hi_ptr_table( fo, name, items):
-     lo_ptrs = [ "<{}".format(i) for i in items]
-     hi_ptrs = [ ">{}".format(i) for i in items]
-
-     # fo.write("\n")
-     # fo.write("{}_lo:\t.byte {}\n".format( name, ", ".join(lo_ptrs)))
-     # fo.write("{}_hi:\t.byte {}\n".format( name, ", ".join(hi_ptrs)))
-
-     fo.write("{}_lo:\n".format( name ))
-     ndx=0
-     for lo in lo_ptrs:
-          fo.write("\t.byte {}\t; {}\n".format( lo, ndx))
-          ndx+=1
-
-     fo.write("{}_hi:\n".format( name ))
-     ndx=0
-     for hi in hi_ptrs:
-          fo.write("\t.byte {}\t; {}\n".format( hi, ndx))
-          ndx+=1
-
-
-def gen_code_vertical_tile_draw( fo, page):
-    labels = []
-    nops_labels = []
-
-    early_out_count  = 1
-
-    fo.write("""
-; Optimizing the BPL away is not worth it.
-; A branch takes 2 or 3 cycles, but setting it up with self modifying code
-; is at least 10 times that. So it's worth only for tall lines.
-""")
-
-
-    for y in range(0,APPLE_YRES):
-
-
-        if y % 11 == 0:
-            eo_label = f"early_out_p{page}_{early_out_count}"
-            #fo.write(f"\tCLV\n")
-            fo.write(f"\n\tBVC {eo_label}_skip\t; always taken\n")
-            fo.write(f"{eo_label}:\n\tRTS\n")
-            fo.write(f"{eo_label}_skip:\n\n")
-            early_out_count += 1
-
-        if page == 1:
-            prefix = ""
-            line_base = hgr_address(y)
-        else:
-            prefix = "p2_"
-            line_base = hgr_address(y, page=0x4000)
-
-        nop_label = f"{prefix}pcsm{y}"
-        labels.append( "{}line{}".format(prefix, y))
-        nops_labels.append( nop_label)
-
-        # The self modified NOP will be replaced by DEX or INX.
-
-        # When BPL is self mod to soething else, remember
-        # that the INY before is increased but it is not tested
-        # So testing Y on being 0 doesn't work ('cos you might
-        # skip that 0). So one has to use a test that is a bit
-        # stronger (BMI/BPL).
-
-        # DEY approach
-        # DEY works well with BPL : 6,5,4..,1,0 : once at zero, addr+Y still wroks fine
-
-        # INY approach with BPL :
-        # 254,255,0,1 => problem, once at zero,
-        # addr+Y wraps by 256 bytes !  So we need to prevent 0. So we
-        # could use BEQ.  Problem with BEQ is because self mod. If BEQ
-        # is self modded when Y reaches 0, the next iteration will be
-        # Y = 1 and BEQ won't trigger... Solution 1, join BPL and BEQ,
-        # but that's two instructions instead of one Solution 2,
-        # ensure that the BEQ is never self modded at the wrong
-        # position.
-
-        if y > 0:
-            nop_label_code = ""
-        else:
-            nop_label_code = f"{nop_label}:\n"
-
-        fo.write(f"""
-{prefix}line{y}:
-        LDA (tile_ptr),Y\t; 5+ (+ = page boundary)
-        ORA {line_base},X\t; 4+
-        STA {line_base},X\t; 5
-        DEY\t; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
-{nop_label_code}        BMI {eo_label}
-""")
-        # .format( prefix, y,
-        #        line_base, line_base,
-        #        prefix, y,
-        #        prefix, y,
-        #        prefix, y ))
-
-    fo.write("\tRTS\n")
-    make_lo_hi_ptr_table( fo, prefix + "line_ptrs", labels)
-    # make_lo_hi_ptr_table( fo, "nops_ptrs", nops_labels)
-
-
-
-def gen_code_vertical_tile_blank( fo, page):
-    labels = []
-    nops_labels = []
-    early_out_count  = 1
-
-    fo.write("""
-; Optimizing the BPL away is not worth it.
-; A branch takes 2 or 3 cycles, but setting it up with self modifying code
-; is at least 10 times that. So it's worth only for tall lines.
-""")
-
-    for y in range(0,APPLE_YRES):
-
-        if y % 11 == 0:
-            eo_label = f"blank_early_out_p{page}_{early_out_count}"
-            #fo.write(f"\tCLV\n")
-            fo.write(f"\tBVC {eo_label}_skip\t; always taken\n")
-            fo.write(f"{eo_label}:\n\tRTS\n")
-            fo.write(f"{eo_label}_skip:\n")
-            early_out_count += 1
-
-        if page == 1:
-            prefix = ""
-            line_base = hgr_address(y)
-        else:
-            prefix = "p2_"
-            line_base = hgr_address(y, page=0x4000)
-
-        labels.append( "{}blank_line{}".format(prefix, y))
-        nops_labels.append( "{}blank_pcsm{}".format(prefix, y))
-
-        # 13 bytes * 192 = 2496 bytes
-        fo.write(f"""
-{prefix}blank_line{y}:
-	STA {line_base},X
-	DEY
-{prefix}blank_pcsm{y}:
-        BMI {eo_label}
-""")
-        # .format( prefix, y,
-        #                           line_base,
-        #                           prefix, y,
-        #                           prefix, y,
-        #                           prefix, y ))
-
-
-    fo.write("\tRTS\n")
-    make_lo_hi_ptr_table( fo, prefix + "blank_line_ptrs", labels)
-    # make_lo_hi_ptr_table( fo, "nops_ptrs", nops_labels)
 
 
 
@@ -523,12 +237,18 @@ class Edge:
         self.v1, self.v2 = v1, v2
 
 class Face:
-    def __init__( self, a, b, c, z = None):
+    def __init__( self, a, b, c = None, z = None):
         if z:
             self.vertices = [a,b,c,z]
-        else:
+            self.normal = (b-a).cross(c-a)
+            self.edges = 4
+        elif c:
             self.vertices = [a,b,c]
-        self.normal = (b-a).cross(c-a)
+            self.normal = (b-a).cross(c-a)
+            self.edges = 3
+        else:
+            self.vertices = [a,b]
+            self.edges = 1
 
 
 def angle_axis_quat(theta, axis):
@@ -557,6 +277,13 @@ def rotate_quat(quat, vect):
     vect = np.append([0],vect)
     # Normalize it
     norm_vect = np.linalg.norm(vect)
+
+    if norm_vect == 0:
+        # Origin can't be rotated
+        return vect[1:]
+    #assert norm_vect > 0, f"{vect} norm is not good"
+
+    #print(norm_vect)
     vect = vect/norm_vect
     # Computes the conjugate of quat
     quat_ = np.append(quat[0],-quat[1:])
@@ -582,12 +309,12 @@ screen = pygame.display.set_mode(size)
 # 70/8.3 = 8.4
 
 def persp( v):
-    zoom = 250 # 250 is the ref, 590 is max for tetrahedron
+    zoom = 350 # 250 is the ref, 590 is max for tetrahedron
     d = (v.z + 5) / zoom
     return Vtx( v.x / d + APPLE_XRES / 2, v.y / d + APPLE_YRES / 2, 0 )
 
 recorded_lines = []
-NB_FRAMES = 80
+NB_FRAMES = 40
 axis = [3,2,0.5]
 theta = 0
 
@@ -601,59 +328,75 @@ Vtx = Vertex
 # d = Vtx(0,+1,+1)
 # faces = [ Face(a,b,c), Face(a,d,b), Face( c,b,d), Face( c,d,a)  ]
 
-a = Vtx(-0.75,-0.75,-1)
-b = Vtx(+0.75,-0.75,-1)
-c = Vtx(+0.75,+0.75,-1)
-d = Vtx(-0.75,+0.75,-1)
+# Ogon
+# a = Vtx(-0.75,-0.75,-1)
+# b = Vtx(+0.75,-0.75,-1)
+# c = Vtx(+0.75,+0.75,-1)
+# d = Vtx(-0.75,+0.75,-1)
 
-ap = Vtx(-1,-1,0)
-bp = Vtx(+1,-1,0)
-cp = Vtx(+1,+1,0)
-dp = Vtx(-1,+1,0)
+# ap = Vtx(-1,-1,0)
+# bp = Vtx(+1,-1,0)
+# cp = Vtx(+1,+1,0)
+# dp = Vtx(-1,+1,0)
 
-app = Vtx(-1,-1,1)
-bpp = Vtx(+1,-1,1)
-cpp = Vtx(+1,+1,1)
-dpp = Vtx(-1,+1,1)
+# app = Vtx(-1,-1,1)
+# bpp = Vtx(+1,-1,1)
+# cpp = Vtx(+1,+1,1)
+# dpp = Vtx(-1,+1,1)
 
-appp = Vtx(-0.5,-0.5,2)
-bppp = Vtx(+0.5,-0.5,2)
-cppp = Vtx(+0.5,+0.5,2)
-dppp = Vtx(-0.5,+0.5,2)
+# appp = Vtx(-0.5,-0.5,2)
+# bppp = Vtx(+0.5,-0.5,2)
+# cppp = Vtx(+0.5,+0.5,2)
+# dppp = Vtx(-0.5,+0.5,2)
 
-faces = [ Face(a,b,c,d), # front
-          Face( d,c,cp,dp), # top
-          Face( b,a,ap,bp), # bottom
-          Face( a,d,dp,ap), # left
-          Face( b,bp,cp,c), # right
+# faces = [ Face(a,b,c,d), # front
+#           Face( d,c,cp,dp), # top
+#           Face( b,a,ap,bp), # bottom
+#           Face( a,d,dp,ap), # left
+#           Face( b,bp,cp,c), # right
 
-          Face(ap,app,bpp,bp),
-          Face(bp,bpp,cpp,cp),
-          Face(dp,cp,cpp,dpp),
-          Face(ap,dp,dpp,app),
+#           Face(ap,app,bpp,bp),
+#           Face(bp,bpp,cpp,cp),
+#           Face(dp,cp,cpp,dpp),
+#           Face(ap,dp,dpp,app),
 
-          Face(app,appp,bppp,bpp),
-          Face(bpp,bppp,cppp,cpp),
-          Face(dpp,cpp,cppp,dppp),
-          Face(app,dpp,dppp,appp),
+#           Face(app,appp,bppp,bpp),
+#           Face(bpp,bppp,cppp,cpp),
+#           Face(dpp,cpp,cppp,dppp),
+#           Face(app,dpp,dppp,appp),
 
-          Face(dppp,cppp,bppp,appp), #rear
-         ]
+#           Face(dppp,cppp,bppp,appp), #rear
+#          ]
 
+faces = []
+ty=0.5
+#for i in range(-4,+5):
 
+N=4
+for i in range(0,+N+1):
+    a = Vtx(-5,i*0.2 + ty,0)
+    b = Vtx(+5,i*0.2 + ty,0)
+    faces.append( Face( a,b))
+
+    if i != 100:
+        a = Vtx((i-N//2 - 1)*0.5,+ty,0)
+        b = Vtx((i-N//2 - 1)*3,+10.5+ty,0)
+        faces.append( Face( a,b))
+
+axis = [0,0,1]
 
 
 
 # Animate
 
-for frame_ndx in range(NB_FRAMES):
+for frame_ndx in range(3,NB_FRAMES):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
 
     screen.fill(black)
 
-    theta = frame_ndx * 2*math.pi / NB_FRAMES
+    theta = math.sin(frame_ndx * 2*math.pi / NB_FRAMES)*0.5
     rot = angle_axis_quat(theta, axis)
 
     drawn_edges = set()
@@ -666,13 +409,14 @@ for frame_ndx in range(NB_FRAMES):
         vp = [ persp( Vtx( *rotate_quat( rot, [v.x,v.y,v.z]))).grab_id(v)
                for v in face.vertices ]
 
-        v1 = vp[0] - vp[1]
-        v2 = vp[0] - vp[2]
-        if v1.cross(v2).z < 0:
-            #pass
-            continue
+        if len( face.vertices) > 2:
+            v1 = vp[0] - vp[1]
+            v2 = vp[0] - vp[2]
+            if v1.cross(v2).z < 0:
+                #pass
+                continue
 
-        for i in range( len( face.vertices)):
+        for i in range( face.edges):
             a,b = vp[i], vp[(i+1)%len(face.vertices)]
 
             k = min( a.id, b.id), max( a.id, b.id)
@@ -800,46 +544,189 @@ class ZBuffer:
                z += z_slope
 
      def show(self):
-         image_to_ascii( self.pixels)
+         image_to_ascii( self.pixels, TILE_SIZE)
 
 
 def seven_bits_split(t):
-     assert (TILE_SIZE + 1) % 8 == 0
-     assert t.shape[0] == TILE_SIZE
-     assert t.shape[1] == 2*TILE_SIZE
+    # t is a double tile
 
-     t1, t2 = np.hsplit(t, 2)
+    assert (TILE_SIZE + 1) % 8 == 0, "This works only with 7 bits wide tiles"
+    assert t.shape[0] == TILE_SIZE, "The tiles' height is not right"
+    assert t.shape[1] == 2*TILE_SIZE, "I need 2 tiles side by side"
 
-     # The MSB is the one for the color selection in HGR, we live it zero.
-     column = np.zeros( (TILE_SIZE,1,), dtype=np.bool_)
-     t1 = np.concatenate( (column, t1), axis=1)
-     t2 = np.concatenate( (column, t2), axis=1)
+    # Split the "double tile" in two tiles
+    t1, t2 = np.hsplit(t, 2)
 
-     image_to_ascii( np.concatenate( (t1, t2), axis=1), grid_size=8)
+    # The most significant bit is the one for the color selection in
+    # Apple 2's HGR, we leave it at zero.
 
-     bm1 = np.packbits( t1, axis=1).flatten()
-     bm2 = np.packbits( t2, axis=1).flatten()
+    column = np.zeros( (TILE_SIZE,1,), dtype=np.bool_)
+    t1 = np.concatenate( (column, t1), axis=1)
+    t2 = np.concatenate( (column, t2), axis=1)
 
-     return bm1, bm2
+    #image_to_ascii( np.concatenate( (t1, t2), axis=1), grid_size=8)
+
+    bm1 = np.packbits( t1, axis=1).flatten()
+    bm2 = np.packbits( t2, axis=1).flatten()
+
+    return bm1, bm2
+
+
+def gen_code_vertical_tile_draw( fo, page):
+    labels = []
+    nops_labels = []
+
+    early_out_count  = 1
+
+    fo.write("""
+; Optimizing the BPL away is not worth it.
+; A branch takes 2 or 3 cycles, but setting it up with self modifying code
+; is at least 10 times that. So it's worth only for tall lines.
+""")
+
+
+    for y in range(0,APPLE_YRES):
+
+
+        if y % 6 == 0:
+            eo_label = f"early_out_p{page}_{early_out_count}"
+            #fo.write(f"\tCLV\n")
+            fo.write(f"\n\tBVC {eo_label}_skip\t; always taken\n")
+            fo.write(f"{eo_label}:\n\tRTS\n")
+            fo.write(f"{eo_label}_skip:\n\n")
+            early_out_count += 1
+
+        if page == 1:
+            prefix = ""
+            line_base = hgr_address(y)
+        else:
+            prefix = "p2_"
+            line_base = hgr_address(y, page=0x4000)
+
+        nop_label = f"{prefix}pcsm{y}"
+        labels.append( "{}line{}".format(prefix, y))
+        nops_labels.append( nop_label)
+
+        # The self modified NOP will be replaced by DEX or INX.
+
+        # When BPL is self mod to soething else, remember
+        # that the INY before is increased but it is not tested
+        # So testing Y on being 0 doesn't work ('cos you might
+        # skip that 0). So one has to use a test that is a bit
+        # stronger (BMI/BPL).
+
+        # DEY approach
+        # DEY works well with BPL : 6,5,4..,1,0 : once at zero, addr+Y still wroks fine
+
+        # INY approach with BPL :
+        # 254,255,0,1 => problem, once at zero,
+        # addr+Y wraps by 256 bytes !  So we need to prevent 0. So we
+        # could use BEQ.  Problem with BEQ is because self mod. If BEQ
+        # is self modded when Y reaches 0, the next iteration will be
+        # Y = 1 and BEQ won't trigger... Solution 1, join BPL and BEQ,
+        # but that's two instructions instead of one Solution 2,
+        # ensure that the BEQ is never self modded at the wrong
+        # position.
+
+        if y > 0:
+            nop_label_code = ""
+        else:
+            nop_label_code = f"{nop_label}:\n"
+
+        fo.write(f"""
+{prefix}line{y}:
+        LDA (tile_ptr),Y\t; 5+ (+ = page boundary)
+        ROR
+        ORA {line_base},X\t; 4+
+        STA {line_base},X\t; 5
+        DEY\t; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
+{nop_label_code}
+        BMI {eo_label}
+        BCC @skip
+        TXA
+        ADC x_shift
+        TAX
+        CLC
+@skip:
+""")
+
+
+    fo.write("\tRTS\n")
+    make_lo_hi_ptr_table( fo, prefix + "line_ptrs", labels)
+    # make_lo_hi_ptr_table( fo, "nops_ptrs", nops_labels)
+
+
+
+def gen_code_vertical_tile_blank( fo, page):
+    labels = []
+    nops_labels = []
+    early_out_count  = 1
+
+    fo.write("""
+; Optimizing the BPL away is not worth it.
+; A branch takes 2 or 3 cycles, but setting it up with self modifying code
+; is at least 10 times that. So it's worth only for tall lines.
+""")
+
+    for y in range(0,APPLE_YRES):
+
+        if y % 6 == 0:
+            eo_label = f"blank_early_out_p{page}_{early_out_count}"
+            #fo.write(f"\tCLV\n")
+            fo.write(f"\tBVC {eo_label}_skip\t; always taken\n")
+            fo.write(f"{eo_label}:\n\tRTS\n")
+            fo.write(f"{eo_label}_skip:\n")
+            early_out_count += 1
+
+        if page == 1:
+            prefix = ""
+            line_base = hgr_address(y)
+        else:
+            prefix = "p2_"
+            line_base = hgr_address(y, page=0x4000)
+
+        labels.append( "{}blank_line{}".format(prefix, y))
+        nops_labels.append( "{}blank_pcsm{}".format(prefix, y))
+
+        # 13 bytes * 192 = 2496 bytes
+        fo.write(f"""
+{prefix}blank_line{y}:
+	STA {line_base},X
+	DEY
+{prefix}blank_pcsm{y}:
+        BMI {eo_label}
+""")
+        # .format( prefix, y,
+        #                           line_base,
+        #                           prefix, y,
+        #                           prefix, y,
+        #                           prefix, y ))
+
+
+    fo.write("\tRTS\n")
+    make_lo_hi_ptr_table( fo, prefix + "blank_line_ptrs", labels)
+    # make_lo_hi_ptr_table( fo, "nops_ptrs", nops_labels)
 
 
 def make_tiles_pairs( fo, bm1, bm2):
      # bm1 = left side of the tile (as bits in an integer)
      # bm2 = right side of the tile
 
-     old_m1, old_m2 = None, None
      tile_break = None
-
      tss = None # Tile split shape
+     result = []
 
      fo.write( "\t; The vertical order is reversed !\n") # Because it allows a DEY ; BPL xxx construct in the assembler code
      for i in reversed(range(TILE_SIZE)):
 
-          # to better understand, imagine that bm1 and bm2 are side by side.
-          # We look at each row of them together.
+          # to better understand, imagine that bm1 and bm2 are side by
+          # side.  We look at each row of them together.
 
           m1 = bm1[i]
           m2 = bm2[i]
+
+          if DEBUG:
+              print(f"{i}: {m1}\t{m2}")
 
           assert (m1 == 0 and m2 != 0) or (m1 != 0 and m2 == 0), "both tiles' parts can't be 'lit' together"
 
@@ -847,31 +734,56 @@ def make_tiles_pairs( fo, bm1, bm2):
           # order.
 
           if tss is None:
-              tss = (bm1[i]   > 0, bm2[i]   > 0)
-          else:
-              tss_new = (bm1[i]   > 0, bm2[i]   > 0)
+              tss = (m1   != 0, m2   != 0)
+          elif tile_break is None:
+              tss_new = (m1   != 0, m2   != 0)
               if tss != tss_new:
                   assert tile_break is None, "Tile's sides change can occur only once"
-                  tb = i
-                  print("     tile break {}".format(tb))
                   tile_break = i
-              tss = tss_new
 
-          # We store only the non zero part of tiles.
-          # There's only one of these part in each tile (that is
-          # a tile is split in two : the zero part and the non zero part;
-          # one of these part starts at the top of the tile, the other
-          # ends at the end of the tile).
+                  # tile_break == i means that we draw lines 0..i-1
+                  # then we break the tile and then draw lines i to
+                  # TILE_SIZE-1.  FIXME i-1 or i ?
+
+                  if DEBUG:
+                      print(f"TB! {tile_break}")
+
+          # We store only the non zero part of tiles.  There's only
+          # one of these part in each tile (that is a tile is split in
+          # two : the zero part and the non zero part; one of these
+          # part starts at the top of the tile, the other ends at the
+          # end of the tile).
 
           # logical or is the shortcut one : if m1 then m1 else m2
           # rememeber one and only one of m1,m2 is zero
           # (see assert above)
 
-          bits = bits_to_hgr( logical_or( m1, m2))
+          result.append( ( bits_to_hgr( logical_or( m1, m2)),
+                           f"{m1:08b} {m2:08b} {m1}|{m2}"))
 
-          fo.write( "\t.byte {:3}\t; {:08b}\n".format( bits, logical_or( m1, m2)))
 
-          old_m1, old_m2 = m1, m2
+
+     for i, r in enumerate(result):
+         bits, original_bits = r
+
+         # Now we mark this tile's line to indicate the tile change.
+         # We can't do it in the previous loop because we're one line
+         # too far when we detect the change.
+         # Remember i order is reversed.
+
+         if tile_break is not None and TILE_SIZE - 1 -i == tile_break:
+             bits = bits | 0x80
+             original_bits = original_bits + " TB!"
+
+         # We heavily rely on the fact that on Apple HGR the most
+         # significant bit is "not" used (for pixels at least)
+
+         rbits = rol(bits)
+
+         if DEBUG:
+             print(f"{i}/{TILE_SIZE}\t.byte {rbits:3}\t; {original_bits}\n")
+
+         fo.write( f"\t.byte {rbits:3}\t; {original_bits}\n")
 
      return tile_break
 
@@ -898,7 +810,7 @@ def compute_vertical_tiles():
 
                # + 1 because ??? (code seems to need that, many bugs without !)
                for rol_ndx in range( TILE_SIZE +1):
-                    rol = min( rol_ndx, TILE_SIZE - 1)
+
                     n = "T_{}_{}".format(ndx, rol_ndx)
                     # print("{}:".format(n))
                     labels.append(n)
@@ -931,6 +843,7 @@ def compute_vertical_tiles():
           array_to_asm( fo, tile_breaks_indices, ".byte", "tiles_breaks_indices")
 
 def compute_vertical_tiles_right_left():
+     global DEBUG
      with open("tiles_lr.s","w") as fo:
           labels = []
           tile_breaks = []
@@ -950,7 +863,14 @@ def compute_vertical_tiles_right_left():
                for rol_ndx in range( TILE_SIZE + 1):
                     rol = min( rol_ndx, TILE_SIZE - 1)
                     n = "TLR_{}_{}".format(rol_ndx, ndx)
-                    print("{}:".format(n))
+
+                    if n == "TLR_0_3":
+                        image_to_ascii( t, grid_size=TILE_SIZE)
+                        DEBUG = True
+                    else:
+                        DEBUG=False
+
+                    #print("{}:".format(n))
                     labels.append( n)
                     fo.write("{}:\n".format(n))
                     tile_left, tile_right = seven_bits_split(t)
@@ -965,7 +885,7 @@ def compute_vertical_tiles_right_left():
                     else:
                          tile_breaks.append( "$FFFF")
                          blank_tile_breaks.append( "$FFFF")
-                         tile_breaks_indices.append( "$FF")
+                         tile_breaks_indices.append( "$7F")
 
                     # prepare next iteration by rotating the tile
                     # one bit to the right
@@ -983,7 +903,7 @@ def compute_vertical_tiles_right_left():
 
 
 
-def compute_horizontal_masks( fo):
+def compute_horizontal_clipping_masks( fo):
     fo.write("hline_masks_left:\n")
     fo.write("; 1 means keep\n")
     for m in range(7):
@@ -1008,7 +928,7 @@ def compute_horizontal_tiles(fo):
 
         t = np.zeros( (TILE_SIZE,TILE_SIZE), np.uint8)
         draw_hline( t, 0,0, TILE_SIZE-1, i, 1)
-        image_to_ascii( t, grid_size=TILE_SIZE)
+        #image_to_ascii( t, grid_size=TILE_SIZE)
 
 
         t1 = np.concatenate( (column, t), axis=1)
@@ -1041,7 +961,7 @@ def compute_horizontal_tiles_up(fo):
 
         t = np.zeros( (TILE_SIZE,TILE_SIZE), np.uint8)
         draw_hline( t, 0,i, TILE_SIZE-1, 0, 1)
-        image_to_ascii( t, grid_size=TILE_SIZE)
+        #image_to_ascii( t, grid_size=TILE_SIZE)
 
         bm1 = np.packbits( t, axis=1).flatten()
 
@@ -1069,10 +989,13 @@ def compute_hgr_offsets(fo):
     fo.write("\n")
     make_lo_hi_ptr_table( fo, "hgr4_offsets", [hgr_address(y,page=0x4000,format=1) for y in range(APPLE_YRES)])
 
+LIMY = TILE_SIZE
+BOTY = APPLE_YRES - TILE_SIZE
+LIMX = TILE_SIZE
+BOTX = 31 * TILE_SIZE
+
 def clip( a, b):
 
-    LIMY = TILE_SIZE
-    BOTY = APPLE_YRES - TILE_SIZE
 
     if a.y > b.y:
         a,b = b,a
@@ -1091,10 +1014,9 @@ def clip( a, b):
         s = d.x/d.y
         if a.y < LIMY:
             ca = Vertex( a.x + s*abs(LIMY - a.y), LIMY)
-            assert ca.x >= 0
 
         if b.y > BOTY:
-            cb = Vertex( a.x + s*abs(BOTY - a.y), BOTY)
+            cb = Vertex( b.x - s*abs(BOTY - b.y), BOTY)
 
     return ca, cb
 
@@ -1102,9 +1024,6 @@ def hclip( a, b):
 
     if a is None or b is None:
         return None, None
-
-    LIMX = 8
-    BOTX = 255 - TILE_SIZE
 
     if a.x > b.x:
         a,b = b,a
@@ -1123,15 +1042,21 @@ def hclip( a, b):
         s = d.y/d.x
         if a.x < LIMX:
             ca = Vertex( LIMX, a.y + s*abs(LIMX - a.x))
-            assert ca.y >= 0
+            assert ca.y >= LIMY, f"{ca.y}"
 
         if b.x > BOTX:
-            cb = Vertex( BOTX, a.y + s*abs(BOTX - a.x))
+            cb = Vertex( BOTX, b.y - s*abs(b.x - BOTX))
 
     return ca, cb
 
 def gen_data_line( fo, a, b):
+    #print( f"ORG : {a.x},{a.y} -- {b.x},{b.y}")
     a,b = hclip( *clip(a,b) )
+
+    # if a:
+    #     print( f"{a.x},{a.y} -- {b.x},{b.y}")
+    # else:
+    #     print("---")
 
     if a == None:
         return
@@ -1216,6 +1141,7 @@ def gen_data_line( fo, a, b):
               max(1, int(dy )), #  // TILE_SIZE
               int_to_16( TILE_SIZE*dx/dy)]
 
+    #print(d)
     fo.write("\t.byte {}\n".format(",".join(map(str,d[0:-1]))))
     fo.write("\t.word {}\t;{}\n".format(d[4],slope))
 
@@ -1264,7 +1190,7 @@ with open("precalc.s","w") as fo:
     gen_code_vertical_tile_blank( fo, page=2)
 
 with open("htiles.s","w") as fo:
-    compute_horizontal_masks(fo)
+    compute_horizontal_clipping_masks(fo)
     compute_horizontal_tiles(fo)
     compute_horizontal_tiles_up(fo)
     compute_hgr_offsets(fo)

@@ -9,7 +9,9 @@
 	.include "pt3_player/zp.inc"
 
 DEBUG = 0
+ONE_PAGE = 0
 
+x_shift = 8
 old_fx = 220
 old_fy = 222
 length	= 224
@@ -41,6 +43,17 @@ dummy_test:
 	;; CMP #$1
 	;; BPL dummytest
 
+	;; LDA #0
+	;; SEC
+	;; ADC #254		; SEC+ADC == DEC(A)
+
+	;; LDA #0
+	;; SEC
+	;; ADC #255		;0 as expected
+
+	;; LDA #0
+	;; SEC
+	;; ADC #0			; gives one as expected
 
 	jsr clear_hgr
 
@@ -82,33 +95,55 @@ demo3:
 
 
 
-;; 	jsr draw_to_page2
-;; 	store_16 line_data_ptr, lines_data + 0*BYTES_PER_LINE
-;; 	LDA #1
-;; 	STA color
-;; 	lda #110
-;; 	sta deb_lines_to_do
-;; debugger1:
-;; 	JSR draw_or_erase_a_line
-;; 	add_const_to_16 line_data_ptr, BYTES_PER_LINE
-;; 	dec deb_lines_to_do
-;; 	bne debugger1
-;; 	jmp demo3
-;; deb_lines_to_do:	.byte 0
-
-
 	;; 1.04 pour 27 images => 25 fps
 
-all_lines:
 
+
+	.if ONE_PAGE		; ------------------------------------
+
+	LDA $C054		; Show page 2
+	LDA $C057
+	LDA $C050 ; display graphics; last for cleaner mode change (accor
+
+	jsr draw_to_page2
+
+
+all_lines:
+	copy_16 line_data_ptr, line_data_ptr1
+	LDA #1
+	STA color
+	JSR draw_or_erase_multiple_lines
+
+	copy_16 line_data_ptr, line_data_ptr1
+	LDA #0
+	STA color
+	JSR draw_or_erase_multiple_lines
+
+	copy_16 line_data_ptr1, line_data_ptr
+
+	copy_16 line_data_ptr, line_data_ptr1
+	LDA #1
+	STA color
+	JSR draw_or_erase_multiple_lines
+
+	copy_16 line_data_ptr, line_data_ptr1
+	LDA #0
+	STA color
+	JSR draw_or_erase_multiple_lines
+
+	jsr $FD0C		; wait key hit
+
+	.else			;--------------------------------
+
+	;; Page flipping mode
+
+all_lines:
 	jsr draw_to_page4
 
 	copy_16 line_data_ptr, line_data_ptr1
 	LDA #0
 	STA color
 	JSR draw_or_erase_multiple_lines
-	nop
-	nop
 
 	copy_16 line_data_ptr1, line_data_ptr
 
@@ -118,8 +153,10 @@ all_lines:
 
 	LDA $C055	; Show page 4
 	LDA $C057
-	LDA $C050 	; display graphics; last for cleaner mode change (accor
+	LDA $C050 	; display graphics; last for cleaner mode change
+
 	;; -----------------------------------------------
+freeze:
 	jsr draw_to_page2
 
 	copy_16 line_data_ptr, line_data_ptr2
@@ -136,9 +173,12 @@ all_lines:
 
 	LDA $C054		; Show page 2
 	LDA $C057
-	LDA $C050 ; display graphics; last for cleaner mode change (accor
+	LDA $C050 ; display graphics; last for cleaner mode change
+
+	.endif
 
 	;jsr $FD0C		; wait key hit
+	;jmp freeze
 
 	;jsr  pause
 	JMP all_lines
@@ -155,8 +195,6 @@ line_data_ptr2:	.word 0
 
 
 .proc draw_or_erase_multiple_lines
-	lda #LINES_TO_DO
-	sta lines_to_do
 
 one_more_line:
 
@@ -171,11 +209,7 @@ one_more_line:
 	CMP #3
 	BMI one_more_line	; A < 3 ?
 
-	BEQ end_of_frame	; A = 3
-	CMP #4			; A = 4
-	BEQ end_of_all_frames
-
-	RTS
+	BEQ end_of_frame	; A = 3 => end of frame
 
 end_of_all_frames:
 	store_16 line_data_ptr, lines_data

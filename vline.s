@@ -103,6 +103,8 @@ loop_start:
 	LDA tiles_lr_ptrs_hi, X
 	STA tile_ptr + 1
 
+	LDA #254
+	STA x_shift
 	.else
 
 	LDA tiles_ptrs_lo, X
@@ -110,9 +112,12 @@ loop_start:
 	LDA tiles_ptrs_hi, X
 	STA tile_ptr + 1
 
+	LDA #0
+	STA x_shift
 	.endif
 
-	;; Self modify the drawing code to handle the "tile break" moment
+	;; Self modify the drawing code to handle the "tile break"
+	;; moment
 
 
 	;; X = number of the tile we will draw
@@ -123,12 +128,39 @@ loop_start:
 	LDA tiles_breaks_indices,X
 	.endif
 
+	;; ----------------- Test code for ROR strategy !!!
+
+	;; if the tile has no break, then we don't draw it
+	;; This works with regular slef-mod code.
+;; 	CMP #NO_BREAK_INDICATOR
+;; 	BNE draw_breaks
+;; 	JMP no_undo_self_mod	; skip this tile entirely
+;; draw_breaks:
+	;;  Cancel ROR/ADC effect
+	;; Note that x_shift is corectly set (corresponds
+	;; to DEX/INX)
+	;; PHA
+	;; LDA #255
+	;; STA x_shift
+	;; PLA
+
+	.ifblank clearing
+	;;  if drawing, then don't self modify.
+	;;  this way, we let ROL/ADC do the job.
+	LDA #NO_BREAK_INDICATOR
+	STA self_mod_flag
+	JMP no_self_mod
+	.endif
+
+	;; ------------------------------------------------
+
 	STA self_mod_flag
 
 	STOPPER = 0
 
 	CMP tiles_length		; 2/3d of times, no self mod is necessary
 	BPL no_self_mod
+
 
 	CLC
 	ADC fy + 1
@@ -178,7 +210,7 @@ no_self_mod:
 
 	;; Choose the code segment to run to draw or clear
 	;; the line. self_mod will contain a pointer to
-	;; that code and it's part of a JSR opcode whic will
+	;; that code and it's part of a JSR opcode which will
 	;; do the jump.
 
 	.ifblank clearing
@@ -223,9 +255,10 @@ count:
 	.ifblank clearing
 	.else
 	;; When clearing, A is the color.
-	LDA #$00
+	LDA #$0
 	.endif
 
+	CLC
 	CLV			; Prepare for unconditional branching
 self_mod:
 	jsr line0		; This address will be self modified
