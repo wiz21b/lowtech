@@ -931,11 +931,11 @@ def compute_horizontal_tiles(fo):
         #image_to_ascii( t, grid_size=TILE_SIZE)
 
 
-        t1 = np.concatenate( (column, t), axis=1)
+        #t1 = np.concatenate( (column, t), axis=1)
         t1 = t
 
         bm1 = np.packbits( t1, axis=1).flatten()
-        rb = [ reverse_bits( row) for row in bm1]
+        rb = [ rol(reverse_bits( row)) for row in bm1]
 
         rb = list(reversed(rb[0:i+1])) + [0]*(TILE_SIZE - i)
 
@@ -965,10 +965,20 @@ def compute_horizontal_tiles_up(fo):
 
         bm1 = np.packbits( t, axis=1).flatten()
 
-        # Order bits per Apple2 HGR convention
-        rb = [ reverse_bits( row) for row in bm1]
+        # for row in bm1:
+        #     check = bits_to_hgr( row)
+        #     print(f"{row:8b} {row}\t{check:8b}")
+        # print()
 
+
+        # Order bits per Apple2 HGR convention
+        # (bit2hgr won't work here)
+        rb = [ rol(reverse_bits( row)) for row in bm1]
+
+        # Each tile is stored as 8 bytes, although it only
+        # has TILE_SIZE significant rows.
         rb = list(reversed(rb[0:i+1])) + [0]*(TILE_SIZE - i)
+
         assert( len(rb) == 8)
 
 

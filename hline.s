@@ -26,7 +26,9 @@ tile_loop:
 .ifblank clearing
 	LDY y_count
 	LDA (tile_ptr),Y	; A := tile[ y_count]
-	AND mask		; A := tile[ y_count] & mask
+	CLC
+	ROR
+	;AND mask		; A := tile[ y_count] & mask
 	;ORA #128+64
 
 	;LDA #$ff
@@ -138,6 +140,10 @@ self_mod_delta:
 .macro draw_hline direction, clearing
 	.scope
 
+	;; Disable effect of ROR/ADC strategy
+	LDA #255
+	STA x_shift
+
 	;; fy + 1 = 2A (42)
 
 	LDY fy+1
@@ -180,8 +186,8 @@ draw:
 	lda div7,Y
 	sta fx+1
 
-	hline_7pixels_setup direction, clearing
-	hline_7pixels_masked clearing
+	;; hline_7pixels_setup direction, clearing
+	;; hline_7pixels_masked clearing
 	inc fx+1
 	dec length
 	bne no_special_left
@@ -206,6 +212,7 @@ loop:
 	STA jsr_self_mod + 1
 	LDA (line_code_ptr_hi), Y
 	STA jsr_self_mod +1 + 1
+
 	.else
 	LDA (blank_line_code_ptr_lo), Y
 	STA jsr_self_mod + 1
@@ -217,6 +224,7 @@ loop:
 	LDY y_count
 	LDX fx+1
 	CLV
+	CLC
 
 jsr_self_mod:
 	jsr line0		; This address will be self modified
@@ -233,20 +241,20 @@ jsr_self_mod:
 	BEQ all_done
 
 rightmost_tile:
-	LDY #0
-	LDA (line_data_ptr),Y
-	LSR
-	LSR
-	LSR
-	LSR
-	LSR
-	AND #$7
-	TAY
-	LDA hline_masks_right, Y
-	STA mask
+	;; LDY #0
+	;; LDA (line_data_ptr),Y
+	;; LSR
+	;; LSR
+	;; LSR
+	;; LSR
+	;; LSR
+	;; AND #$7
+	;; TAY
+	;; LDA hline_masks_right, Y
+	;; STA mask
 
-	hline_7pixels_setup direction, clearing
-	hline_7pixels_masked clearing
+	;; hline_7pixels_setup direction, clearing
+	;; hline_7pixels_masked clearing
 all_done:
 	RTS
 

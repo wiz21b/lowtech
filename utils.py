@@ -85,8 +85,10 @@ def bits_to_hgr(b):
     -  1  1  1  1  0  0  1
 
     The color selection bit is expected in the most significant
-    bit.
+    bit and will be left there.
     """
+
+    assert 0 <= b <= 255
     return reverse_bits(b & 0x7f,7) + (b & 0x80)
 
 
@@ -189,7 +191,7 @@ def make_lo_hi_ptr_table( fo, name, items):
 
 
 if __name__ == "__main__":
-    print("utils")
+    print("Testing utils...")
     assert bits_to_hgr( 0b01001111) == 0b01111001, "order not preserved"
     assert bits_to_hgr( 0b11001111) == 0b11111001, "color select not preserved"
 
@@ -200,3 +202,6 @@ if __name__ == "__main__":
     assert rol(0) == 0
     assert rol(1) == 2
     assert rol(0x80) == 1
+
+    for i in range(256):
+        assert rol(ror(ror(rol(i)))) == i
