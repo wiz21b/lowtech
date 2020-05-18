@@ -6,12 +6,11 @@
 
 
 	.include "defs.s"
-	.include "pt3_player/zp.inc"
 
 DEBUG = 0
 ONE_PAGE = 0
 
-x_shift = 8
+x_shift = $80
 old_fx = 220
 old_fy = 222
 length	= 224
@@ -27,7 +26,7 @@ line_code_ptr_lo	= 242
 blank_line_code_ptr_hi	= 244
 line_code_ptr_hi	= 246
 
-self_mod_ptr	= 6
+self_mod_ptr	= $82
 line_data_ptr	= 250
 tile_ptr       = 252
 dummy_ptr2		= 252
@@ -36,9 +35,9 @@ dummy_ptr		= 254
 LINES_TO_DO	= 6
 BYTES_PER_LINE	= 6
 
-	jmp dummy_test
+	.segment "CODE"
 
-dummy_test:
+
 	;; LDA #$1
 	;; CMP #$1
 	;; BPL dummytest
@@ -68,6 +67,9 @@ dummy_test:
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
 
+	jsr start_player
+loop_infinite:
+	;jmp loop_infinite
 	;; jsr draw_tile_line
 
 	;; 8.62 sec for 127*19 = 2413 lines;
@@ -86,8 +88,10 @@ dummy_test:
 	store_16 line_data_ptr1, line_data_frame1
 	store_16 line_data_ptr2, line_data_frame2
 
-	; 	add_const_to_16 line_data_ptr2, LINES_TO_DO * BYTES_PER_LINE +1
+				; 	add_const_to_16 line_data_ptr2, LINES_TO_DO * BYTES_PER_LINE +1
+	JSR init_disk_read
 demo3:
+
 	;; jsr clear_hgr
 	.if DEBUG
 	store_16 ticks, 0
@@ -141,7 +145,7 @@ all_lines:
 	jsr draw_to_page4
 
 	copy_16 line_data_ptr, line_data_ptr1
-	LDA #0
+	LDA #$0
 	STA color
 	JSR draw_or_erase_multiple_lines
 
@@ -161,7 +165,7 @@ freeze:
 
 	copy_16 line_data_ptr, line_data_ptr2
 
-	LDA #0
+	LDA #$0
 	STA color
 	JSR draw_or_erase_multiple_lines
 
@@ -181,6 +185,7 @@ freeze:
 	;jmp freeze
 
 	;jsr  pause
+	jsr read_any_sector
 	JMP all_lines
 all_done:
 
@@ -190,8 +195,6 @@ all_done:
 
 	jmp demo3
 
-line_data_ptr1:	.word 0
-line_data_ptr2:	.word 0
 
 
 .proc draw_or_erase_multiple_lines
@@ -220,7 +223,6 @@ end_of_frame:
 	RTS
 
 
-lines_to_do:	.byte 0
 .endproc
 
 .proc draw_or_erase_a_line
@@ -291,6 +293,9 @@ copy_line_data:
 	RTS
 
 
+line_data_ptr1:	.word 0
+line_data_ptr2:	.word 0
+lines_to_do:	.byte 0
 color:	.byte 1
 
 ;; fx:	.word 100*256
@@ -306,9 +311,6 @@ loops:	.byte 127
 mask:	.byte 0
 mask_left:	.byte 0
 mask_right:	.byte 0
-
-
-
 
 ;;; x-begin, y-begin, x-end, slope
 
@@ -464,15 +466,6 @@ tile_loop:
 
 
 
-modulo7:
-	.repeat 256,I
-	.byte	I .MOD 7
-	.endrep
-
-div7:
-	.repeat 256,I
-	.byte I / 7		; integer division, no rounding
-	.endrep
 
 
 	;; .repeat 256/7+1,I
@@ -481,14 +474,9 @@ div7:
 	;; .endrep
 	;; .endrep
 
-	.include "htiles.s"
-	.include "precalc.s"
-	.include "tiles.s"
-	.include "tiles_lr.s"
 
 	;; Tools
 	.include "lib.s"
-	;; .include "player.s"
 
 	;; Macros to generate line drawing code
 	NO_BREAK_INDICATOR = $7F
@@ -497,8 +485,6 @@ div7:
 	.include "vline.s"
 	.include "hline.s"
 
-lines_data:
-	.include "lines.s"
 	;; nb_lines:	.byte (* - lines_data) / BYTES_PER_LINE
 .proc draw_vline_right_left
 	draw_vline RIGHT_TO_LEFT
@@ -531,3 +517,169 @@ lines_data:
 .proc erase_hline_up
 	draw_hline RIGHT_TO_LEFT, 1
 .endproc
+
+
+	PT3_LOC = $0C00
+	.include "pt3_lib/zp.inc"
+
+	;; https://github.com/deater/dos33fsprogs/tree/master/pt3_lib
+start_player:
+	lda	#0
+	sta	DONE_PLAYING
+	lda	#1
+	sta LOOP
+
+	;jsr	mockingboard_detect
+	;jsr	mockingboard_patch
+	jsr	mockingboard_init
+	jsr	mockingboard_setup_interrupt
+
+	;============================
+	; Init the Mockingboard
+	;============================
+
+	jsr	reset_ay_both
+	jsr	clear_ay_both
+
+	;==================
+	; init song
+	;==================
+
+	jsr	pt3_init_song
+
+	;============================
+	; Enable 6502 interrupts
+	;============================
+	cli ; clear interrupt mask
+
+	RTS
+
+	; some firmware locations
+	.include "pt3_lib/hardware.inc"
+	.include "pt3_lib/pt3_lib_core.s"
+	.include "pt3_lib/pt3_lib_init.s"
+	.include "pt3_lib/pt3_lib_mockingboard_setup.s"
+	.include "pt3_lib/interrupt_handler.s"
+	; if you're self patching, detect has to be after
+	; interrupt_handler.s
+	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
+
+	;; DATA ////////////////////////////////////////////////////
+	.include "precalc.s"
+
+
+	;; /////////////////////////////////////////////////////////
+	;; D000 SEGMENT
+	;; /////////////////////////////////////////////////////////
+	.segment "RAM_D000"
+
+
+	.include "read_sector.s"
+
+MLI		= $BF00
+prodos_params:
+	.byte 3	; 3 parameters
+	.byte SLOT_SELECT + DRIVE_SELECT
+	.word GR2_RAM ; Memory buffer, make sure it's not in ProDos's stuff
+block_read:
+	.word $0001 ; Block to read
+
+	;; DiskII : 300 rpm
+	;; 16 sectors per track
+	;; 300 rpm => 5 rps => 80 sectors per seconds
+
+init_disk_read:
+
+	; Read first sector so we know the drive's head is on the first track.
+	; I use prodos to do that 'cos it's much simpler
+
+	;; LDA #1
+	;; STA block_read
+	;; LDA #0
+	;; STA block_read + 1
+	;; JSR MLI
+	;; .byte $80	; Operation ($80=READ_BLOCK, $81=write)
+	;; .word prodos_params	    ; $0E0C
+
+	;; ; ProDOS has done its job, we configure ourselves accordingly.
+
+	LDA #SLOT_SELECT
+	STA slotz
+	LDA #0
+	STA curtrk
+
+	; Restart the motor
+
+	ldx #SLOT_SELECT
+.if DRIVE_SELECT = $80
+	LDA DRV2_SLCT, X
+.endif
+	LDA MOTOR_ON, X
+
+	RTS
+
+
+read_any_sector:
+
+	;; lda read_disk_delay
+	;; cmp #0
+	;; bne .success
+
+	ldx #SLOT_SELECT
+	jsr rdadr16
+	bcs ras_error
+
+	; Prepare RWTS buffer
+
+	lda #0
+	sta buf
+
+	TRACK_DATA_BANK = $04
+
+	;; lda sect
+	;; clc
+	;; adc track_buffer
+	;; clc
+	;; adc #TRACK_DATA_BANK
+
+	LDA #TRACK_DATA_BANK
+	sta buf + 1
+
+	; Read the sector
+
+	ldx #SLOT_SELECT
+	jsr read16
+
+	bcs ras_error
+	cli
+
+	ldx sect
+	lda #255
+	sta $2000,X
+	lda #2
+	sta $2000+20
+	RTS
+
+ras_error:
+	cli
+	lda #255
+	sta $2000+20
+	RTS
+
+
+lines_data:
+	.include "lines.s"
+
+modulo7:
+	.repeat 256,I
+	.byte	I .MOD 7
+	.endrep
+
+div7:
+	.repeat 256,I
+	.byte I / 7		; integer division, no rounding
+	.endrep
+
+	.include "htiles.s"
+	.include "tiles.s"
+	.include "tiles_lr.s"

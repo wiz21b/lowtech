@@ -51,28 +51,6 @@ TILE_SIZE = APPLE_HGR_PIXELS_PER_BYTE
 # dtermine the x1 where the line enter a tile and the x2 where it leaves it
 # locate a tile with an index (x1, x2)
 
-class FixedPoint:
-    def __init__(self, x = 0):
-        if x >= 0:
-            self.x = x
-        else:
-            self.x = 65536 + x
-
-    def add( self, fp : "FixedPoint"):
-        return FixedPoint( (self.x + fp.x) & 65535)
-
-    def __str__( self):
-        if self.x & 32768 == 0:
-            f = self.x / 256
-        else:
-            f = - (65536-self.x) / 256
-
-        return str(f)
-
-
-print( FixedPoint(123 * 256 + 128))
-print( FixedPoint(- 123 * 256 - 128))
-print( FixedPoint(- 123 * 256 - 128).add(FixedPoint(123 * 256 + 128)))
 
 def enumerate_x( x1 : int, y1 : int, x2 : int, y2 : int):
     assert is_int(x1) and is_int(x2) and is_int(y1) and is_int(y2)
@@ -184,112 +162,8 @@ def draw_hline( npa, x1, y1, x2, y2, color):
      for p in points:
           npa[ int(p.y) ][ int(p.x) ] = 1
 
-vertex_id = 1
-
-class Vertex:
-    def __init__(self,x,y,z=0):
-        global vertex_id
-
-        self._vec = np.array( [x,y,z] )
-        self._id = vertex_id
-        vertex_id += 1
-
-    def grab_id( self, other):
-        self._id = other._id
-        return self
-
-    @property
-    def id(self):
-        return self._id
-
-    @property
-    def x(self):
-        return self._vec[0]
-
-    @property
-    def y(self):
-        return self._vec[1]
-
-    @property
-    def z(self):
-        return self._vec[2]
-
-    def cross( self, other):
-        v = np.cross( self._vec, other._vec)
-        return Vertex( v[0], v[1], v[2] )
-
-    def __mul__(self,other):
-        return np.dot( self._vec, other._vec)
-
-    def __add__(self,other):
-        v = self._vec + other._vec
-        return Vertex( v[0], v[1], v[2] )
-
-    def __sub__(self,other):
-        v = self._vec - other._vec
-        return Vertex( v[0], v[1], v[2] )
-
-    def __str__(self):
-        return "{},{},{}".format(self.x, self.y, self.z)
-
-class Edge:
-    def __init__( self, v1, v2):
-        self.v1, self.v2 = v1, v2
-
-class Face:
-    def __init__( self, a, b, c = None, z = None):
-        if z:
-            self.vertices = [a,b,c,z]
-            self.normal = (b-a).cross(c-a)
-            self.edges = 4
-        elif c:
-            self.vertices = [a,b,c]
-            self.normal = (b-a).cross(c-a)
-            self.edges = 3
-        else:
-            self.vertices = [a,b]
-            self.edges = 1
 
 
-def angle_axis_quat(theta, axis):
-    """
-    Given an angle and an axis, it returns a quaternion.
-    """
-    axis = np.array(axis) / np.linalg.norm(axis)
-    return np.append([np.cos(theta/2)],np.sin(theta/2) * axis)
-
-def mult_quat(q1, q2):
-    """
-    Quaternion multiplication.
-    """
-    q3 = np.copy(q1)
-    q3[0] = q1[0]*q2[0] - q1[1]*q2[1] - q1[2]*q2[2] - q1[3]*q2[3]
-    q3[1] = q1[0]*q2[1] + q1[1]*q2[0] + q1[2]*q2[3] - q1[3]*q2[2]
-    q3[2] = q1[0]*q2[2] - q1[1]*q2[3] + q1[2]*q2[0] + q1[3]*q2[1]
-    q3[3] = q1[0]*q2[3] + q1[1]*q2[2] - q1[2]*q2[1] + q1[3]*q2[0]
-    return q3
-
-def rotate_quat(quat, vect):
-    """
-    Rotate a vector with the rotation defined by a quaternion.
-    """
-    # Transfrom vect into an quaternion
-    vect = np.append([0],vect)
-    # Normalize it
-    norm_vect = np.linalg.norm(vect)
-
-    if norm_vect == 0:
-        # Origin can't be rotated
-        return vect[1:]
-    #assert norm_vect > 0, f"{vect} norm is not good"
-
-    #print(norm_vect)
-    vect = vect/norm_vect
-    # Computes the conjugate of quat
-    quat_ = np.append(quat[0],-quat[1:])
-    # The result is given by: quat * vect * quat_
-    res = mult_quat(quat, mult_quat(vect,quat_)) * norm_vect
-    return res[1:]
 
 
 import pygame
@@ -434,7 +308,7 @@ for frame_ndx in range(3,NB_FRAMES):
     pygame.display.flip()
 
 
-
+pygame.quit()
 
 def draw_triangle_edges( scren, v1, v2, v3, color):
      vert = [ v1, v2, v3]
@@ -655,6 +529,57 @@ def gen_code_vertical_tile_draw( fo, page):
     make_lo_hi_ptr_table( fo, prefix + "line_ptrs", labels)
     # make_lo_hi_ptr_table( fo, "nops_ptrs", nops_labels)
 
+
+def gen_code_vertical_tile_draw_no_tilebreaks( fo, page):
+    labels = []
+    nops_labels = []
+
+    early_out_count  = 1
+
+    if page == 1:
+        prefix = "notb_"
+    else:
+        prefix = "notb_p2_"
+
+    for y in range(0,APPLE_YRES):
+
+        if y % 11 == 0:
+            eo_label = f"{prefix}early_out_p{page}_{early_out_count}"
+            #fo.write(f"\tCLV\n")
+            fo.write(f"\n\tBVC {eo_label}_skip\t; always taken\n")
+            fo.write(f"{eo_label}:\n\tRTS\n")
+            fo.write(f"{eo_label}_skip:\n\n")
+            early_out_count += 1
+
+
+        if page == 1:
+            line_base = hgr_address(y)
+        else:
+            line_base = hgr_address(y, page=0x4000)
+
+        nop_label = f"{prefix}pcsm{y}"
+        labels.append( f"{prefix}line{y}")
+        nops_labels.append( nop_label)
+
+        if y > 0:
+            nop_label_code = ""
+        else:
+            nop_label_code = f"{nop_label}:\n"
+
+        fo.write(f"""
+{prefix}line{y}:
+        LDA (tile_ptr),Y\t; 5+ (+ = page boundary)
+        ORA {line_base},X\t; 4+
+        STA {line_base},X\t; 5
+        DEY\t; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
+{nop_label_code}
+        BMI {eo_label}
+""")
+
+
+    fo.write("\tRTS\n")
+    make_lo_hi_ptr_table( fo, prefix + "line_ptrs", labels)
+    # make_lo_hi_ptr_table( fo, "nops_ptrs", nops_labels)
 
 
 def gen_code_vertical_tile_blank( fo, page):
@@ -1194,21 +1119,16 @@ with open("lines.s","w") as fo:
 
 
 with open("precalc.s","w") as fo:
-    gen_code_vertical_tile_draw( fo, page=1)
-    gen_code_vertical_tile_blank( fo, page=1)
-    gen_code_vertical_tile_draw( fo, page=2)
-    gen_code_vertical_tile_blank( fo, page=2)
+    for page in [1,2]:
+        gen_code_vertical_tile_draw( fo, page)
+        gen_code_vertical_tile_blank( fo, page)
+        gen_code_vertical_tile_draw_no_tilebreaks( fo, page)
 
 with open("htiles.s","w") as fo:
     compute_horizontal_clipping_masks(fo)
     compute_horizontal_tiles(fo)
     compute_horizontal_tiles_up(fo)
     compute_hgr_offsets(fo)
-
-
-exit();
-
-
 
 
 
@@ -1248,6 +1168,7 @@ Compute tile pairs : (A,B). Two horizontally consecutive tiles.
 # import PIL
 # PIL.
 
+"""
 screen = ZBuffer( TILE_SIZE*5,TILE_SIZE*5)
 draw_triangle( screen, Vtx(13,13,0), Vtx(5,4,100), Vtx(1,20,100), 2)
 
@@ -1256,6 +1177,7 @@ draw_triangle_edges( screen, Vtx(13,13,0), Vtx(5,4,100), Vtx(1,20,100), 1)
 draw_triangle( screen, Vtx(5,18), Vtx(8,5,120), Vtx(15,10), 0)
 draw_triangle_edges( screen, Vtx(5,18), Vtx(8,5,120), Vtx(15,10), 1)
 screen.show()
+"""
 
 """
 6*256 + 64   :  6

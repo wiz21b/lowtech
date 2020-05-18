@@ -1,3 +1,5 @@
+GR_RAM	 	= $400
+GR2_RAM	 	= $800
 HGR_RAM		= $2000
 dummy_pointer	= 254
 
