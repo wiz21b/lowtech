@@ -9,11 +9,23 @@ ld65 -o THREED td.o  -C link.cfg
 rm td.o
 ls -l THREED
 
+stat --format "THREED_SIZE = %s" THREED > file_size.s
+stat --format "DATAD000_SIZE = %s" datad000.o >> file_size.s
+
+cat file_size.s
+rm prorwts2.o
+acme PRORWTS2.S
+
+echo "Making DSK"
+
 rm NEW.DSK
 cp data/BLANK_PRODOS2.DSK NEW.DSK
 
+java -jar ../bad_apple/AppleCommander-1.3.5.13-ac.jar -p NEW.DSK RWTS     BIN 0x0800 < prorwts2.o
+
 java -jar ../bad_apple/AppleCommander-1.3.5.13-ac.jar -p NEW.DSK START    BIN 0x6000 < THREED
-java -jar ../bad_apple/AppleCommander-1.3.5.13-ac.jar -p NEW.DSK PRORWTS  BIN 0x0800 < prorwts2#060800
+java -jar ../bad_apple/AppleCommander-1.3.5.13-ac.jar -p NEW.DSK LINES    BIN 0xD000 < datad000.o
+#java -jar ../bad_apple/AppleCommander-1.3.5.13-ac.jar -p NEW.DSK PRORWTS  BIN 0x0800 < prorwts2#060800
 
 # Generate listing (you can print in firefox, 2 pages side by side)
 source-highlight --src-lang asm -f html --doc -c=asm-style.css  --lang-def asm.lang vline.s

@@ -91,3 +91,6 @@ if args.mame:
     run(f"{MAME} apple2p -speed 1 -skip_gameinfo -window -nomax -flop1 {BUILD_DIR}/NEW.DSK -rp bios")
 else:
     run(f"{APPLEWIN} -d1 {BUILD_DIR}\\NEW.DSK")
+
+if platform.system() == "Linux":
+    run(f"source-highlight --src-lang asm -f html --doc -c=asm-style.css  --lang-def asm.lang vline.s")
