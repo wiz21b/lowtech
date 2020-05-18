@@ -713,7 +713,7 @@ def make_tiles_pairs( fo, bm1, bm2):
      return tile_break
 
 def compute_vertical_tiles():
-     with open("tiles.s","w") as fo:
+     with open("build/tiles.s","w") as fo:
           labels = []
           tile_breaks = []
           blank_tile_breaks = []
@@ -769,7 +769,7 @@ def compute_vertical_tiles():
 
 def compute_vertical_tiles_right_left():
      global DEBUG
-     with open("tiles_lr.s","w") as fo:
+     with open("build/tiles_lr.s","w") as fo:
           labels = []
           tile_breaks = []
           blank_tile_breaks = []
@@ -1095,7 +1095,7 @@ delta = 0
 #         gen_data_line( fo, CENTER + Vertex(x,y), CENTER + Vertex(-x,-y))
 
 print("Recorded {} lines".format( len(recorded_lines)))
-with open("lines.s","w") as fo:
+with open("build/lines.s","w") as fo:
 
     fo.write("; generated \n")
     fo.write("; line type (0=horiz/1=verti), X start, Y start, length, slope (word) \n")
@@ -1118,13 +1118,13 @@ with open("lines.s","w") as fo:
             fo.write("line_data_frame2:\t;Beginning of second frame\n")
 
 
-with open("precalc.s","w") as fo:
+with open("build/precalc.s","w") as fo:
     for page in [1,2]:
         gen_code_vertical_tile_draw( fo, page)
         gen_code_vertical_tile_blank( fo, page)
         gen_code_vertical_tile_draw_no_tilebreaks( fo, page)
 
-with open("htiles.s","w") as fo:
+with open("build/htiles.s","w") as fo:
     compute_horizontal_clipping_masks(fo)
     compute_horizontal_tiles(fo)
     compute_horizontal_tiles_up(fo)

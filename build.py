@@ -26,13 +26,13 @@ elif platform.system() == "Linux":
     LD65 = r"ld65"
     ACMDER = r"java -jar ../bad_apple/AppleCommander-1.3.5.13-ac.jar"
     ACME = r"acme"
-    APPLEWIN=r"/opt/wine-staging/bin/wine /home/stefan/AppleWin1.29.10.0/Applewin.exe -d1 \\home\\stefan\\Dropbox\\demo2\\NEW.DSK"
+    APPLEWIN=r"/opt/wine-staging/bin/wine /home/stefan/AppleWin1.29.10.0/Applewin.exe -d1 \\home\\stefan\\Dropbox\\demo2\\build\\NEW.DSK"
     MAME = "mame"
 else:
     raise Exception("Unsupported system : {}".format(platform.system()))
 
 BUILD_DIR = "build"
-TUNE = "FR.PT3"
+TUNE = "data/FR.PT3"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mame", action="store_true")
@@ -45,18 +45,18 @@ if not os.path.isdir( BUILD_DIR):
 
 print("Builing demo")
 
-run(f"{CA65} -o td.o td.s")
-run(f"{LD65} -o THREED td.o -C link.cfg --mapfile map.out")
+run(f"{CA65} -o {BUILD_DIR}/td.o td.s")
+run(f"{LD65} -o {BUILD_DIR}/THREED {BUILD_DIR}/td.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
 print("Builing loader")
 
-with open("file_size.s","w") as fout:
+with open(f"{BUILD_DIR}/file_size.s","w") as fout:
 
-    size = os.path.getsize("THREED")
+    size = os.path.getsize(f"{BUILD_DIR}/THREED")
     print(f"Demo : {size} bytes")
     fout.write(f"THREED_SIZE = {size}\n")
 
-    size = os.path.getsize("datad000.o")
+    size = os.path.getsize(f"{BUILD_DIR}/datad000.o")
     print(f"Data : {size} bytes")
     fout.write(f"DATAD000_SIZE = {size}\n")
 
@@ -65,29 +65,29 @@ with open("file_size.s","w") as fout:
     fout.write(f"MUSIC_SIZE = {size}\n")
 
 
-run(f"{ACME} PRORWTS2.S")
+run(f"{ACME} -o {BUILD_DIR}/prorwts2.o PRORWTS2.S ")
 
 print("Packaging DSK file")
 
-if os.path.isfile( "NEW.DSK"):
-    os.remove("NEW.DSK")
+if os.path.isfile( f"{BUILD_DIR}/NEW.DSK"):
+    os.remove(f"{BUILD_DIR}/NEW.DSK")
 
-shutil.copyfile("data/BLANK_PRODOS2.DSK","NEW.DSK")
+shutil.copyfile("data/BLANK_PRODOS2.DSK",f"{BUILD_DIR}/NEW.DSK")
 
-with open("prorwts2.o") as stdin :
-    run(f"{ACMDER} -p NEW.DSK RWTS  BIN 0x0800", stdin=stdin)
+with open(f"{BUILD_DIR}/prorwts2.o") as stdin :
+    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK RWTS  BIN 0x0800", stdin=stdin)
 
-with open("THREED") as stdin :
-    run(f"{ACMDER} -p NEW.DSK START BIN 0x6000", stdin=stdin)
+with open(f"{BUILD_DIR}/THREED") as stdin :
+    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK START BIN 0x6000", stdin=stdin)
 
-with open("datad000.o") as stdin :
-    run(f"{ACMDER} -p NEW.DSK LINES BIN 0xD000", stdin=stdin)
+with open(f"{BUILD_DIR}/datad000.o") as stdin :
+    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK LINES BIN 0xD000", stdin=stdin)
 
 with open(TUNE) as stdin :
-    run(f"{ACMDER} -p NEW.DSK MUSIC BIN 0x0C00", stdin=stdin)
+    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK MUSIC BIN 0x0C00", stdin=stdin)
 
 print("Running emulator")
 if args.mame:
-    run(f"{MAME} apple2p -speed 1 -skip_gameinfo -window -nomax -flop1 NEW.DSK -rp bios")
+    run(f"{MAME} apple2p -speed 1 -skip_gameinfo -window -nomax -flop1 {BUILD_DIR}/NEW.DSK -rp bios")
 else:
-    run(f"{APPLEWIN}")
+    run(f"{APPLEWIN} -d1 {BUILD_DIR}\\NEW.DSK")

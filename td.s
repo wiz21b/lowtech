@@ -565,7 +565,7 @@ start_player:
 	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
 
 	;; DATA ////////////////////////////////////////////////////
-	.include "precalc.s"
+	.include "build/precalc.s"
 
 
 	;; /////////////////////////////////////////////////////////
@@ -668,7 +668,7 @@ ras_error:
 
 
 lines_data:
-	.include "lines.s"
+	.include "build/lines.s"
 
 modulo7:
 	.repeat 256,I
@@ -680,6 +680,6 @@ div7:
 	.byte I / 7		; integer division, no rounding
 	.endrep
 
-	.include "htiles.s"
-	.include "tiles.s"
-	.include "tiles_lr.s"
+	.include "build/htiles.s"
+	.include "build/tiles.s"
+	.include "build/tiles_lr.s"

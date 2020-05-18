@@ -1,4 +1,4 @@
-	!to "prorwts2.o",plain
+	;!to "prorwts2.o",plain
 
 	;;  Redefining sme EQU's here to make sure ACME detects the right addressing mode.
 
@@ -9,7 +9,7 @@
 
 	*=$800
 
-	!source "file_size.s"
+	!source "build/file_size.s"
 
 	!macro load_file .name_ptr, .file_size {
  	lda #<.name_ptr
