@@ -260,6 +260,7 @@ count:
 
 	CLC
 	CLV			; Prepare for unconditional branching
+	;JMP undo_self_mod
 self_mod:
 	jsr line0		; This address will be self modified
 

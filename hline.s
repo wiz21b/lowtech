@@ -186,7 +186,7 @@ draw:
 	lda div7,Y
 	sta fx+1
 
-	;; hline_7pixels_setup direction, clearing
+	hline_7pixels_setup direction, clearing
 	;; hline_7pixels_masked clearing
 	inc fx+1
 	dec length
@@ -225,9 +225,11 @@ loop:
 	LDX fx+1
 	CLV
 	CLC
+	;JMP skip_drawing
 
 jsr_self_mod:
 	jsr line0		; This address will be self modified
+skip_drawing:
 
 	inc fx+1		; we always draw from left to right
 	dec length 		; length := length - 1
