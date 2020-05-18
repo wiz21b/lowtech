@@ -1,0 +1,6 @@
+*~
+*.o
+*.html
+__pycache__
+*.rtf
+build
