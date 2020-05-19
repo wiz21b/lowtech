@@ -22,17 +22,7 @@ from utils import *
 
 
 DEBUG = False
-
 TILE_SIZE = APPLE_HGR_PIXELS_PER_BYTE
-
-
-
-
-
-
-
-
-
 
 
 # ; total 16 bytes for one line of a tile
@@ -461,13 +451,17 @@ def gen_code_vertical_tile_draw( fo, page):
 
     for y in range(0,APPLE_YRES):
 
+        code = ""
 
         if y % 6 == 0:
             eo_label = f"early_out_p{page}_{early_out_count}"
-            #fo.write(f"\tCLV\n")
-            fo.write(f"\n\tBVC {eo_label}_skip\t; always taken\n")
-            fo.write(f"{eo_label}:\n\tRTS\n")
-            fo.write(f"{eo_label}_skip:\n\n")
+
+            code += f"""
+        BVC {eo_label}_skip    ; always taken
+{eo_label}:
+        RTS
+{eo_label}_skip:
+"""
             early_out_count += 1
 
         if page == 1:
@@ -507,7 +501,7 @@ def gen_code_vertical_tile_draw( fo, page):
         else:
             nop_label_code = f"{nop_label}:\n"
 
-        fo.write(f"""
+        code += f"""
 {prefix}line{y}:
         LDA (tile_ptr),Y\t; 5+ (+ = page boundary)
         ROR
@@ -522,7 +516,11 @@ def gen_code_vertical_tile_draw( fo, page):
         TAX
         CLC
 @skip:
-""")
+"""
+        if y > 0:
+            code = strip_asm_comments( code)
+
+        fo.write( code)
 
 
     fo.write("\tRTS\n")
@@ -543,12 +541,16 @@ def gen_code_vertical_tile_draw_no_tilebreaks( fo, page):
 
     for y in range(0,APPLE_YRES):
 
+        code = ""
+
         if y % 11 == 0:
             eo_label = f"{prefix}early_out_p{page}_{early_out_count}"
-            #fo.write(f"\tCLV\n")
-            fo.write(f"\n\tBVC {eo_label}_skip\t; always taken\n")
-            fo.write(f"{eo_label}:\n\tRTS\n")
-            fo.write(f"{eo_label}_skip:\n\n")
+            code += f"""
+        BVC {eo_label}_skip    ; always taken
+{eo_label}:
+        RTS
+{eo_label}_skip:
+"""
             early_out_count += 1
 
 
@@ -566,7 +568,7 @@ def gen_code_vertical_tile_draw_no_tilebreaks( fo, page):
         else:
             nop_label_code = f"{nop_label}:\n"
 
-        fo.write(f"""
+        code += f"""
 {prefix}line{y}:
         LDA (tile_ptr),Y\t; 5+ (+ = page boundary)
         ORA {line_base},X\t; 4+
@@ -574,7 +576,11 @@ def gen_code_vertical_tile_draw_no_tilebreaks( fo, page):
         DEY\t; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
 {nop_label_code}
         BMI {eo_label}
-""")
+"""
+        if y > 0:
+            code = strip_asm_comments(code)
+
+        fo.write( code)
 
 
     fo.write("\tRTS\n")

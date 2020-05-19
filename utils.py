@@ -1,3 +1,4 @@
+import re
 import math
 import colorama
 import numpy as np
@@ -315,6 +316,14 @@ def make_lo_hi_ptr_table( fo, name, items):
           fo.write("\t.byte {}\t; {}\n".format( hi, ndx))
           ndx+=1
 
+def strip_asm_comments( code):
+    RE_COMMENT = re.compile("\s*;.*$")
+
+    res = []
+    for line in code.split("\n"):
+        res.append( RE_COMMENT.sub( "", line))
+
+    return "\n".join( res)
 
 if __name__ == "__main__":
     print("Testing utils...")
