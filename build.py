@@ -93,4 +93,4 @@ else:
     run(f"{APPLEWIN} -d1 {BUILD_DIR}\\NEW.DSK")
 
 if platform.system() == "Linux":
-    run(f"source-highlight --src-lang asm -f html --doc -c=asm-style.css  --lang-def asm.lang vline.s")
+    run(f"source-highlight --src-lang asm -f html --doc -c=asm-style.css  --lang-def asm.lang --output-dir={BUILD_DIR} vline.s")
