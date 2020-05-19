@@ -92,6 +92,6 @@ if platform.system() == "Linux":
 
 print("Running emulator")
 if args.mame:
-    run(f"{MAME} apple2p -speed 1 -skip_gameinfo -window -nomax -flop1 {BUILD_DIR}/NEW.DSK -rp bios")
+    run(f"{MAME} apple2p -window  -switchres -resolution 800x600 -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.DSK")
 else:
     run(f"{APPLEWIN} -d1 {BUILD_DIR}\\NEW.DSK")
