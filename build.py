@@ -9,6 +9,7 @@ import platform
 
 
 def run(cmd, stdin=None):
+    print(cmd)
     r = subprocess.run(cmd, shell=True, stdin=stdin)
     r.check_returncode()
     return r
@@ -26,7 +27,7 @@ elif platform.system() == "Linux":
     LD65 = r"ld65"
     ACMDER = r"java -jar ../bad_apple/AppleCommander-1.3.5.13-ac.jar"
     ACME = r"acme"
-    APPLEWIN=r"/opt/wine-staging/bin/wine /home/stefan/AppleWin1.29.10.0/Applewin.exe -d1 \\home\\stefan\\Dropbox\\demo2\\build\\NEW.DSK"
+    APPLEWIN=r"/opt/wine-staging/bin/wine /home/stefan/AppleWin1.29.10.0/Applewin.exe"
     MAME = "mame"
 else:
     raise Exception("Unsupported system : {}".format(platform.system()))
@@ -45,7 +46,7 @@ if not os.path.isdir( BUILD_DIR):
 
 print("Builing demo")
 
-run(f"{CA65} -o {BUILD_DIR}/td.o td.s")
+run(f"{CA65} -o {BUILD_DIR}/td.o -t apple2 --listing {BUILD_DIR}/td.txt td.s")
 run(f"{LD65} -o {BUILD_DIR}/THREED {BUILD_DIR}/td.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
 print("Builing loader")
@@ -94,4 +95,7 @@ print("Running emulator")
 if args.mame:
     run(f"{MAME} apple2p -window  -switchres -resolution 800x600 -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.DSK")
 else:
-    run(f"{APPLEWIN} -d1 {BUILD_DIR}\\NEW.DSK")
+    if platform.system() == "Windows":
+        run(f"{APPLEWIN} -d1 {BUILD_DIR}\\NEW.DSK")
+    elif platform.system() == "Linux":
+        run(f"{APPLEWIN} -d1 \\\\home\\\\stefan\\\\Dropbox\\\\demo2\\\\{BUILD_DIR}\\\\NEW.DSK")
