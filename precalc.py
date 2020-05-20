@@ -172,27 +172,66 @@ screen = pygame.display.set_mode(size)
 # 45 / 4 = 11 fps
 # 70/8.3 = 8.4
 
-def persp( v):
-    zoom = 350 # 250 is the ref, 590 is max for tetrahedron
+def persp( v, zoom = 350):
     d = (v.z + 5) / zoom
     return Vtx( v.x / d + APPLE_XRES / 2, v.y / d + APPLE_YRES / 2, 0 )
 
 recorded_lines = []
-NB_FRAMES = 40
-axis = [3,2,0.5]
 theta = 0
 
 
 Vtx = Vertex
+faces = []
 
 # Tetrahedron
-# a = Vtx(-1,-1,0)
-# b = Vtx(+1,-1,0)
-# c = Vtx(0,+1,-1)
-# d = Vtx(0,+1,+1)
-# faces = [ Face(a,b,c), Face(a,d,b), Face( c,b,d), Face( c,d,a)  ]
+# NB_FRAMES = 160
+# ATTENUATION = math.pi
+# ZOOM=250
+# HIDDEN_FACES = False
+# axis = [3,2,0.5]
+# ta = Vtx(-1,-1,0)
+# tb = Vtx(+1,-1,0)
+# tc = Vtx(0,+1,-1)
+# td = Vtx(0,+1,+1)
+# faces += [ Face(ta,tb,tc), Face(ta,td,tb), Face( tc,tb,td), Face( tc,td,ta)  ]
+# for f in faces:
+#     f.hidden = False
+
+# Cube
+
+NB_FRAMES = 140
+ATTENUATION = math.pi
+ZOOM=100
+HIDDEN_FACES = True
+axis = [3,2,0.5]
+
+ap = Vtx(-1,-1,-1)
+bp = Vtx(+1,-1,-1)
+cp = Vtx(+1,+1,-1)
+dp = Vtx(-1,+1,-1)
+
+app = Vtx(-1,-1,1)
+bpp = Vtx(+1,-1,1)
+cpp = Vtx(+1,+1,1)
+dpp = Vtx(-1,+1,1)
+
+faces += [ Face( ap,bp,cp,dp,hidden=HIDDEN_FACES), # front
+          Face( dpp,cpp,bpp,app,hidden=HIDDEN_FACES),
+
+          Face( cp,cpp,dpp,dp,hidden=HIDDEN_FACES),
+          Face( bp,bpp,cpp,cp,hidden=HIDDEN_FACES),
+          Face( ap,app,bpp,bp,hidden=HIDDEN_FACES),
+          Face( dp,dpp,app,ap,hidden=HIDDEN_FACES),
+         ]
+
 
 # Ogon
+# NB_FRAMES = 80
+# ATTENUATION = math.pi / 2
+# ZOOM = 200 # 170
+# HIDDEN_FACES = False
+
+# axis = [3,2,0.5]
 # a = Vtx(-0.75,-0.75,-1)
 # b = Vtx(+0.75,-0.75,-1)
 # c = Vtx(+0.75,+0.75,-1)
@@ -232,35 +271,41 @@ Vtx = Vertex
 #           Face(dppp,cppp,bppp,appp), #rear
 #          ]
 
-faces = []
-ty=0.5
-#for i in range(-4,+5):
+# Grid ------------------------------------------------------
 
-N=4
-for i in range(0,+N+1):
-    a = Vtx(-5,i*0.2 + ty,0)
-    b = Vtx(+5,i*0.2 + ty,0)
-    faces.append( Face( a,b))
+# NB_FRAMES = 40
+#ATTENUATION = 0.5
+# ZOOM = 100
+# faces = []
+# ty=0.5
+# #for i in range(-4,+5):
 
-    if i != 100:
-        a = Vtx((i-N//2 - 1)*0.5,+ty,0)
-        b = Vtx((i-N//2 - 1)*3,+10.5+ty,0)
-        faces.append( Face( a,b))
+# N=4
+# for i in range(0,+N+1):
+#     a = Vtx(-5,i*0.2 + ty,0)
+#     b = Vtx(+5,i*0.2 + ty,0)
+#     faces.append( Face( a,b))
 
-axis = [0,0,1]
+#     if i != 100:
+#         a = Vtx((i-N//2 - 1)*0.5,+ty,0)
+#         b = Vtx((i-N//2 - 1)*3,+10.5+ty,0)
+#         faces.append( Face( a,b))
 
+# axis = [0,0,1]
+
+# -----------------------------------------------------------
 
 
 # Animate
 
-for frame_ndx in range(3,NB_FRAMES):
+for frame_ndx in range(NB_FRAMES):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
 
     screen.fill(black)
 
-    theta = math.sin(frame_ndx * 2*math.pi / NB_FRAMES)*0.5
+    theta = math.sin(frame_ndx * 2*math.pi / NB_FRAMES)*ATTENUATION
     rot = angle_axis_quat(theta, axis)
 
     drawn_edges = set()
@@ -270,10 +315,10 @@ for frame_ndx in range(3,NB_FRAMES):
     t_y = -0
     for face in faces:
 
-        vp = [ persp( Vtx( *rotate_quat( rot, [v.x,v.y,v.z]))).grab_id(v)
+        vp = [ persp( Vtx( *rotate_quat( rot, [v.x,v.y,v.z])), ZOOM).grab_id(v)
                for v in face.vertices ]
 
-        if len( face.vertices) > 2:
+        if face.hidden:
             v1 = vp[0] - vp[1]
             v2 = vp[0] - vp[2]
             if v1.cross(v2).z < 0:
@@ -503,18 +548,19 @@ def gen_code_vertical_tile_draw( fo, page):
 
         code += f"""
 {prefix}line{y}:
-        LDA (tile_ptr),Y\t; 5+ (+ = page boundary)
-        ROR
+        LDA (tile_ptr),Y \t; 5+ (+ = page boundary)
+        ROR              \t; 2
         ORA {line_base},X\t; 4+
         STA {line_base},X\t; 5
-        DEY\t; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
+        DEY              \t; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
 {nop_label_code}
-        BMI {eo_label}
-        BCC @skip
-        TXA
-        ADC x_shift
-        TAX
-        CLC
+        BMI {eo_label}\t; 2/3+
+        BCC @skip        \t; 2/3+
+        TXA              \t; 2
+        ADC x_shift      \t; 3 (zero page)
+        TAX              \t; 2
+        CLC              \t; 2
+                         \t; total = 23 (no break) or 32 (break)
 @skip:
 """
         if y > 0:
@@ -575,7 +621,7 @@ def gen_code_vertical_tile_draw_no_tilebreaks( fo, page):
         STA {line_base},X\t; 5
         DEY\t; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
 {nop_label_code}
-        BMI {eo_label}
+        BMI {eo_label}\t; 2/3
 """
         if y > 0:
             code = strip_asm_comments(code)

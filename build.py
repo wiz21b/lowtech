@@ -89,7 +89,10 @@ with open(TUNE) as stdin :
 
 print("Additional tasks")
 if platform.system() == "Linux":
-    run(f"source-highlight --src-lang asm -f html --doc -c=asm-style.css  --lang-def asm.lang --output-dir={BUILD_DIR} vline.s")
+    # Generate listing (you can print in firefox, 2 pages side by side)
+
+    shutil.copyfile("asm-style.css",f"{BUILD_DIR}/asm-style.css")
+    run(f"source-highlight --src-lang asm -f html --doc -c asm-style.css  --lang-def asm.lang --output-dir={BUILD_DIR} vline.s")
 
 print("Running emulator")
 if args.mame:

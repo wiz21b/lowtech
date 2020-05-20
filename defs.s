@@ -1,7 +1,13 @@
-GR_RAM	 	= $400
-GR2_RAM	 	= $800
-HGR_RAM		= $2000
-dummy_pointer	= 254
+	GR_RAM	 	= $400
+	GR2_RAM	 	= $800
+	HGR_RAM		= $2000
+
+	OPCODE_NOP 	= $EA
+	OPCODE_DEX 	= $CA
+	OPCODE_INX 	= $E8
+	OPCODE_BMI 	= $30
+	OPCODE_BEQ 	= $F0
+	OPCODE_BPL 	= $10
 
 
 .macro store_8 target, const

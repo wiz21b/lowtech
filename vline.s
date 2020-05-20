@@ -1,9 +1,76 @@
-	OPCODE_NOP = $EA
-	OPCODE_DEX = $CA
-	OPCODE_INX = $E8
-	OPCODE_BMI = $30
-	OPCODE_BEQ = $F0
-	OPCODE_BPL = $10
+	.macro advance_tile_vertically mdirection
+
+	CLC
+	LDA fx
+	ADC slope
+	STA fx
+	LDA fx+1		; int(fx)
+	sta old_fx
+	tax			; Save for later
+	ADC slope+1
+	STA fx+1
+
+	;; Find the tile to draw. We build a 8 bits index structured
+	;; like this :
+	;;  ..DDDSSS :
+	;;    S = pixel to the right of the top one (assuming we're
+	;;        at the top of the tile)
+	;;    D = delta between old x (at top of the tile) and new x
+	;;        (at bottom)
+	;; => we can reach 64 different tiles.
+
+	;;  Compute the .SSS part
+	lda modulo7, X
+	sta dummy_ptr		; The offset (rol factor)
+
+	;;  Compute the .DDD part
+
+	;; It's tricky ! When we compare old_fx and fx,
+	;; remember that old_fx is on the first line of the tile
+	;; but fx is on the first line of the tile below. For
+	;; this computation to be exact, fx should be computed
+	;; on the last line of the *same* tile as old_fx !
+	;; To compensate for that, we modify the modulo7_times8
+	;; table !
+
+	.if mdirection = ::RIGHT_TO_LEFT
+	lda old_fx
+	sec
+	sbc fx + 1		; remember fx+1 is int(fx) => old_fx - int(fx) which is >= 0
+	.else
+	lda fx + 1
+	sec
+	sbc old_fx		; => int(fx) - old_fx which is >= 0
+	.endif
+
+	tax
+	lda modulo7_times8, X	; ("round" of int(fx)-old_fx) * 8
+
+	;; Merge the ..DDD... and .....SSS parts
+	ora dummy_ptr
+
+	tax
+
+	;; Now X is the index of the tile, so we can load
+	;; and set its pointer
+
+	.if mdirection = ::RIGHT_TO_LEFT
+
+	LDA tiles_lr_ptrs_lo, X
+	STA tile_ptr
+	LDA tiles_lr_ptrs_hi, X
+	STA tile_ptr + 1
+
+	.else
+
+	LDA tiles_ptrs_lo, X
+	STA tile_ptr
+	LDA tiles_ptrs_hi, X
+	STA tile_ptr + 1
+
+	.endif
+
+	.endmacro
 
 old_opcode:	.byte 0
 self_mod_flag:	.byte 0
@@ -31,10 +98,7 @@ modulo7_times8:
 
 	.scope
 
-
-
-
-	LDA #6
+	LDA #6			; 0 - tiles_length inclusive => 7.
 	STA tiles_length
 
 	LDX length
@@ -50,83 +114,33 @@ at_least_one_tile:
 
 loop_start:
 
-	lda fx + 1		; int(fx)
-	sta old_fx
-	add16 fx, slope		; fx := fx + slope
+	advance_tile_vertically ::direction
 
+loop_start2:
+	;; tax
 
-	;; Find the tile to draw. We build a 8 bits index structured like this :
-	;;  ..DDDSSS :
-	;;    S = pixel to the right of the top one (assuming we're at the top of the tile)
-	;;    D = delta between old x (at top of the tile) and new x (at bottom)
-	;; => we can reach 64 different tiles.
+	;; ;; Now X is the index of the tile, so we can load
+	;; ;; and set its pointer
 
-	;;  Compute the .SSS part
-	ldx old_fx
-	lda modulo7, X
-	sta dummy_ptr		; The offset (rol factor)
+	;; .if ::direction = ::RIGHT_TO_LEFT
 
-	;;  Compute the .DDD part
+	;; LDA tiles_lr_ptrs_lo, X
+	;; STA tile_ptr
+	;; LDA tiles_lr_ptrs_hi, X
+	;; STA tile_ptr + 1
 
-	;; It's tricky ! When we compare old_fx and fx,
-	;; remember that old_fx is on the first line of the tile
-	;; but fx is on the first line of the tile below. For
-	;; this computation to be exact, fx should be computed
-	;; on the last line of the *same* tile as old_fx !
-	;; To compensate for that, we modify the modulo7_times8
-	;; table !
+	;; .else
 
-	.if ::direction = ::RIGHT_TO_LEFT
-	lda old_fx
-	sec
-	sbc fx + 1		; remeber fx+1 is int(fx) => old_fx - int(fx) which is >= 0
-	.else
-	lda fx + 1
-	sec
-	sbc old_fx		; => int(fx) - old_fx which is >= 0
-	.endif
+	;; LDA tiles_ptrs_lo, X
+	;; STA tile_ptr
+	;; LDA tiles_ptrs_hi, X
+	;; STA tile_ptr + 1
 
-	tax
-	lda modulo7_times8, X	; ("round" of int(fx)-old_fx) * 8
-
-	;; Merge the ..DDD... and .....SSS parts
-	ora dummy_ptr
-	tax
-
-	;; Now X is the index of the tile, so we can load
-	;; and set its pointer
-
-	.if ::direction = ::RIGHT_TO_LEFT
-
-	LDA tiles_lr_ptrs_lo, X
-	STA tile_ptr
-	LDA tiles_lr_ptrs_hi, X
-	STA tile_ptr + 1
-
-	LDA #254
-	STA x_shift
-	.else
-
-	LDA tiles_ptrs_lo, X
-	STA tile_ptr
-	LDA tiles_ptrs_hi, X
-	STA tile_ptr + 1
-
-	LDA #0
-	STA x_shift
-	.endif
+	;; .endif
 
 	;; Self modify the drawing code to handle the "tile break"
 	;; moment
 
-
-	;; X = number of the tile we will draw
-
-	.if ::direction = ::RIGHT_TO_LEFT
-	LDA tiles_lr_breaks_indices,X
-	.else
-	LDA tiles_breaks_indices,X
-	.endif
 
 	;; ----------------- Test code for ROR strategy !!!
 
@@ -145,44 +159,56 @@ loop_start:
 	;; PLA
 
 	.ifblank clearing
-	;;  if drawing, then don't self modify.
-	;;  this way, we let ROL/ADC do the job.
-	LDA #NO_BREAK_INDICATOR
-	STA self_mod_flag
-	JMP no_self_mod
+
+	;; Choose the code segment to run to draw or clear
+	;; the line. self_mod will contain a pointer to
+	;; that code and it's part of a JSR opcode which will
+	;; do the jump.
+
+	LDY fy + 1
+	LDA (line_code_ptr_lo), Y
+	STA self_mod + 1
+	LDA (line_code_ptr_hi), Y
+	STA self_mod +1 + 1
+
+	.if ::direction = ::RIGHT_TO_LEFT
+	LDA #254
+	.else
+	LDA #0
+	.endif
+	STA x_shift
+
+	.else
+	;; X = number of the tile we will draw
+
+	.if ::direction = ::RIGHT_TO_LEFT
+	LDA tiles_lr_breaks_indices,X
+	.else
+	LDA tiles_breaks_indices,X
 	.endif
 
-	;; ------------------------------------------------
-
-	STA self_mod_flag
 
 	STOPPER = 0
 
+	STA self_mod_flag
 	CMP tiles_length		; 2/3d of times, no self mod is necessary
 	BPL no_self_mod
 
 
 	CLC
 	ADC fy + 1
-	TAY
+	TAY 	;; Y = (fy + 1) + tile_length
 
-	;; At this point Y = fy + tile_break_index
+	;; self_mod_ptr :=
+	;;      blank_line_code_ptr + (blank_pcsm0-blank_line0)
 
-	.ifblank clearing
-	LDA (line_code_ptr_lo), Y
-	STA self_mod_ptr
-	LDA (line_code_ptr_hi), Y
-	STA self_mod_ptr + 1
-	add_const_to_16 self_mod_ptr, pcsm0-line0
-	.else
+	CLC
 	LDA (blank_line_code_ptr_lo), Y
+	ADC #<(blank_pcsm0-blank_line0)
 	STA self_mod_ptr
 	LDA (blank_line_code_ptr_hi), Y
+	ADC #>(blank_pcsm0-blank_line0)
 	STA self_mod_ptr + 1
-	add_const_to_16 self_mod_ptr, blank_pcsm0-blank_line0
-	.endif
-
-;;; ------------------------------------------------------
 
 	;; Now we apply the self modifications.
 	;; It consists in replacing th BMI
@@ -206,26 +232,17 @@ loop_start:
 	STA (self_mod_ptr),Y
 
 no_self_mod:
-
-
 	;; Choose the code segment to run to draw or clear
 	;; the line. self_mod will contain a pointer to
 	;; that code and it's part of a JSR opcode which will
 	;; do the jump.
-
-	.ifblank clearing
-	LDY fy + 1
-	LDA (line_code_ptr_lo), Y
-	STA self_mod + 1
-	LDA (line_code_ptr_hi), Y
-	STA self_mod +1 + 1
-	.else
 	LDY fy + 1
 	LDA (blank_line_code_ptr_lo), Y
 	STA self_mod + 1
 	LDA (blank_line_code_ptr_hi), Y
 	STA self_mod +1 + 1
-	.endif
+	.endif			; end clearing code ------------------
+
 
 
 	;; Y = how many lines to draw (zero included => if Y = 2
@@ -233,39 +250,24 @@ no_self_mod:
 count:
 	LDY tiles_length
 
-	;; FIXME This block should be optimized (ie it is only needed
-	;; when tiles_length is not 6, that is when a tile is clipped
-
-	LDA #6
-	SEC
-	SBC tiles_length
-	CLC
-	ADC tile_ptr
-	STA tile_ptr
-	LDA #0
-	ADC tile_ptr + 1
-	STA tile_ptr + 1
-
 
 	;; X = x position of the tile to draw
 	LDX old_fx
 	LDA div7, X
 	TAX
 
-	.ifblank clearing
-	.else
+	.ifnblank clearing
 	;; When clearing, A is the color.
 	LDA #$0
 	.endif
 
 	CLC
 	CLV			; Prepare for unconditional branching
-	;JMP undo_self_mod
 self_mod:
 	jsr line0		; This address will be self modified
 
 
-undo_self_mod:
+	.ifnblank clearing
 	LDA self_mod_flag
 	CMP #NO_BREAK_INDICATOR
 	BEQ no_undo_self_mod
@@ -279,8 +281,10 @@ undo_self_mod:
 	LDA old_opcode
 	INY
 	STA (self_mod_ptr),Y
-
 no_undo_self_mod:
+
+	.endif
+
 
 	LDA fy + 1
 	CLC
@@ -301,7 +305,22 @@ tile_done:
 	STA length_div7
 	LDA #0
 	STA length_mod7
-	JMP loop_start
+	advance_tile_vertically ::direction
+	;; FIXME This block should be optimized (ie it is only needed
+	;; when tiles_length is not 6, that is when a tile is clipped
+
+	LDA #6
+	SEC
+	SBC tiles_length
+	CLC
+	ADC tile_ptr
+	STA tile_ptr
+	LDA #0
+	ADC tile_ptr + 1
+	STA tile_ptr + 1
+
+
+	JMP loop_start2
 
 really_done:
 	RTS

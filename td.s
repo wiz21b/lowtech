@@ -19,8 +19,8 @@ y_count 	= 228
 fx 	= 230
 fy 	= 232
 slope 	= 234
-hgr_offsets_lo = 236
-hgr_offsets_hi = 238
+hgr_offsets_lo	= 236
+hgr_offsets_hi	= 238
 blank_line_code_ptr_lo	= 240
 line_code_ptr_lo	= 242
 blank_line_code_ptr_hi	= 244
@@ -28,9 +28,10 @@ line_code_ptr_hi	= 246
 
 self_mod_ptr	= $82
 line_data_ptr	= 250
-tile_ptr       = 252
-dummy_ptr2		= 252
-dummy_ptr		= 254
+tile_ptr	= 252
+dummy_ptr2	= 252
+dummy_ptr	= 254
+dummy_pointer	= 254
 
 LINES_TO_DO	= 6
 BYTES_PER_LINE	= 6
@@ -185,7 +186,7 @@ freeze:
 	;jmp freeze
 
 	;jsr  pause
-	jsr read_any_sector
+	;jsr read_any_sector
 	JMP all_lines
 all_done:
 
@@ -482,6 +483,7 @@ tile_loop:
 	NO_BREAK_INDICATOR = $7F
 	RIGHT_TO_LEFT = 1
 	LEFT_TO_RIGHT = 2
+	;.global RIGHT_TO_LEFT, LEFT_TO_RIGHT
 	.include "vline.s"
 	.include "hline.s"
 
