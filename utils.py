@@ -80,21 +80,21 @@ class Edge:
 class Face:
     def __init__( self, a, b, c = None, z = None, hidden=True):
 
+
         if z: # 4 sides
             self.vertices = [a,b,c,z]
             self.normal = (b-a).cross(c-a)
             self.edges = 4
-            self.hidden = hidden
         elif c: # 3 sides
             self.vertices = [a,b,c]
             self.normal = (b-a).cross(c-a)
             self.edges = 3
-            self.hidden = hidden
         else: # 1 side
             assert hidden == False
             self.vertices = [a,b]
             self.edges = 1
 
+        self.hidden = hidden
 
 def angle_axis_quat(theta, axis):
     """

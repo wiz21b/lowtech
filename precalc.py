@@ -199,30 +199,36 @@ faces = []
 
 # Cube
 
-NB_FRAMES = 140
-ATTENUATION = math.pi
-ZOOM=100
-HIDDEN_FACES = True
-axis = [3,2,0.5]
+# NB_FRAMES = 140
+# ATTENUATION = math.pi
+# ZOOM=150
+# HIDDEN_FACES = False
 
-ap = Vtx(-1,-1,-1)
-bp = Vtx(+1,-1,-1)
-cp = Vtx(+1,+1,-1)
-dp = Vtx(-1,+1,-1)
+# if HIDDEN_FACES:
+#     NB_FRAMES = 140
+# else:
+#     NB_FRAMES = 110
 
-app = Vtx(-1,-1,1)
-bpp = Vtx(+1,-1,1)
-cpp = Vtx(+1,+1,1)
-dpp = Vtx(-1,+1,1)
+# axis = [3,2,0.5]
 
-faces += [ Face( ap,bp,cp,dp,hidden=HIDDEN_FACES), # front
-          Face( dpp,cpp,bpp,app,hidden=HIDDEN_FACES),
+# ap = Vtx(-1,-1,-1)
+# bp = Vtx(+1,-1,-1)
+# cp = Vtx(+1,+1,-1)
+# dp = Vtx(-1,+1,-1)
 
-          Face( cp,cpp,dpp,dp,hidden=HIDDEN_FACES),
-          Face( bp,bpp,cpp,cp,hidden=HIDDEN_FACES),
-          Face( ap,app,bpp,bp,hidden=HIDDEN_FACES),
-          Face( dp,dpp,app,ap,hidden=HIDDEN_FACES),
-         ]
+# app = Vtx(-1,-1,1)
+# bpp = Vtx(+1,-1,1)
+# cpp = Vtx(+1,+1,1)
+# dpp = Vtx(-1,+1,1)
+
+# faces += [ Face( ap,bp,cp,dp,hidden=HIDDEN_FACES), # front
+#           Face( dpp,cpp,bpp,app,hidden=HIDDEN_FACES),
+
+#           Face( cp,cpp,dpp,dp,hidden=HIDDEN_FACES),
+#           Face( bp,bpp,cpp,cp,hidden=HIDDEN_FACES),
+#           Face( ap,app,bpp,bp,hidden=HIDDEN_FACES),
+#           Face( dp,dpp,app,ap,hidden=HIDDEN_FACES),
+#          ]
 
 
 # Ogon
@@ -273,25 +279,25 @@ faces += [ Face( ap,bp,cp,dp,hidden=HIDDEN_FACES), # front
 
 # Grid ------------------------------------------------------
 
-# NB_FRAMES = 40
-#ATTENUATION = 0.5
-# ZOOM = 100
-# faces = []
-# ty=0.5
-# #for i in range(-4,+5):
+NB_FRAMES = 40
+ATTENUATION = 0.5
+ZOOM = 300
+faces = []
+ty=0.5
+#for i in range(-4,+5):
 
-# N=4
-# for i in range(0,+N+1):
-#     a = Vtx(-5,i*0.2 + ty,0)
-#     b = Vtx(+5,i*0.2 + ty,0)
-#     faces.append( Face( a,b))
+N=8
+for i in range(0,+N+1):
+    a = Vtx(-5,i*0.2 + ty,0)
+    b = Vtx(+5,i*0.2 + ty,0)
+    faces.append( Face( a,b, hidden=False))
 
-#     if i != 100:
-#         a = Vtx((i-N//2 - 1)*0.5,+ty,0)
-#         b = Vtx((i-N//2 - 1)*3,+10.5+ty,0)
-#         faces.append( Face( a,b))
+    if i != 100:
+        a = Vtx((i-N//2 - 1)*0.5 * 0.5,+ty,0)
+        b = Vtx((i-N//2 - 1)*3 * 0.5,+10.5+ty,0)
+        faces.append( Face( a,b, hidden=False))
 
-# axis = [0,0,1]
+axis = [0,0,1]
 
 # -----------------------------------------------------------
 

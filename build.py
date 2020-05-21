@@ -93,6 +93,7 @@ if platform.system() == "Linux":
 
     shutil.copyfile("asm-style.css",f"{BUILD_DIR}/asm-style.css")
     run(f"source-highlight --src-lang asm -f html --doc -c asm-style.css  --lang-def asm.lang --output-dir={BUILD_DIR} vline.s")
+    run(f"source-highlight --src-lang asm -f html --doc -c asm-style.css  --lang-def asm.lang --output-dir={BUILD_DIR} hline.s")
 
 print("Running emulator")
 if args.mame:
