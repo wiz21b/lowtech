@@ -101,6 +101,10 @@ modulo7_times8:
 	LDA #6			; 0 - tiles_length inclusive => 7.
 	STA tiles_length
 
+	;; Prepare for unconditional branching
+	;; Make sure you don't break that further away
+	CLV
+
 	LDX length
 	LDA modulo7, X
 	STA length_mod7
@@ -262,7 +266,6 @@ count:
 	.endif
 
 	CLC
-	CLV			; Prepare for unconditional branching
 self_mod:
 	jsr line0		; This address will be self modified
 
