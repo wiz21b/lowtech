@@ -325,7 +325,7 @@ draw:
 	TXA
 
 	clc
-	adc #8
+	adc #8			; Bytes per tile
 	add_a_to_16 tile_ptr2b
 
 	ldy fx+1
@@ -348,9 +348,9 @@ draw:
 loop:
 
 	.if ::direction = ::TOP_DOWN
-	CLC
 	LDY fy+1		; SAve for later
 	LDA fy
+	CLC
 	ADC slope
 	STA fy
 	BCS loop2		; Too much error accumulated
@@ -364,7 +364,7 @@ loop:
 	LDA fy
 	SBC slope
 	STA fy
-	BCC loop2
+	BCC loop2		; SBC works with an inverse carry
 	LDA fy+1
 	SBC slope+1
 	STA fy+1

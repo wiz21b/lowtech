@@ -180,8 +180,8 @@ recorded_lines = []
 theta = 0
 
 SHAPE = "Ogon"
-SHAPE = "Tetrahedron"
-SHAPE = "Cube"
+# SHAPE = "Tetrahedron"
+# SHAPE = "Cube"
 
 Vtx = Vertex
 faces = []
@@ -247,7 +247,7 @@ if SHAPE == "Ogon":
     NB_FRAMES = 80
     ATTENUATION = math.pi / 2
     ZOOM = 200 # 170
-    HIDDEN_FACES = True
+    HIDDEN_FACES = False
 
     if HIDDEN_FACES:
         NB_FRAMES = 80
@@ -1229,9 +1229,9 @@ with open("build/lines.s","w") as fo:
         def update_win_boundaries(a):
             global win_x_min, win_x_max, win_y_min, win_y_max
             win_x_min = min( win_x_min, a.x)
-            win_x_max = min( win_x_max, a.x)
+            win_x_max = max( win_x_max, a.x)
             win_y_min = min( win_y_min, a.y)
-            win_y_max = min( win_y_max, a.y)
+            win_y_max = max( win_y_max, a.y)
 
         for li,l in enumerate(frame):
             # if i > 0 or 10 <= li <= 12:
@@ -1249,8 +1249,11 @@ with open("build/lines.s","w") as fo:
                 npixels += int(abs(dy)) * 20
 
 
-        surf = int((win_x_max - win_x_min)*(win_y_max - win_y_min) * APPLE_XRES*APPLE_YRES/40000)
-        print(f"Frame draws {npixels} cycles. Clearing woud cost {surf} cycles.")
+        win_w = int(win_x_max - win_x_min)
+        win_h = int(win_y_max - win_y_min)
+        surf = int(win_w*win_h * APPLE_XRES*APPLE_YRES/40000)
+        nb_segments = len(frame)
+        print(f"Frame draws {npixels} cycles; {nb_segments} segments. Clearing woud cost {surf} cycles ({win_w}x{win_h}).")
 
         if frame != recorded_lines[-1]:
             fo.write("\t.byte 3\t;; end of block\n")
