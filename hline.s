@@ -384,7 +384,7 @@ loop:
 	STA jsr_self_mod + 1
 	LDA (blank_line_code_ptr_hi), Y
 	STA jsr_self_mod +1 + 1
-	LDA #$00
+	LDA #BACKGROUND_COLOR
 	.endif
 
 	LDY slope+1
@@ -424,7 +424,7 @@ loop2:
 	STA jsr_self_mod2 + 1
 	LDA (blank_line_code_ptr_hi), Y
 	STA jsr_self_mod2 +1 + 1
-	LDA #$00
+	LDA #BACKGROUND_COLOR
 	.endif
 
 	LDY tile_ptr2b

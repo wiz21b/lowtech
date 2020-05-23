@@ -75,7 +75,7 @@ BYTES_PER_LINE	= 6
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
 
-	;jsr start_player
+	jsr start_player
 loop_infinite:
 	;jmp loop_infinite
 	;; jsr draw_tile_line
@@ -494,6 +494,7 @@ tile_loop:
 
 	;; Macros to generate line drawing code
 	NO_BREAK_INDICATOR = $7F
+	BACKGROUND_COLOR = $FF
 	RIGHT_TO_LEFT = 1
 	LEFT_TO_RIGHT = 2
 	TOP_DOWN = 2

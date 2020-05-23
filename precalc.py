@@ -21,6 +21,9 @@ random.seed(125)
 from utils import *
 
 
+SHAPE = "Ogon"
+#SHAPE = "Tetrahedron"
+#SHAPE = "Cube"
 DEBUG = False
 TILE_SIZE = APPLE_HGR_PIXELS_PER_BYTE
 
@@ -179,9 +182,6 @@ def persp( v, zoom = 350):
 recorded_lines = []
 theta = 0
 
-SHAPE = "Ogon"
-# SHAPE = "Tetrahedron"
-# SHAPE = "Cube"
 
 Vtx = Vertex
 faces = []
@@ -246,8 +246,8 @@ if SHAPE == "Cube":
 if SHAPE == "Ogon":
     NB_FRAMES = 80
     ATTENUATION = math.pi / 2
-    ZOOM = 200 # 170
-    HIDDEN_FACES = False
+    ZOOM = 250 # 170
+    HIDDEN_FACES = True
 
     if HIDDEN_FACES:
         NB_FRAMES = 80
@@ -573,7 +573,7 @@ def gen_code_vertical_tile_draw( fo, page):
 {prefix}line{y}:
         LDA (tile_ptr),Y \t; 5+ (+ = page boundary)
         ROR              \t; 2
-        ORA {line_base},X\t; 4+
+        AND {line_base},X\t; 4+
         STA {line_base},X\t; 5
         DEY              \t; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
 {nop_label_code}
@@ -640,7 +640,7 @@ def gen_code_vertical_tile_draw_no_tilebreaks( fo, page):
         code += f"""
 {prefix}line{y}:
         LDA (tile_ptr),Y\t; 5+ (+ = page boundary)
-        ORA {line_base},X\t; 4+
+        AND {line_base},X\t; 4+
         STA {line_base},X\t; 5
         DEY\t; 2 (affects only flags N(egative) and Z(ero) (cleared or set), not overflow(N)
 {nop_label_code}
@@ -758,7 +758,7 @@ def make_tiles_pairs( fo, bm1, bm2):
           # rememeber one and only one of m1,m2 is zero
           # (see assert above)
 
-          result.append( ( bits_to_hgr( logical_or( m1, m2)),
+          result.append( ( bits_to_hgr( invert( logical_or( m1, m2), 7)),
                            f"{m1:08b} {m2:08b} {m1}|{m2}"))
 
 
@@ -807,6 +807,8 @@ def compute_vertical_tiles():
                # and at ndx = TILE_SIZE - 1 we draw a line of slope 1
 
                draw_vline( t, 0,0, i, TILE_SIZE-1, 1)
+
+               #draw_vline( t, 1,0, min(TILE_SIZE-1,i+1), TILE_SIZE-1, 1)
 
                # + 1 because ??? (code seems to need that, many bugs without !)
                for rol_ndx in range( TILE_SIZE +1):
@@ -935,12 +937,15 @@ def compute_horizontal_tiles(fo):
         # From y=0 to y=i (both inclusive, so i ranges
         # from 0 to TILE_SIZE - 1 inclusive)
         draw_hline( t, 0,0, TILE_SIZE-1, i, 1)
+
+        #draw_hline( t, 0,min(i,1), TILE_SIZE-2, i, 1)
+
         # image_to_ascii( t, grid_size=TILE_SIZE)
 
 
         bm1 = [(b >> 1 ) for b in np.packbits( t, axis=1).flatten()]
         # print(bm1)
-        rb = [ bits_to_hgr(row) for row in bm1]
+        rb = [ bits_to_hgr( invert(row,7)) for row in bm1]
 
         # We reverse because we count with DEY
         # We padd to have 8 bytes (instead of 7). We pad
@@ -959,7 +964,7 @@ def compute_horizontal_tiles(fo):
             # to work without clipping the count value (which
             # would complexify the code)
 
-            rb = list(reversed(rb)) + [1]
+            rb = list(reversed(rb)) + [invert(1,7)]
 
         fo.write("HTILE_{}:\t.byte {}\n".format( ndx, ",".join(["${:02X}".format(x) for x in rb]) ))
 
@@ -968,13 +973,15 @@ def compute_horizontal_tiles(fo):
 def compute_horizontal_tiles_up(fo):
     fo.write("HTILE_UP:\n")
 
-    for i in range( TILE_SIZE):
+    for ndx in range( TILE_SIZE+1):
 
         # Off by one protection
-        i = min( i, TILE_SIZE - 1)
+        i = min( ndx, TILE_SIZE - 1)
 
         t = np.zeros( (TILE_SIZE,TILE_SIZE), np.uint8)
         draw_hline( t, 0,i, TILE_SIZE-1, 0, 1)
+
+        #draw_hline( t, 0,max(0,i-1), TILE_SIZE-2, 0, 1)
         #image_to_ascii( t, grid_size=TILE_SIZE)
 
         #bm1 = np.packbits( t, axis=1).flatten()
@@ -983,11 +990,14 @@ def compute_horizontal_tiles_up(fo):
 
         # Order bits per Apple2 HGR convention
         # (bit2hgr won't work here)
-        rb = [ bits_to_hgr( row) for row in bm1]
+        rb = [ bits_to_hgr( invert(row,7)) for row in bm1]
 
         # Each tile is stored as 8 bytes, although it only
         # has TILE_SIZE significant rows.
-        rb = list(reversed(rb[0:i+1])) + [0]*(TILE_SIZE - i)
+        if ndx != TILE_SIZE:
+            rb = list(reversed(rb[0:i+1])) + [0]*(TILE_SIZE - i)
+        else:
+            rb = list(reversed(rb)) + [invert(64,7)]
 
         assert( len(rb) == 8)
 

@@ -262,7 +262,7 @@ count:
 
 	.ifnblank clearing
 	;; When clearing, A is the color.
-	LDA #$0
+	LDA #BACKGROUND_COLOR
 	.endif
 
 	CLC

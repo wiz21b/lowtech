@@ -167,6 +167,9 @@ def rol( num, bits=8):
 
     return ((num << 1) & 0xFF) + (num >> (bits-1))
 
+def invert( num, bits=8):
+    return num ^ (2**bits-1)
+
 def reverse_bits(num,bitSize=8):
 
     assert num == 0 or math.log( num, 2) < bitSize
@@ -348,3 +351,7 @@ if __name__ == "__main__":
     print( FixedPoint(123 * 256 + 128))
     print( FixedPoint(- 123 * 256 - 128))
     print( FixedPoint(- 123 * 256 - 128).add(FixedPoint(123 * 256 + 128)))
+
+    assert invert(0,7) == 127
+    assert invert(127,7) == 0
+    assert invert(64,7) == 1+2+4+8+16+32

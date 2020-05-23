@@ -20,7 +20,7 @@ clear_hgr:
 clear_hgr_loop:
 	dec16 dummy_pointer
 
-	LDA #$00
+	LDA #$FF
 	LDY #0
 	STA (dummy_pointer), Y
 
