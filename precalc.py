@@ -21,9 +21,9 @@ random.seed(125)
 from utils import *
 
 
-SHAPE = "Ogon"
+#SHAPE = "Ogon"
 #SHAPE = "Tetrahedron"
-#SHAPE = "Cube"
+SHAPE = "Cube"
 DEBUG = False
 TILE_SIZE = APPLE_HGR_PIXELS_PER_BYTE
 
@@ -211,7 +211,7 @@ if SHAPE == "Tetrahedron":
 if SHAPE == "Cube":
     NB_FRAMES = 140
     ATTENUATION = math.pi
-    ZOOM=150
+    ZOOM=250
     HIDDEN_FACES = True
 
     if HIDDEN_FACES:
@@ -246,7 +246,7 @@ if SHAPE == "Cube":
 if SHAPE == "Ogon":
     NB_FRAMES = 80
     ATTENUATION = math.pi / 2
-    ZOOM = 250 # 170
+    ZOOM = 150 # 170
     HIDDEN_FACES = True
 
     if HIDDEN_FACES:
@@ -1132,7 +1132,7 @@ def gen_data_line( fo, a, b):
             left_mask = 0
 
         rx = int(b.x)
-        if rx % TILE_SIZE < TILE_SIZE-1:
+        if rx % TILE_SIZE <= TILE_SIZE-1:
             f = TILE_SIZE - 1 - (rx % TILE_SIZE)
             # we must extend to the left to have a complete tile
             b = Vertex( int(b.x + f),
@@ -1143,6 +1143,8 @@ def gen_data_line( fo, a, b):
 
         dx, dy = (b - a).x, (b - a).y
 
+        if abs(dx) < 2*TILE_SIZE:
+            return
 
         # In case the slope is 45° (possible) or
         # more (clearly an rror somewhere), I fix

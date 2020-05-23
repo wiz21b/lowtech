@@ -361,6 +361,18 @@ x7_end:	.byte 0
 	LDA hline_masks_right, X
 	STA mask_right
 
+	LDY #0
+	LDA (line_data_ptr),Y
+	LSR
+	LSR
+	LSR
+	LSR
+	LSR
+	AND #7
+	TAY
+	LDA hline_masks_right, Y
+	STA mask_right
+
 	LDA color
 	BEQ erase
 
@@ -499,6 +511,8 @@ tile_loop:
 	LEFT_TO_RIGHT = 2
 	TOP_DOWN = 2
 	BOTTOM_UP = 1
+	CLEARING = 1
+	DRAWING = 2
 	;.global RIGHT_TO_LEFT, LEFT_TO_RIGHT
 	.include "vline.s"
 	.include "hline.s"
