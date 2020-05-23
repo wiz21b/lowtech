@@ -32,7 +32,9 @@ elif platform.system() == "Linux":
 else:
     raise Exception("Unsupported system : {}".format(platform.system()))
 
+
 BUILD_DIR = "build"
+BUILD_DIR_ABSOLUTE = os.path.join( os.path.dirname(os.path.abspath(__file__)), BUILD_DIR)
 TUNE = "data/FR.PT3"
 
 parser = argparse.ArgumentParser()
@@ -99,7 +101,5 @@ print("Running emulator")
 if args.mame:
     run(f"{MAME} apple2p -window  -switchres -resolution 800x600 -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.DSK")
 else:
-    if platform.system() == "Windows":
-        run(f"{APPLEWIN} -d1 {BUILD_DIR}\\NEW.DSK")
-    elif platform.system() == "Linux":
-        run(f"{APPLEWIN} -d1 \\\\home\\\\stefan\\\\Dropbox\\\\demo2\\\\{BUILD_DIR}\\\\NEW.DSK")
+    dsk = os.path.join( BUILD_DIR_ABSOLUTE, "NEW.DSK")
+    run(f"{APPLEWIN} -d1 {dsk}")
