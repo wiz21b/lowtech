@@ -348,13 +348,13 @@ draw:
 loop:
 
 	.if ::direction = ::TOP_DOWN
-	LDY fy + 1		; save old fy for later
 	CLC
+	LDY fy+1		; SAve for later
 	LDA fy
 	ADC slope
 	STA fy
 	BCS loop2		; Too much error accumulated
-	LDA fy+1
+	TYA
 	ADC slope+1
 	STA fy+1
 	.else
@@ -368,7 +368,7 @@ loop:
 	LDA fy+1
 	SBC slope+1
 	STA fy+1
-	LDY fy + 1		; save old fy for later
+	TAY			; save old fy for later
 
 	.endif
 
@@ -410,10 +410,8 @@ loop2:
 	LDA fy+1
 	SBC slope+1
 	STA fy+1
-	LDY fy + 1		; save old fy for later
+	TAY 			; save old fy for later
 	.endif
-
-	;BVC loop_continue
 
 	;; Y = old fy
 	.ifblank clearing
@@ -444,7 +442,7 @@ jsr_self_mod2:
 	STY tile_ptr
 	LDY tile_ptr2a + 1
 	STY tile_ptr + 1
-	BVC loop_continue
+	BVC loop_continue	; unconditional jump
 
 	.endscope
 	.endmacro
