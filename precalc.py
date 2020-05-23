@@ -179,125 +179,142 @@ def persp( v, zoom = 350):
 recorded_lines = []
 theta = 0
 
+SHAPE = "Ogon"
+SHAPE = "Tetrahedron"
+SHAPE = "Cube"
 
 Vtx = Vertex
 faces = []
 
-# Tetrahedron
-# NB_FRAMES = 160
-# ATTENUATION = math.pi
-# ZOOM=250
-# HIDDEN_FACES = False
-# axis = [3,2,0.5]
-# ta = Vtx(-1,-1,0)
-# tb = Vtx(+1,-1,0)
-# tc = Vtx(0,+1,-1)
-# td = Vtx(0,+1,+1)
-# faces += [ Face(ta,tb,tc), Face(ta,td,tb), Face( tc,tb,td), Face( tc,td,ta)  ]
-# for f in faces:
-#     f.hidden = False
+if SHAPE == "Tetrahedron":
 
-# Cube
+    HIDDEN_FACES = True
+    if HIDDEN_FACES:
+        NB_FRAMES = 160
+    else:
+        NB_FRAMES = 240
 
-# NB_FRAMES = 140
-# ATTENUATION = math.pi
-# ZOOM=150
-# HIDDEN_FACES = False
+    ATTENUATION = math.pi
+    ZOOM=300
+    axis = [3,2,0.5]
+    ta = Vtx(-1,-1,0)
+    tb = Vtx(+1,-1,0)
+    tc = Vtx(0,+1,-1)
+    td = Vtx(0,+1,+1)
+    faces += [ Face(ta,tb,tc, hidden=HIDDEN_FACES),
+               Face(ta,td,tb, hidden=HIDDEN_FACES),
+               Face( tc,tb,td, hidden=HIDDEN_FACES),
+               Face( tc,td,ta, hidden=HIDDEN_FACES)  ]
 
-# if HIDDEN_FACES:
-#     NB_FRAMES = 140
-# else:
-#     NB_FRAMES = 110
+# Cube ---------------------------------------------------------------
 
-# axis = [3,2,0.5]
+if SHAPE == "Cube":
+    NB_FRAMES = 140
+    ATTENUATION = math.pi
+    ZOOM=150
+    HIDDEN_FACES = True
 
-# ap = Vtx(-1,-1,-1)
-# bp = Vtx(+1,-1,-1)
-# cp = Vtx(+1,+1,-1)
-# dp = Vtx(-1,+1,-1)
+    if HIDDEN_FACES:
+        NB_FRAMES = 140
+    else:
+        NB_FRAMES = 110
 
-# app = Vtx(-1,-1,1)
-# bpp = Vtx(+1,-1,1)
-# cpp = Vtx(+1,+1,1)
-# dpp = Vtx(-1,+1,1)
+    axis = [3,2,0.5]
 
-# faces += [ Face( ap,bp,cp,dp,hidden=HIDDEN_FACES), # front
-#           Face( dpp,cpp,bpp,app,hidden=HIDDEN_FACES),
+    ap = Vtx(-1,-1,-1)
+    bp = Vtx(+1,-1,-1)
+    cp = Vtx(+1,+1,-1)
+    dp = Vtx(-1,+1,-1)
 
-#           Face( cp,cpp,dpp,dp,hidden=HIDDEN_FACES),
-#           Face( bp,bpp,cpp,cp,hidden=HIDDEN_FACES),
-#           Face( ap,app,bpp,bp,hidden=HIDDEN_FACES),
-#           Face( dp,dpp,app,ap,hidden=HIDDEN_FACES),
-#          ]
+    app = Vtx(-1,-1,1)
+    bpp = Vtx(+1,-1,1)
+    cpp = Vtx(+1,+1,1)
+    dpp = Vtx(-1,+1,1)
+
+    faces += [ Face( ap,bp,cp,dp,hidden=HIDDEN_FACES), # front
+              Face( dpp,cpp,bpp,app,hidden=HIDDEN_FACES),
+
+              Face( cp,cpp,dpp,dp,hidden=HIDDEN_FACES),
+              Face( bp,bpp,cpp,cp,hidden=HIDDEN_FACES),
+              Face( ap,app,bpp,bp,hidden=HIDDEN_FACES),
+              Face( dp,dpp,app,ap,hidden=HIDDEN_FACES),
+             ]
 
 
-# Ogon
-# NB_FRAMES = 80
-# ATTENUATION = math.pi / 2
-# ZOOM = 200 # 170
-# HIDDEN_FACES = False
+# Ogon ---------------------------------------------------------------
 
-# axis = [3,2,0.5]
-# a = Vtx(-0.75,-0.75,-1)
-# b = Vtx(+0.75,-0.75,-1)
-# c = Vtx(+0.75,+0.75,-1)
-# d = Vtx(-0.75,+0.75,-1)
+if SHAPE == "Ogon":
+    NB_FRAMES = 80
+    ATTENUATION = math.pi / 2
+    ZOOM = 200 # 170
+    HIDDEN_FACES = True
 
-# ap = Vtx(-1,-1,0)
-# bp = Vtx(+1,-1,0)
-# cp = Vtx(+1,+1,0)
-# dp = Vtx(-1,+1,0)
+    if HIDDEN_FACES:
+        NB_FRAMES = 80
+    else:
+        NB_FRAMES = 40
 
-# app = Vtx(-1,-1,1)
-# bpp = Vtx(+1,-1,1)
-# cpp = Vtx(+1,+1,1)
-# dpp = Vtx(-1,+1,1)
+    axis = [3,2,0.5]
+    a = Vtx(-0.75,-0.75,-1)
+    b = Vtx(+0.75,-0.75,-1)
+    c = Vtx(+0.75,+0.75,-1)
+    d = Vtx(-0.75,+0.75,-1)
 
-# appp = Vtx(-0.5,-0.5,2)
-# bppp = Vtx(+0.5,-0.5,2)
-# cppp = Vtx(+0.5,+0.5,2)
-# dppp = Vtx(-0.5,+0.5,2)
+    ap = Vtx(-1,-1,0)
+    bp = Vtx(+1,-1,0)
+    cp = Vtx(+1,+1,0)
+    dp = Vtx(-1,+1,0)
 
-# faces = [ Face(a,b,c,d), # front
-#           Face( d,c,cp,dp), # top
-#           Face( b,a,ap,bp), # bottom
-#           Face( a,d,dp,ap), # left
-#           Face( b,bp,cp,c), # right
+    app = Vtx(-1,-1,1)
+    bpp = Vtx(+1,-1,1)
+    cpp = Vtx(+1,+1,1)
+    dpp = Vtx(-1,+1,1)
 
-#           Face(ap,app,bpp,bp),
-#           Face(bp,bpp,cpp,cp),
-#           Face(dp,cp,cpp,dpp),
-#           Face(ap,dp,dpp,app),
+    appp = Vtx(-0.5,-0.5,2)
+    bppp = Vtx(+0.5,-0.5,2)
+    cppp = Vtx(+0.5,+0.5,2)
+    dppp = Vtx(-0.5,+0.5,2)
 
-#           Face(app,appp,bppp,bpp),
-#           Face(bpp,bppp,cppp,cpp),
-#           Face(dpp,cpp,cppp,dppp),
-#           Face(app,dpp,dppp,appp),
+    faces = [ Face(a,b,c,d, hidden=HIDDEN_FACES), # front
+              Face( d,c,cp,dp, hidden=HIDDEN_FACES), # top
+              Face( b,a,ap,bp, hidden=HIDDEN_FACES), # bottom
+              Face( a,d,dp,ap, hidden=HIDDEN_FACES), # left
+              Face( b,bp,cp,c, hidden=HIDDEN_FACES), # right
 
-#           Face(dppp,cppp,bppp,appp), #rear
-#          ]
+              Face(ap,app,bpp,bp, hidden=HIDDEN_FACES),
+              Face(bp,bpp,cpp,cp, hidden=HIDDEN_FACES),
+              Face(dp,cp,cpp,dpp, hidden=HIDDEN_FACES),
+              Face(ap,dp,dpp,app, hidden=HIDDEN_FACES),
+
+              Face(app,appp,bppp,bpp, hidden=HIDDEN_FACES),
+              Face(bpp,bppp,cppp,cpp, hidden=HIDDEN_FACES),
+              Face(dpp,cpp,cppp,dppp, hidden=HIDDEN_FACES),
+              Face(app,dpp,dppp,appp, hidden=HIDDEN_FACES),
+
+              Face(dppp,cppp,bppp,appp, hidden=HIDDEN_FACES), #rear
+             ]
 
 # Grid ------------------------------------------------------
 
-NB_FRAMES = 40
-ATTENUATION = 0.5
-ZOOM = 300
-faces = []
-ty=0.5
-#for i in range(-4,+5):
+# NB_FRAMES = 60
+# ATTENUATION = 0.5
+# ZOOM = 300
+# faces = []
+# ty=0.5
 
-N=8
-for i in range(0,+N+1):
-    a = Vtx(-5,i*0.2 + ty,0)
-    b = Vtx(+5,i*0.2 + ty,0)
-    faces.append( Face( a,b, hidden=False))
+# N=4
+# for i in range(0,+N+1):
+#     if i < 4:
+#         a = Vtx(-5,i*0.3 + ty,0)
+#         b = Vtx(+5,i*0.3 + ty,0)
+#         faces.append( Face( a,b, hidden=False))
 
-    if i != 100:
-        a = Vtx((i-N//2 - 1)*0.5 * 0.5,+ty,0)
-        b = Vtx((i-N//2 - 1)*3 * 0.5,+10.5+ty,0)
-        faces.append( Face( a,b, hidden=False))
+#     if i != 100:
+#         a = Vtx((i-N//2 - 1)*0.5,+ty,0)
+#         b = Vtx((i-N//2 - 1)*3,+10.5+ty,0)
+#         faces.append( Face( a,b, hidden=False))
 
-axis = [0,0,1]
+# axis = [0,0,1]
 
 # -----------------------------------------------------------
 
@@ -903,35 +920,49 @@ def compute_horizontal_clipping_masks( fo):
             bits_to_hgr(mask), mask))
 
 def compute_horizontal_tiles(fo):
+    # Down direction
+
     column = np.zeros( (TILE_SIZE,1,), dtype=np.bool_)
 
+    # For TILE_SIZE+1, see remark below
     for ndx in range( TILE_SIZE+1):
         # Off by one protection
         i = min( ndx, TILE_SIZE - 1)
 
-        t = np.zeros( (TILE_SIZE,TILE_SIZE), np.uint8)
+        t = np.zeros( (i+1,TILE_SIZE), np.uint8)
+
+        # We draw from left edge to right edge
+        # From y=0 to y=i (both inclusive, so i ranges
+        # from 0 to TILE_SIZE - 1 inclusive)
         draw_hline( t, 0,0, TILE_SIZE-1, i, 1)
-        #image_to_ascii( t, grid_size=TILE_SIZE)
+        # image_to_ascii( t, grid_size=TILE_SIZE)
 
 
-        #t1 = np.concatenate( (column, t), axis=1)
-        t1 = t
+        bm1 = [(b >> 1 ) for b in np.packbits( t, axis=1).flatten()]
+        # print(bm1)
+        rb = [ bits_to_hgr(row) for row in bm1]
 
-        bm1 = np.packbits( t1, axis=1).flatten()
-        rb = [ rol(reverse_bits( row)) for row in bm1]
+        # We reverse because we count with DEY
+        # We padd to have 8 bytes (instead of 7). We pad
+        # with 255 to make off by one errors more apparent
 
-        rb = list(reversed(rb[0:i+1])) + [0]*(TILE_SIZE - i)
+        if ndx != TILE_SIZE:
+            rb = list(reversed(rb)) + [255]*(8-len(rb))
+        else:
+            # This is a special case. Most of the time
+            # we deal with tiles which have 0-TILE-SIZE
+            # rows. But when the line is close to being mostly
+            # vertical, we need a tile with TILE_SIZE rows
+            # Because of the way we iterate, we iterate
+            # over the tile_size+1 => 8 times instead of
+            # TILE_SIZE. This little hack here allows this
+            # to work without clipping the count value (which
+            # would complexify the code)
 
-        # rb += [0] # Make sure we have 8 bytes rows (instead of 7); 8 is easier to use in assembly
-        # print(rb)
+            rb = list(reversed(rb)) + [1]
 
         fo.write("HTILE_{}:\t.byte {}\n".format( ndx, ",".join(["${:02X}".format(x) for x in rb]) ))
 
-        # for rol in range( TILE_SIZE):
-        #      image_to_ascii( t, grid_size=TILE_SIZE)
-        #      # prepare next iteration by rotating the tile
-        #      # one byte to the right
-        #      t = np.roll(t,1,axis=0)
 
 
 def compute_horizontal_tiles_up(fo):
@@ -946,17 +977,13 @@ def compute_horizontal_tiles_up(fo):
         draw_hline( t, 0,i, TILE_SIZE-1, 0, 1)
         #image_to_ascii( t, grid_size=TILE_SIZE)
 
-        bm1 = np.packbits( t, axis=1).flatten()
-
-        # for row in bm1:
-        #     check = bits_to_hgr( row)
-        #     print(f"{row:8b} {row}\t{check:8b}")
-        # print()
-
+        #bm1 = np.packbits( t, axis=1).flatten()
+        bm1 = [(b >> 1 ) for b in np.packbits( t, axis=1).flatten()]
+        #print(bm1)
 
         # Order bits per Apple2 HGR convention
         # (bit2hgr won't work here)
-        rb = [ rol(reverse_bits( row)) for row in bm1]
+        rb = [ bits_to_hgr( row) for row in bm1]
 
         # Each tile is stored as 8 bytes, although it only
         # has TILE_SIZE significant rows.
@@ -985,7 +1012,7 @@ def compute_hgr_offsets(fo):
 LIMY = TILE_SIZE
 BOTY = APPLE_YRES - TILE_SIZE
 LIMX = TILE_SIZE
-BOTX = 31 * TILE_SIZE
+BOTX = APPLE_XRES - TILE_SIZE
 
 def clip( a, b):
 
@@ -1069,6 +1096,8 @@ def gen_data_line( fo, a, b):
         assert -256*TILE_SIZE < int(256.0*TILE_SIZE*dy/dx) < 256*TILE_SIZE, "{} / {}".format(int(256.0*TILE_SIZE*dy/dx), 256*6)
         assert dx > 0
 
+        slope = TILE_SIZE * dy/dx
+
         # The difficult part of mostly horizontal lines is the edges.
         # The idea is this. We imagine the line goes from a tile aligned
         # boundary (left) to another (right). That is, screen X position
@@ -1104,12 +1133,41 @@ def gen_data_line( fo, a, b):
 
         dx, dy = (b - a).x, (b - a).y
 
-        slope = TILE_SIZE * dy/dx
+
+        # In case the slope is 45° (possible) or
+        # more (clearly an rror somewhere), I fix
+        # it a little. This is hackish but allows
+        #to avoir more special case handling here
+        # and there
+
+        if int_to_16( abs(slope)) == TILE_SIZE*256:
+            m = TILE_SIZE*256
+            slope = slope * ((m-1)/m)
+
+        # Make sure the slope is less than 45 degrees (horziontal
+        # dominant)
+
+        assert abs(slope) < TILE_SIZE, f"{slope} is too big : {dy}/{dx}"
+        assert int_to_16( abs(slope)) < TILE_SIZE*256, "16bits slope too big : {} !< {}, {}/{}".format( int_to_16( abs(slope)), TILE_SIZE*256, dy, dx)
+
+        # Of no use ...
+        # if abs(slope) == 1:
+        #     slope *= 1-2/255
+
         dx_int = (int(b.x) // TILE_SIZE) - (int(a.x) // TILE_SIZE) + 1
-        d = [ 0 + (right_mask << 5),
-              int(a.x), int(a.y),
-              (dx_int << 3) + left_mask,
-              int_to_16( TILE_SIZE*dy/dx)]
+
+        # Note that dx is stored over 5 bits => the maximum width
+        # we can handle is 32*7 = 224 pixels (out of 270)
+        if slope >= 0:
+            d = [ 0 + (right_mask << 5),
+                  int(a.x), int(a.y),
+                  (dx_int << 2) + (left_mask >> 1),
+                  int_to_16( slope)]
+        else:
+            d = [ 0 + (right_mask << 5),
+                  int(a.x), int(a.y),
+                  (dx_int << 2) + (left_mask >> 1),
+                  int_to_16( abs(slope)) | 0x8000]
 
     else:
         #return
@@ -1138,6 +1196,7 @@ def gen_data_line( fo, a, b):
     fo.write("\t.byte {}\n".format(",".join(map(str,d[0:-1]))))
     fo.write("\t.word {}\t;{}\n".format(d[4],slope))
 
+
 compute_vertical_tiles()
 compute_vertical_tiles_right_left()
 
@@ -1163,9 +1222,35 @@ with open("build/lines.s","w") as fo:
         if i == 0:
             fo.write("line_data_frame1:\t;Beginning of first frame\n")
 
+        npixels = 0
+        win_x_min, win_x_max = 1000,0
+        win_y_min, win_y_max = 1000,0
+
+        def update_win_boundaries(a):
+            global win_x_min, win_x_max, win_y_min, win_y_max
+            win_x_min = min( win_x_min, a.x)
+            win_x_max = min( win_x_max, a.x)
+            win_y_min = min( win_y_min, a.y)
+            win_y_max = min( win_y_max, a.y)
+
         for li,l in enumerate(frame):
             # if i > 0 or 10 <= li <= 12:
-            gen_data_line( fo, Vertex( l[0],l[1]), Vertex(l[2],l[3]))
+
+            a = Vertex( l[0],l[1])
+            b = Vertex( l[2],l[3])
+            gen_data_line( fo, a, b)
+
+            update_win_boundaries(a)
+            update_win_boundaries(b)
+            dx, dy = (b - a).x, (b - a).y
+            if dx*dx > dy*dy:
+                npixels += int(abs(dx)) * 15
+            else:
+                npixels += int(abs(dy)) * 20
+
+
+        surf = int((win_x_max - win_x_min)*(win_y_max - win_y_min) * APPLE_XRES*APPLE_YRES/40000)
+        print(f"Frame draws {npixels} cycles. Clearing woud cost {surf} cycles.")
 
         if frame != recorded_lines[-1]:
             fo.write("\t.byte 3\t;; end of block\n")
@@ -1174,6 +1259,7 @@ with open("build/lines.s","w") as fo:
 
         if i == 0:
             fo.write("line_data_frame2:\t;Beginning of second frame\n")
+
 
 
 with open("build/precalc.s","w") as fo:

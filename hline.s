@@ -144,7 +144,7 @@ self_mod_delta:
 	LDA #255
 	STA x_shift
 
-	;; fy + 1 = 2A (42)
+	;; fy + 1
 
 	LDY fy+1
 	LDA (hgr_offsets_lo),Y
@@ -154,6 +154,7 @@ self_mod_delta:
 
 	;; length byte contains a length (5 bits) and a mask index
 	;; (3 bits)
+	;; 5 bits = 0-31 => width from 0 to 31*7=231 pixels
 
 	LDA length
 	AND #$7
@@ -263,3 +264,187 @@ all_done:
 
 	.endscope
 .endmacro
+
+
+
+.macro draw_hline2 direction, clearing
+	.scope
+
+	.if ::direction = ::TOP_DOWN
+	.else
+	;; Make the slope positive
+	LDA slope + 1
+	AND #$7F
+	STA slope + 1
+	.endif
+	;; .ifblank clearing
+	;; rts
+	;; .endif
+
+	;; We always draw from left to right
+
+	;; fy + 1
+
+	LDA length
+	AND #$3
+	TAY
+	LDA hline_masks_left, Y
+	STA mask
+
+	LDA length
+	LSR
+	LSR
+	STA length
+
+
+	lda length
+	cmp #1
+	bpl draw		; greater or equal
+	rts
+draw:
+	.if ::direction = ::TOP_DOWN
+	;; store_16 self_mod + 1, HTILE_0
+	store_16 tile_ptr2a, HTILE_0
+	store_16 tile_ptr2b, HTILE_0
+	;; here !!!!
+	.else
+	;; store_16 self_mod + 1, HTILE_UP
+	store_16 tile_ptr2a, HTILE_UP
+	store_16 tile_ptr2b, HTILE_UP
+	.endif
+
+	;; Choose the tile
+
+	LDA slope+1		; msb
+	ASL			; Each tile is padded to 8 bytes
+	ASL
+	ASL
+
+	TAX
+	add_a_to_16 tile_ptr2a
+	TXA
+
+	clc
+	adc #8
+	add_a_to_16 tile_ptr2b
+
+	ldy fx+1
+	lda div7,Y
+	sta fx+1
+
+	LDY tile_ptr2a
+	STY tile_ptr
+	LDY tile_ptr2a + 1
+	STY tile_ptr + 1
+
+	LDX fx+1		; From now on X must be preserved
+
+	;; 70 cycles for tile set up
+	;; 18 cycles / line
+	;; 70+18=88 to 70+7*18=196 for 7 pixels => 13 to 28 cycle/pixel
+	;; Optimization : user JSR (or BRK) instead of RTS (or RTI)
+	;; and RTS instead of JSR to avoid computing call addresses.
+
+loop:
+
+	.if ::direction = ::TOP_DOWN
+	LDY fy + 1		; save old fy for later
+	CLC
+	LDA fy
+	ADC slope
+	STA fy
+	BCS loop2		; Too much error accumulated
+	LDA fy+1
+	ADC slope+1
+	STA fy+1
+	.else
+	SEC
+	;; bottom up drawing
+	;; So this "fy" is the lower part of the tile
+	LDA fy
+	SBC slope
+	STA fy
+	BCC loop2
+	LDA fy+1
+	SBC slope+1
+	STA fy+1
+	LDY fy + 1		; save old fy for later
+
+	.endif
+
+
+	;; Y = old fy
+	.ifblank clearing
+	LDA (notb_line_code_ptr_lo), Y
+	STA jsr_self_mod + 1
+	LDA (notb_line_code_ptr_hi), Y
+	STA jsr_self_mod +1 + 1
+	.else
+	LDA (blank_line_code_ptr_lo), Y
+	STA jsr_self_mod + 1
+	LDA (blank_line_code_ptr_hi), Y
+	STA jsr_self_mod +1 + 1
+	LDA #$00
+	.endif
+
+	LDY slope+1
+	CLV
+jsr_self_mod:
+	JSR line0
+
+loop_continue:
+	INX			; Advance X position by 7 pixels (1 byte)
+	DEC length 		; length := length - 1
+	BNE loop
+	;; LDA length
+	;; CMP #2
+	;; BPL loop
+	RTS
+
+loop2:
+	.if ::direction = ::TOP_DOWN
+	LDA fy+1
+	ADC slope+1
+	STA fy+1
+	.else
+	LDA fy+1
+	SBC slope+1
+	STA fy+1
+	LDY fy + 1		; save old fy for later
+	.endif
+
+	;BVC loop_continue
+
+	;; Y = old fy
+	.ifblank clearing
+	LDA (notb_line_code_ptr_lo), Y
+	STA jsr_self_mod2 + 1
+	LDA (notb_line_code_ptr_hi), Y
+	STA jsr_self_mod2 +1 + 1
+	.else
+	LDA (blank_line_code_ptr_lo), Y
+	STA jsr_self_mod2 + 1
+	LDA (blank_line_code_ptr_hi), Y
+	STA jsr_self_mod2 +1 + 1
+	LDA #$00
+	.endif
+
+	LDY tile_ptr2b
+	STY tile_ptr
+	LDY tile_ptr2b + 1
+	STY tile_ptr + 1
+
+	LDY slope+1
+	INY
+	CLV
+jsr_self_mod2:
+	JSR line0
+
+	LDY tile_ptr2a
+	STY tile_ptr
+	LDY tile_ptr2a + 1
+	STY tile_ptr + 1
+	BVC loop_continue
+
+	.endscope
+	.endmacro

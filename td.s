@@ -11,6 +11,13 @@ DEBUG = 0
 ONE_PAGE = 0
 
 x_shift = $80
+
+tile_ptr2a	= 212
+
+notb_line_code_ptr_lo = 214
+notb_line_code_ptr_hi = 216
+
+tile_ptr2b	= 218
 old_fx = 220
 old_fy = 222
 length	= 224
@@ -68,7 +75,7 @@ BYTES_PER_LINE	= 6
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
 
-	jsr start_player
+	;jsr start_player
 loop_infinite:
 	;jmp loop_infinite
 	;; jsr draw_tile_line
@@ -253,6 +260,9 @@ vline:
 	store_16 blank_line_code_ptr_hi, p2_blank_line_ptrs_hi
 	store_16 hgr_offsets_lo, hgr4_offsets_lo
 	store_16 hgr_offsets_hi, hgr4_offsets_hi
+
+	store_16 notb_line_code_ptr_lo, notb_p2_line_ptrs_lo
+	store_16 notb_line_code_ptr_hi, notb_p2_line_ptrs_hi
 	RTS
 .endproc
 
@@ -263,6 +273,9 @@ vline:
 	store_16 blank_line_code_ptr_hi, blank_line_ptrs_hi
 	store_16 hgr_offsets_lo, hgr2_offsets_lo
 	store_16 hgr_offsets_hi, hgr2_offsets_hi
+
+	store_16 notb_line_code_ptr_lo, notb_line_ptrs_lo
+	store_16 notb_line_code_ptr_hi, notb_line_ptrs_hi
 	rts
 .endproc
 
@@ -483,6 +496,8 @@ tile_loop:
 	NO_BREAK_INDICATOR = $7F
 	RIGHT_TO_LEFT = 1
 	LEFT_TO_RIGHT = 2
+	TOP_DOWN = 2
+	BOTTOM_UP = 1
 	;.global RIGHT_TO_LEFT, LEFT_TO_RIGHT
 	.include "vline.s"
 	.include "hline.s"
@@ -505,19 +520,19 @@ tile_loop:
 .endproc
 
 .proc draw_hline
-	draw_hline LEFT_TO_RIGHT
+	draw_hline2 TOP_DOWN
 .endproc
 
 .proc draw_hline_up
-	draw_hline RIGHT_TO_LEFT
+	draw_hline2 BOTTOM_UP
 .endproc
 
 .proc erase_hline
-	draw_hline LEFT_TO_RIGHT, 1
+	draw_hline2 TOP_DOWN, 1
 .endproc
 
 .proc erase_hline_up
-	draw_hline RIGHT_TO_LEFT, 1
+	draw_hline2 BOTTOM_UP, 1
 .endproc
 
 
