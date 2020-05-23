@@ -99,7 +99,9 @@ if platform.system() == "Linux":
 
 print("Running emulator")
 if args.mame:
-    run(f"{MAME} apple2p -window  -switchres -resolution 800x600 -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.DSK")
+    run(f"{MAME} apple2p -window  -switchres -resolution 1200x900 -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.DSK")
 else:
     dsk = os.path.join( BUILD_DIR_ABSOLUTE, "NEW.DSK")
+    if platform.system() == "Linux":
+        dsk = dsk.replace("/",r"\\")
     run(f"{APPLEWIN} -d1 {dsk}")
