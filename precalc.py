@@ -21,9 +21,9 @@ random.seed(125)
 from utils import *
 
 
-#SHAPE = "Ogon"
+SHAPE = "Ogon"
 #SHAPE = "Tetrahedron"
-SHAPE = "Cube"
+#SHAPE = "Cube"
 DEBUG = False
 TILE_SIZE = APPLE_HGR_PIXELS_PER_BYTE
 
@@ -246,7 +246,7 @@ if SHAPE == "Cube":
 if SHAPE == "Ogon":
     NB_FRAMES = 80
     ATTENUATION = math.pi / 2
-    ZOOM = 150 # 170
+    ZOOM = 250 # 170
     HIDDEN_FACES = True
 
     if HIDDEN_FACES:
@@ -1230,6 +1230,10 @@ with open("build/lines.s","w") as fo:
     fo.write("; line type (0=horiz/1=verti), X start, Y start, length, slope (word) \n")
 
     # 5:
+
+    total_pixels = 0
+
+
     for i,frame in enumerate(recorded_lines):
         if i == 0:
             fo.write("line_data_frame1:\t;Beginning of first frame\n")
@@ -1254,11 +1258,14 @@ with open("build/lines.s","w") as fo:
 
             update_win_boundaries(a)
             update_win_boundaries(b)
+
             dx, dy = (b - a).x, (b - a).y
-            if dx*dx > dy*dy:
-                npixels += int(abs(dx)) * 15
-            else:
-                npixels += int(abs(dy)) * 20
+            total_pixels += int(max( abs(dx), abs(dy)))
+
+            # if dx*dx > dy*dy:
+            #     npixels += int(abs(dx)) * 15
+            # else:
+            #     npixels += int(abs(dy)) * 20
 
 
         win_w = int(win_x_max - win_x_min)
@@ -1275,6 +1282,12 @@ with open("build/lines.s","w") as fo:
         if i == 0:
             fo.write("line_data_frame2:\t;Beginning of second frame\n")
 
+
+    TOTAL_ANIM_SECONDS = 6.74/2 # 14.6 with player
+    ONE_MHZ = 1000000
+
+    cycles_per_pixel = ONE_MHZ * TOTAL_ANIM_SECONDS / total_pixels
+    print("Total pixels drawn : {} in {} frames => {:.1f} cycles/pixel".format(total_pixels, len(recorded_lines), cycles_per_pixel))
 
 
 with open("build/precalc.s","w") as fo:

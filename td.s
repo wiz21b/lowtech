@@ -113,12 +113,12 @@ demo3:
 
 	.if ONE_PAGE		; ------------------------------------
 
+;;; ;;;;;;;; ONE PAGE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 	LDA $C054		; Show page 2
 	LDA $C057
-	LDA $C050 ; display graphics; last for cleaner mode change (accor
-
+	LDA $C050
 	jsr draw_to_page2
-
 
 all_lines:
 	copy_16 line_data_ptr, line_data_ptr1
@@ -133,20 +133,10 @@ all_lines:
 
 	copy_16 line_data_ptr1, line_data_ptr
 
-	copy_16 line_data_ptr, line_data_ptr1
-	LDA #1
-	STA color
-	JSR draw_or_erase_multiple_lines
-
-	copy_16 line_data_ptr, line_data_ptr1
-	LDA #0
-	STA color
-	JSR draw_or_erase_multiple_lines
-
-	jsr $FD0C		; wait key hit
 
 	.else			;--------------------------------
 
+;;; ;;;;;;;; TWO PAGES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;; Page flipping mode
 
 all_lines:
@@ -157,6 +147,7 @@ all_lines:
 	STA color
 	JSR draw_or_erase_multiple_lines
 
+	jsr skip_a_frame
 	copy_16 line_data_ptr1, line_data_ptr
 
 	LDA #1
@@ -177,6 +168,7 @@ freeze:
 	STA color
 	JSR draw_or_erase_multiple_lines
 
+	jsr skip_a_frame
 	copy_16 line_data_ptr2, line_data_ptr
 
 	LDA #1
@@ -232,6 +224,31 @@ end_of_frame:
 
 
 .endproc
+
+	.proc skip_a_frame
+
+one_more_line:
+
+	add_const_to_16 line_data_ptr, BYTES_PER_LINE
+
+	LDY #0
+	LDA (line_data_ptr),Y
+
+	AND #31
+	CMP #3
+	BMI one_more_line	; A < 3 ?
+
+	BEQ end_of_frame	; A = 3 => end of frame
+
+end_of_all_frames:
+	store_16 line_data_ptr, lines_data
+	RTS
+
+end_of_frame:
+	add_const_to_16 line_data_ptr, 1
+	RTS
+
+	.endproc
 
 .proc draw_or_erase_a_line
 
@@ -336,30 +353,6 @@ x7_start:	.byte 0
 x7_end:	.byte 0
 
 .proc draw_hline_full
-	;; beginning of the line
-
-	LDX x_start
-
-	LDA div7,X
-	STA x7_start
-
-	LDA modulo7,X
-	TAX
-	LDA hline_masks_left, X
-	STA mask_left
-
-
-	;; end of the line
-
-	LDX x_end
-
-	LDA div7,X
-	STA x7_end
-
-	LDA modulo7,X
-	TAX
-	LDA hline_masks_right, X
-	STA mask_right
 
 	LDY #0
 	LDA (line_data_ptr),Y
@@ -403,31 +396,6 @@ erase_down:
 
 
 .proc draw_vline_full
-
-	;; beginning of the line
-
-	;; LDX x_start
-
-	;; LDA div7,X
-	;; STA x7_start
-
-	;; LDA modulo7,X
-	;; TAX
-	;; LDA hline_masks_left, X
-	;; STA mask_left
-
-
-	;; end of the line
-
-	;; LDX x_end
-
-	;; LDA div7,X
-	;; STA x7_end
-
-	;; LDA modulo7,X
-	;; TAX
-	;; LDA hline_masks_right, X
-	;; STA mask_right
 
 	LDA color
 	CMP #0
