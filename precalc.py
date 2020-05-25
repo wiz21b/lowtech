@@ -21,9 +21,10 @@ random.seed(125)
 from utils import *
 
 
-SHAPE = "Ogon"
+#SHAPE = "Ogon"
 #SHAPE = "Tetrahedron"
 #SHAPE = "Cube"
+SHAPE = "Cube2"
 DEBUG = False
 TILE_SIZE = APPLE_HGR_PIXELS_PER_BYTE
 
@@ -62,66 +63,8 @@ def enumerate_x( x1 : int, y1 : int, x2 : int, y2 : int):
     return xs
 
 
-def full_enum( v1, v2):
-    xs = []
-    delta = v2 - v1
-
-    if delta.y*delta.y > delta.x*delta.x:
-
-         if delta.y < 0:
-              v1, v2 = v2, v1
-              delta = v2 - v1
-
-         slope_x = delta.x / delta.y
-         slope_z = delta.z / delta.y
-
-         x = v1.x
-         z = v1.z
-         y = v1.y
-         for i in range( delta.y+1):
-              xs.append( Vertex( int(round(x)), y,  z) )
-              y += 1
-              x += slope_x
-              z += slope_z
-
-    else:
-         if delta.x < 0:
-              v1, v2 = v2, v1
-              delta = v2 - v1
-
-         slope_y = delta.y / delta.x
-         slope_z = delta.z / delta.x
-
-         x = v1.x
-         z = v1.z
-         y = v1.y
-         for i in range( delta.x+1):
-              xs.append( Vertex( x, int(round(y)),  z) )
-              x += 1
-              y += slope_y
-              z += slope_z
-
-    return xs
 
 
-def enumerate_x2( v1, v2):
-    assert v1.y < v2.y
-
-    delta = v2 - v1
-    slope_x = delta.x / delta.y
-    slope_z = delta.z / delta.y
-
-    xs = []
-    x = v1.x
-    z = v1.z
-    y = v1.y
-    for i in range( delta.y+1):
-        xs.append( Vertex( int(round(x)), y,  z) )
-        y += 1
-        x += slope_x
-        z += slope_z
-
-    return xs
 
 
 def draw_vline( npa, x1, y1, x2, y2, color):
@@ -137,12 +80,20 @@ def draw_vline( npa, x1, y1, x2, y2, color):
 
     assert abs(slope) <= 1, "The line is not mostly vertical"
 
-    xs = enumerate_x(x1, y1, x2, y2)
 
-    y = y1
-    for i in range( dy+1):
-        npa[y][xs[i]] = 1
-        y += 1
+    a = Vertex( x1, y1)
+    b = Vertex( x2, y2)
+    points = full_enum(a,b)
+    for p in points:
+        npa[ int(p.y) ][ int(p.x) ] = 1
+    return
+
+    # xs = enumerate_x(x1, y1, x2, y2)
+
+    # y = y1
+    # for i in range( dy+1):
+    #     npa[y][xs[i]] = 1
+    #     y += 1
 
 
 def draw_hline( npa, x1, y1, x2, y2, color):
@@ -151,7 +102,6 @@ def draw_hline( npa, x1, y1, x2, y2, color):
      b = Vertex( x2, y2)
 
      points = full_enum(a,b)
-
      for p in points:
           npa[ int(p.y) ][ int(p.x) ] = 1
 
@@ -162,11 +112,9 @@ def draw_hline( npa, x1, y1, x2, y2, color):
 import pygame
 pygame.init()
 
-size = width, height = 7*40, APPLE_YRES
 speed = [2, 2]
 black = 0, 0, 0
 
-screen = pygame.display.set_mode(size)
 
 # https://www.youtube.com/watch?v=juXlFqhKrEM
 # 255 images en 13 secondes => 19 fps
@@ -175,12 +123,6 @@ screen = pygame.display.set_mode(size)
 # 45 / 4 = 11 fps
 # 70/8.3 = 8.4
 
-def persp( v, zoom = 350):
-    d = (v.z + 5) / zoom
-    return Vtx( v.x / d + APPLE_XRES / 2, v.y / d + APPLE_YRES / 2, 0 )
-
-recorded_lines = []
-theta = 0
 
 
 Vtx = Vertex
@@ -241,6 +183,56 @@ if SHAPE == "Cube":
              ]
 
 
+if SHAPE == "Cube2":
+    ATTENUATION = math.pi
+    ZOOM=250
+    HIDDEN_FACES = True
+
+    if HIDDEN_FACES:
+        NB_FRAMES = 80
+    else:
+        NB_FRAMES = 40
+
+    axis = [3,2,0.5]
+
+    ap = Vtx(-1,-1,-1)
+    bp = Vtx(+1,-1,-1)
+    cp = Vtx(+1,+1,-1)
+    dp = Vtx(-1,+1,-1)
+
+    app = Vtx(-1,-1,1)
+    bpp = Vtx(+1,-1,1)
+    cpp = Vtx(+1,+1,1)
+    dpp = Vtx(-1,+1,1)
+
+    faces += [ Face( ap,bp,cp,dp,hidden=HIDDEN_FACES), # front
+              Face( dpp,cpp,bpp,app,hidden=HIDDEN_FACES),
+
+              Face( cp,cpp,dpp,dp,hidden=HIDDEN_FACES),
+              Face( bp,bpp,cpp,cp,hidden=HIDDEN_FACES),
+              Face( ap,app,bpp,bp,hidden=HIDDEN_FACES),
+              Face( dp,dpp,app,ap,hidden=HIDDEN_FACES),
+             ]
+
+    t = Vtx(0,0,-2)
+    ap = Vtx(-1,-1,-1)*0.5 + t
+    bp = Vtx(+1,-1,-1)*0.5 + t
+    cp = Vtx(+1,+1,-1)*0.5 + t
+    dp = Vtx(-1,+1,-1)*0.5 + t
+
+    app = Vtx(-1,-1,1)*0.5 + t
+    bpp = Vtx(+1,-1,1)*0.5 + t
+    cpp = Vtx(+1,+1,1)*0.5 + t
+    dpp = Vtx(-1,+1,1)*0.5 + t
+
+    faces += [ Face( ap,bp,cp,dp,hidden=HIDDEN_FACES), # front
+              Face( dpp,cpp,bpp,app,hidden=HIDDEN_FACES),
+
+              Face( cp,cpp,dpp,dp,hidden=HIDDEN_FACES),
+              Face( bp,bpp,cpp,cp,hidden=HIDDEN_FACES),
+              Face( ap,app,bpp,bp,hidden=HIDDEN_FACES),
+              Face( dp,dpp,app,ap,hidden=HIDDEN_FACES),
+             ]
 # Ogon ---------------------------------------------------------------
 
 if SHAPE == "Ogon":
@@ -321,12 +313,27 @@ if SHAPE == "Ogon":
 
 # Animate
 
+def persp( v, zoom = 350):
+    # Z points away from us
+
+    d = (v.z + 5) / zoom
+    return Vtx( v.x / d + APPLE_XRES / 2,
+                v.y / d + APPLE_YRES / 2,
+                v.z*100) # see Vertex construtor and round operation
+
+recorded_lines = []
+theta = 0
+
+
+screen = pygame.display.set_mode( (APPLE_XRES*4, APPLE_YRES*4))
+zscreen = ZBuffer( APPLE_XRES, APPLE_YRES)
+
 for frame_ndx in range(NB_FRAMES):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
 
-    screen.fill(black)
+    #screen.fill(black)
 
     theta = math.sin(frame_ndx * 2*math.pi / NB_FRAMES)*ATTENUATION
     rot = angle_axis_quat(theta, axis)
@@ -348,91 +355,47 @@ for frame_ndx in range(NB_FRAMES):
                 #pass
                 continue
 
+        face.xformed_vertices = vp
+        zscreen.draw_face( face)
+
         for i in range( face.edges):
             a,b = vp[i], vp[(i+1)%len(face.vertices)]
 
             k = min( a.id, b.id), max( a.id, b.id)
             if k not in drawn_edges:
                 drawn_edges.add( k)
-                pygame.draw.line( screen, (255,255,255),
-                                  (a.x,a.y + t_y),
-                                  (b.x,b.y + t_y), 1)
+                # pygame.draw.line( screen, (255,255,255),
+                #                   (a.x,a.y + t_y),
+                #                   (b.x,b.y + t_y), 1)
 
                 frame_lines.append( (a.x,a.y + t_y,
                                      b.x,b.y + t_y) )
 
     recorded_lines.append( frame_lines)
 
+    zscreen.show_pygame( screen)
+    zscreen.clear()
     pygame.display.flip()
 
 
 pygame.quit()
 
-def draw_triangle_edges( scren, v1, v2, v3, color):
-     vert = [ v1, v2, v3]
+# def draw_triangle_edges( scren, v1, v2, v3, color):
+#      vert = [ v1, v2, v3]
 
-     left = full_enum( vert[0], vert[1])
-     right = full_enum( vert[0], vert[2])
-     bottom = full_enum( vert[1], vert[2])
+#      left = full_enum( vert[0], vert[1])
+#      right = full_enum( vert[0], vert[2])
+#      bottom = full_enum( vert[1], vert[2])
 
-     for i in range( len(left)):
-          screen.draw_pixel( left[i], color, offset=1)
+#      for i in range( len(left)):
+#           screen.draw_pixel( left[i], color, offset=1)
 
-     for i in range( len(right)):
-          screen.draw_pixel( right[i], color, offset=1)
+#      for i in range( len(right)):
+#           screen.draw_pixel( right[i], color, offset=1)
 
-     for i in range( len( bottom)):
-          screen.draw_pixel( bottom[i], color, offset=1)
+#      for i in range( len( bottom)):
+#           screen.draw_pixel( bottom[i], color, offset=1)
 
-def draw_triangle( scren, v1, v2, v3, color):
-     vert = [ v1, v2, v3]
-
-     # Find the highest vertex and put in it front of the list
-     vert = list( sorted( vert, key=lambda v:v.y))
-
-     # put the second vertex on the lefthand side of the third one
-     if vert[1].x > vert[2].x:
-          vert[1], vert[2] = vert[2], vert[1]
-
-     # The triangle is now cut in two triangles, each of which having an horizontal edge
-
-     left = enumerate_x2( vert[0], vert[1])
-     right = enumerate_x2( vert[0], vert[2])
-
-     print( [str(v) for v in vert])
-     print("Left : {} / {} items".format(left, len(left)))
-     print("Right : {} / {} items".format(right, len(right)))
-
-     if vert[1].y < vert[2].y:
-          # We cut at vert[1] (on the left)
-
-          for i in range( (vert[1] - vert[0]).y):
-               screen.draw_hline( left[i], right[i], color)
-
-          bottom = enumerate_x2( vert[1], vert[2])
-          print("Bottom : {} / {} items".format(bottom, len(bottom)))
-
-          assert vert[2].y >= vert[1].y
-          skipped = vert[1].y - vert[0].y
-          print("bottom height : {}, v1.y = {}".format((vert[2] - vert[1]).y, vert[1].y))
-
-          for i in range( len(bottom)):
-               screen.draw_hline( bottom[i], right[skipped + i], color)
-
-     else:
-          # we cut at vert[2]
-          for i in range( (vert[2] - vert[0]).y):
-               screen.draw_hline( left[i], right[i], color)
-
-          bottom = enumerate_x2( vert[2], vert[1])
-          print("Bottom : {} / {} items".format(bottom, len(bottom)))
-
-          assert vert[1].y >= vert[2].y
-          skipped = vert[2].y - vert[0].y
-          print("bottom height : {}, v1.y = {}".format((vert[2] - vert[1]).y, vert[1].y))
-
-          for i in range( len(bottom)):
-               screen.draw_hline( left[skipped + i], bottom[i], color)
 
 
 
@@ -444,39 +407,6 @@ def draw_triangle( scren, v1, v2, v3, color):
 #     return c
 
 
-class ZBuffer:
-     def __init__( self, w,h):
-          self.width, self.height = int(w), int(h)
-
-          dim = ( self.width, self.height )
-          self.zbuffer = np.ones( dim ) * 1000
-          self.pixels =  np.zeros( dim, dtype=np.uint8 )
-
-     def draw_pixel( self, v, color, offset = 0):
-          if v.z < self.zbuffer[v.y][v.x] + offset:
-               self.zbuffer[v.y][v.x] = v.z
-               self.pixels[v.y][v.x] = color
-
-
-     def draw_hline( self, v1, v2, color):
-          assert v1.y == v2.y, "({}) ({})".format(v1,v2)
-
-          if v1.x > v2.x:
-               v1,v2 = v2,v1
-
-          z_slope = (v2.z - v1.z) / ( (v2.x - v1.x) or 1)
-          z = v1.z
-          y = v1.y
-
-          for xi in range( v1.x, v2.x+1):
-               print("{} {} {}".format(y,xi,self.zbuffer[y][xi]))
-               if z < self.zbuffer[y][xi]:
-                    self.pixels[y][xi] = color
-                    self.zbuffer[y][xi] = z
-               z += z_slope
-
-     def show(self):
-         image_to_ascii( self.pixels, TILE_SIZE)
 
 
 def seven_bits_split(t):

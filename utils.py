@@ -2,6 +2,8 @@ import re
 import math
 import colorama
 import numpy as np
+import pygame
+
 
 APPLE_YRES = 64*3 # 192
 APPLE_XRES = 40*7 # 280
@@ -31,6 +33,9 @@ class Vertex:
     def __init__(self,x,y,z=0):
         global vertex_id
 
+        # NAsty !!!! The type of _vec will depend
+        # on the type of its value ! if they(re all
+        # ints, it'll bt np.int, else np.float !
         self._vec = np.array( [x,y,z] )
         self._id = vertex_id
         vertex_id += 1
@@ -59,8 +64,17 @@ class Vertex:
         v = np.cross( self._vec, other._vec)
         return Vertex( v[0], v[1], v[2] )
 
+    def round( self):
+        v = self
+        r = lambda n: int( round( n))
+        return Vertex( r(v.x), r(v.y), r(v.z))
+
     def __mul__(self,other):
-        return np.dot( self._vec, other._vec)
+        if type(other) == Vertex:
+            return np.dot( self._vec, other._vec)
+        else:
+            v = self._vec
+            return Vertex( v[0]*other, v[1]*other, v[2]*other )
 
     def __add__(self,other):
         v = self._vec + other._vec
@@ -95,6 +109,227 @@ class Face:
             self.edges = 1
 
         self.hidden = hidden
+        self.xformed_vertices = None
+
+
+def full_enum( v1, v2):
+    """ Emuerate points along the longest direction.
+    In that direction the enumerate coordinates are
+    inclusive. So, if Y is the longest direction
+    we enumerate the closed interval [v1.x, v2.x].
+
+    The enumeration returns int's coordinates.
+    """
+    points = []
+    delta = v2 - v1
+
+    if delta.y*delta.y > delta.x*delta.x:
+
+         if delta.y < 0:
+              v1, v2 = v2, v1
+              delta = v2 - v1
+
+         slope_x = delta.x / delta.y
+         slope_z = delta.z / delta.y
+
+         x = v1.x
+         z = v1.z
+         y = v1.y
+         for i in range( delta.y+1):
+              points.append( Vertex( int(round(x)), y,  z) )
+              y += 1
+              x += slope_x
+              z += slope_z
+         #points = enumerate_x2(v1, v2)
+
+    else:
+         if delta.x < 0:
+              v1, v2 = v2, v1
+              delta = v2 - v1
+         elif delta.x == 0:
+             points.append( v1)
+             return points
+
+         slope_y = delta.y / delta.x
+         slope_z = delta.z / delta.x
+
+         x = v1.x
+         y = v1.y
+         z = v1.z
+         for i in range( delta.x+1):
+              points.append( Vertex( x, int(round(y)),  z) )
+              #points.append( Vertex( x, y, z))
+              x += 1
+              y += slope_y
+              z += slope_z
+
+    return points
+
+
+def enumerate_x2( v1, v2):
+    if v1.y == v2.y:
+        return []
+
+    assert v1.y < v2.y
+
+    delta = v2 - v1
+    slope_x = delta.x / delta.y
+    slope_z = delta.z / delta.y
+
+    xs = []
+    x = v1.x
+    z = v1.z
+    y = v1.y
+    for i in range( delta.y+1):
+        xs.append( Vertex( int(round(x)), y,  z) )
+        y += 1
+        x += slope_x
+        z += slope_z
+
+    return xs
+
+
+def draw_triangle( screen, v1, v2, v3, color):
+     vert = [ v1, v2, v3]
+
+     # Find the highest vertex and put in it front of the list
+     vert = list( sorted( vert, key=lambda v:v.y))
+
+     # put the second vertex on the lefthand side of the third one
+     if vert[1].x > vert[2].x:
+          vert[1], vert[2] = vert[2], vert[1]
+
+     # The triangle is now cut in two triangles, each of which having an horizontal edge
+
+     left = enumerate_x2( vert[0], vert[1])
+     right = enumerate_x2( vert[0], vert[2])
+
+     # print( [str(v) for v in vert])
+     # print("Left : {} / {} items".format(left, len(left)))
+     # print("Right : {} / {} items".format(right, len(right)))
+
+     if vert[1].y < vert[2].y:
+          # We cut at vert[1] (on the left)
+
+          for i in range( (vert[1] - vert[0]).y):
+               screen.draw_hline( left[i], right[i], color)
+
+          bottom = enumerate_x2( vert[1], vert[2])
+          # print("Bottom : {} / {} items".format(bottom, len(bottom)))
+
+          assert vert[2].y >= vert[1].y
+          skipped = vert[1].y - vert[0].y
+          # print("bottom height : {}, v1.y = {}".format((vert[2] - vert[1]).y, vert[1].y))
+
+          for i in range( len(bottom)):
+               screen.draw_hline( bottom[i], right[skipped + i], color)
+
+     else:
+          # we cut at vert[2]
+          for i in range( (vert[2] - vert[0]).y):
+               screen.draw_hline( left[i], right[i], color)
+
+          bottom = enumerate_x2( vert[2], vert[1])
+          # print("Bottom : {} / {} items".format(bottom, len(bottom)))
+
+          assert vert[1].y >= vert[2].y
+          skipped = vert[2].y - vert[0].y
+          # print("bottom height : {}, v1.y = {}".format((vert[2] - vert[1]).y, vert[1].y))
+
+          for i in range( len(bottom)):
+               screen.draw_hline( left[skipped + i], bottom[i], color)
+
+
+
+class ZBuffer:
+    def __init__( self, w,h):
+        self.width, self.height = int(w), int(h)
+
+        self.clear()
+
+    def clear(self):
+        dim = ( self.width, self.height )
+        self.zbuffer = np.ones( dim ) * np.inf
+        self.pixels = np.zeros( dim, dtype=np.uint8 )
+
+    def draw_pixel( self, v, color, offset = 0):
+        x = int(v.x)
+        y = int(v.y)
+        z = v.z
+
+        if 0 <= x < self.width and 0 <= y < self.height:
+            # print(f"{x}/{self.width}-{y}/{self.height}")
+            # self.pixels[x][y] = color
+            # return
+
+            if z <= self.zbuffer[x][y] + offset:
+                self.zbuffer[x][y] = z
+                if color is not None:
+                    self.pixels[x][y] = color
+
+
+    def draw_hline( self, v1, v2, color):
+        assert abs(v1.y- v2.y) < 1, "Expected horizontal line ({:.1f} !={:.1f})".format(v1.y,v2.y)
+
+        if v1.x > v2.x:
+            v1,v2 = v2,v1
+
+        z_slope = (v2.z - v1.z) / ( (v2.x - v1.x) or 1)
+        z = v1.z
+        y = v1.y
+
+        for xi in range( int(v1.x), int(v2.x)+1):
+            #print("{} {} {}".format(y,xi,self.zbuffer[y][xi]))
+            self.draw_pixel( Vertex(xi,y,z), color)
+            z += z_slope
+
+    def draw_face( self, face):
+        color = 255
+        vert = face.xformed_vertices
+
+        for i in range(len(vert) - 3 + 1):
+            draw_triangle( self,
+                           vert[0].round(), vert[i+1].round(), vert[i+2].round(),
+                           0)
+
+        for i in range(len( vert)):
+            a,b = vert[i-1].round(), vert[i].round()
+            for p in full_enum(a,b):
+                self.draw_pixel( p, color, offset=5)
+
+
+    def show(self):
+        image_to_ascii( self.pixels, TILE_SIZE)
+
+    def show_pygame(self, screen):
+        # Normalize Z
+        a = np.ma.masked_invalid(self.zbuffer)
+
+        # ptp = find range
+        int_range = np.ptp(a)
+        print(int_range)
+        if int_range:
+            z_norm = 256 - 255*(a - np.min(a)) / int_range
+        else:
+            z_norm = a
+
+        # Z is the blue channel in a RGB image
+        stacked_img = np.stack((z_norm,)*3, axis=-1)
+        stacked_img[:,:,0] = 0
+        stacked_img[:,:,1] = 0
+
+        # Draw graphics in white, over the zbuffer picture
+        s = np.argwhere( self.pixels > 0)
+        stacked_img[s[:,0], s[:,1], :] = 255
+        surface = pygame.Surface( (self.width, self.height) )
+        pygame.surfarray.blit_array(surface, stacked_img)
+
+        # Show on screen
+        #w, h = pygame.display.get_surface().get_size()
+
+        pygame.transform.scale (surface, screen.get_size(), screen)
+
+
 
 def angle_axis_quat(theta, axis):
     """
