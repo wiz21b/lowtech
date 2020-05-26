@@ -184,12 +184,12 @@ if SHAPE == "Cube":
 
 
 if SHAPE == "Cube2":
-    ATTENUATION = math.pi
+    ATTENUATION = math.pi / 2
     ZOOM=250
     HIDDEN_FACES = True
 
     if HIDDEN_FACES:
-        NB_FRAMES = 80
+        NB_FRAMES = 70
     else:
         NB_FRAMES = 40
 
@@ -214,7 +214,7 @@ if SHAPE == "Cube2":
               Face( dp,dpp,app,ap,hidden=HIDDEN_FACES),
              ]
 
-    t = Vtx(0,0,-2)
+    t = Vtx(0,0,-1.7)
     ap = Vtx(-1,-1,-1)*0.5 + t
     bp = Vtx(+1,-1,-1)*0.5 + t
     cp = Vtx(+1,+1,-1)*0.5 + t
@@ -328,10 +328,25 @@ theta = 0
 screen = pygame.display.set_mode( (APPLE_XRES*4, APPLE_YRES*4))
 zscreen = ZBuffer( APPLE_XRES, APPLE_YRES)
 
+RUNNING, PAUSE = 0, 1
+state = RUNNING
+
+
+for i,face in enumerate(faces):
+    face.number = (i+1)*8 # will be a color
+
 for frame_ndx in range(NB_FRAMES):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             sys.exit()
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_p:
+                for event in pygame.event.get():
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_r:
+                            break
+
 
     #screen.fill(black)
 
@@ -342,11 +357,24 @@ for frame_ndx in range(NB_FRAMES):
 
     frame_lines = []
 
+    xv = dict()
+
     t_y = -0
     for face in faces:
 
-        vp = [ persp( Vtx( *rotate_quat( rot, [v.x,v.y,v.z])), ZOOM).grab_id(v)
-               for v in face.vertices ]
+
+        vp = []
+        for v in face.vertices:
+            if v.vid not in xv:
+                xv[v.vid] = persp( Vtx( *rotate_quat( rot, [v.x,v.y,v.z])), ZOOM).grab_id(v)
+            vp.append( xv[v.vid])
+
+        # print(len(xv))
+        # print([v.vid for v in vp])
+
+        # vp = [ persp( Vtx( *rotate_quat( rot, [v.x,v.y,v.z])), ZOOM).grab_id(v)
+        #        for v in face.vertices ]
+        face.xformed_vertices = vp
 
         if face.hidden:
             v1 = vp[0] - vp[1]
@@ -355,27 +383,65 @@ for frame_ndx in range(NB_FRAMES):
                 #pass
                 continue
 
-        face.xformed_vertices = vp
         zscreen.draw_face( face)
 
         for i in range( face.edges):
             a,b = vp[i], vp[(i+1)%len(face.vertices)]
 
-            k = min( a.id, b.id), max( a.id, b.id)
+            k = min( a.vid, b.vid), max( a.vid, b.vid)
             if k not in drawn_edges:
                 drawn_edges.add( k)
                 # pygame.draw.line( screen, (255,255,255),
                 #                   (a.x,a.y + t_y),
                 #                   (b.x,b.y + t_y), 1)
 
-                frame_lines.append( (a.x,a.y + t_y,
-                                     b.x,b.y + t_y) )
+                # frame_lines.append( (a.x,a.y + t_y,
+                #                      b.x,b.y + t_y) )
+
+
+
+    edge_cache = dict()
+
+    for face in faces:
+        for i in range( len(face.xformed_vertices)):
+            a = face.xformed_vertices[i]
+            b = face.xformed_vertices[i-1]
+
+            if a.vid < b.vid:
+                edge_id = (a.vid, b.vid)
+            else:
+                edge_id = (b.vid, a.vid)
+
+            if edge_id not in edge_cache:
+                edge_cache[edge_id] = set([face])
+            else:
+                edge_cache[edge_id].add( face)
+
+    segments = []
+    for key, sup_faces in edge_cache.items():
+        assert len(sup_faces) == 2
+        #print([f.number for f in sup_faces])
+        segments.extend( zscreen.draw_line( xv[key[0]], xv[key[1]], 255, [f.number for f in sup_faces]))
 
     recorded_lines.append( frame_lines)
 
     zscreen.show_pygame( screen)
+    #print(segments)
+    for a,b in segments:
+        pygame.draw.line( screen, (0,0,255),
+                          (a.x,a.y),
+                          (b.x,b.y), 1)
+
+        print("{} - {}".format( str(a), str(b)))
+        frame_lines.append( (a.x,a.y,
+                             b.x,b.y) )
+
+
     zscreen.clear()
     pygame.display.flip()
+
+
+
 
 
 pygame.quit()
@@ -1024,6 +1090,9 @@ def gen_data_line( fo, a, b):
 
     dx, dy = (b - a).x, (b - a).y
 
+    if abs(dx) < 1 and abs(dy) < 1:
+        return
+
     # print(b-a)
     if dx*dx > dy*dy:
         #return
@@ -1118,7 +1187,10 @@ def gen_data_line( fo, a, b):
             a,b = b,a
             dx, dy = (b - a).x, (b - a).y
 
+        assert not math.isnan(dx)
+        assert not math.isnan(dy)
         assert dy >= 0
+        assert not math.isnan(dx/dy), "{}/{} is NaN!".format(dx,dy)
         assert -256*TILE_SIZE <= int(256.0*TILE_SIZE*dx/dy) <= 256*TILE_SIZE, "dx/dy == {}".format(dx/dy)
 
         # # hack ! should be removed
