@@ -81,19 +81,19 @@ def draw_vline( npa, x1, y1, x2, y2, color):
     assert abs(slope) <= 1, "The line is not mostly vertical"
 
 
-    a = Vertex( x1, y1)
-    b = Vertex( x2, y2)
-    points = full_enum(a,b)
-    for p in points:
-        npa[ int(p.y) ][ int(p.x) ] = 1
-    return
+    # a = Vertex( x1, y1)
+    # b = Vertex( x2, y2)
+    # points = full_enum(a,b)
+    # for p in points:
+    #     npa[ int(p.y) ][ int(p.x) ] = 1
+    # return
 
-    # xs = enumerate_x(x1, y1, x2, y2)
+    xs = enumerate_x(x1, y1, x2, y2)
 
-    # y = y1
-    # for i in range( dy+1):
-    #     npa[y][xs[i]] = 1
-    #     y += 1
+    y = y1
+    for i in range( dy+1):
+        npa[y][xs[i]] = 1
+        y += 1
 
 
 def draw_hline( npa, x1, y1, x2, y2, color):
