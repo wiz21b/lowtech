@@ -177,6 +177,29 @@ class Face:
 
         return self.zx_slope
 
+def cube( size=1, translate = Vertex(0,0,0), hidden=True):
+    Vtx = Vertex
+
+    ap = Vtx(-size,-size,-size) + translate
+    bp = Vtx(+size,-size,-size) + translate
+    cp = Vtx(+size,+size,-size) + translate
+    dp = Vtx(-size,+size,-size) + translate
+
+    app = Vtx(-size,-size,size) + translate
+    bpp = Vtx(+size,-size,size) + translate
+    cpp = Vtx(+size,+size,size) + translate
+    dpp = Vtx(-size,+size,size) + translate
+
+    faces = [ Face( ap,bp,cp,dp,hidden), # front
+              Face( dpp,cpp,bpp,app,hidden),
+
+              Face( cp,cpp,dpp,dp,hidden),
+              Face( bp,bpp,cpp,cp,hidden),
+              Face( ap,app,bpp,bp,hidden),
+              Face( dp,dpp,app,ap,hidden),
+             ]
+
+    return faces
 
 
 def full_enum( v1, v2):
@@ -443,6 +466,11 @@ class ZBuffer:
 
         # Left side of the hline
         dx = v1.x - int(v1.x)
+
+        if dx < 0:
+            # because v1.x is negative...
+            dx = - dx
+
         assert dx>=0
         #print(f"{v1.x} > {dx} -- z={z} slope={z_slope}")
         x = int(v1.x)
@@ -455,7 +483,7 @@ class ZBuffer:
 
         # Rightmost pixel
         dx = v2.x - int(v2.x)
-        assert dx>=0
+        #assert dx>=0, f"dx:{dx} not >= 0, v2.x={v2.x}"
         z_end = v2.z - z_slope * dx
         x_end = int(v2.x)
         self.draw_pixel( Vertex(x_end,y,z_end), color)

@@ -9,14 +9,16 @@
 # 617D draw hline full
 
 import sys
-import xxhash
-from PIL import Image
-import numpy as np
 from collections import OrderedDict
 import io
 import math
 import random
 random.seed(125)
+
+from PIL import Image
+import pygame
+import numpy as np
+#import xxhash
 
 from utils import *
 
@@ -24,7 +26,8 @@ from utils import *
 #SHAPE = "Ogon"
 #SHAPE = "Tetrahedron"
 #SHAPE = "Cube"
-SHAPE = "Cube2"
+#SHAPE = "Cube2"
+#SHAPE="Grid"
 DEBUG = False
 TILE_SIZE = APPLE_HGR_PIXELS_PER_BYTE
 
@@ -109,7 +112,6 @@ def draw_hline( npa, x1, y1, x2, y2, color):
 
 
 
-import pygame
 pygame.init()
 
 speed = [2, 2]
@@ -183,66 +185,29 @@ if SHAPE == "Cube":
              ]
 
 
+
 if SHAPE == "Cube2":
-    ATTENUATION = math.pi / 2
+    ATTENUATION = math.pi / 8
     ZOOM=250
     HIDDEN_FACES = True
-
-    if HIDDEN_FACES:
-        NB_FRAMES = 70
-    else:
-        NB_FRAMES = 40
+    NB_FRAMES = 48
 
     axis = [3,2,0.5]
 
-    ap = Vtx(-1,-1,-1)
-    bp = Vtx(+1,-1,-1)
-    cp = Vtx(+1,+1,-1)
-    dp = Vtx(-1,+1,-1)
+    faces += cube( 1, Vtx(-0.99,0,+1))
+    faces += cube( 0.5, Vtx(-0.99,0,-0.8))
+    faces += cube( 0.3, Vtx(+0.4,-0.3,-1))
 
-    app = Vtx(-1,-1,1)
-    bpp = Vtx(+1,-1,1)
-    cpp = Vtx(+1,+1,1)
-    dpp = Vtx(-1,+1,1)
 
-    faces += [ Face( ap,bp,cp,dp,hidden=HIDDEN_FACES), # front
-              Face( dpp,cpp,bpp,app,hidden=HIDDEN_FACES),
-
-              Face( cp,cpp,dpp,dp,hidden=HIDDEN_FACES),
-              Face( bp,bpp,cpp,cp,hidden=HIDDEN_FACES),
-              Face( ap,app,bpp,bp,hidden=HIDDEN_FACES),
-              Face( dp,dpp,app,ap,hidden=HIDDEN_FACES),
-             ]
-
-    t = Vtx(0,0,-1.7)
-    ap = Vtx(-1,-1,-1)*0.5 + t
-    bp = Vtx(+1,-1,-1)*0.5 + t
-    cp = Vtx(+1,+1,-1)*0.5 + t
-    dp = Vtx(-1,+1,-1)*0.5 + t
-
-    app = Vtx(-1,-1,1)*0.5 + t
-    bpp = Vtx(+1,-1,1)*0.5 + t
-    cpp = Vtx(+1,+1,1)*0.5 + t
-    dpp = Vtx(-1,+1,1)*0.5 + t
-
-    faces += [ Face( ap,bp,cp,dp,hidden=HIDDEN_FACES), # front
-              Face( dpp,cpp,bpp,app,hidden=HIDDEN_FACES),
-
-              Face( cp,cpp,dpp,dp,hidden=HIDDEN_FACES),
-              Face( bp,bpp,cpp,cp,hidden=HIDDEN_FACES),
-              Face( ap,app,bpp,bp,hidden=HIDDEN_FACES),
-              Face( dp,dpp,app,ap,hidden=HIDDEN_FACES),
-             ]
 # Ogon ---------------------------------------------------------------
 
 if SHAPE == "Ogon":
-    NB_FRAMES = 80
-    ATTENUATION = math.pi / 2
+    ATTENUATION = math.pi
     ZOOM = 250 # 170
     HIDDEN_FACES = True
 
     if HIDDEN_FACES:
-        NB_FRAMES = 80
+        NB_FRAMES = 70
     else:
         NB_FRAMES = 40
 
