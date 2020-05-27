@@ -1,4 +1,4 @@
-# ;;; This code is (c) 2019 Stéphane Champailler
+# ;;; This code is (c) 2020 Stéphane Champailler
 # ;;; It is published under the terms of the
 # ;;; GUN GPL License Version 3.
 
@@ -25,7 +25,7 @@ from utils import *
 
 #SHAPE = "Ogon"
 #SHAPE = "Tetrahedron"
-#SHAPE = "Cube"
+SHAPE = "Cube"
 #SHAPE = "Cube2"
 #SHAPE="Grid"
 DEBUG = False
@@ -153,13 +153,13 @@ if SHAPE == "Tetrahedron":
 # Cube ---------------------------------------------------------------
 
 if SHAPE == "Cube":
-    NB_FRAMES = 140
+    NB_FRAMES = 138
     ATTENUATION = math.pi
     ZOOM=250
     HIDDEN_FACES = True
 
     if HIDDEN_FACES:
-        NB_FRAMES = 140
+        NB_FRAMES = 137
     else:
         NB_FRAMES = 110
 
@@ -190,13 +190,15 @@ if SHAPE == "Cube2":
     ATTENUATION = math.pi / 8
     ZOOM=250
     HIDDEN_FACES = True
-    NB_FRAMES = 48
+    NB_FRAMES = 30
 
     axis = [3,2,0.5]
 
     faces += cube( 1, Vtx(-0.99,0,+1))
     faces += cube( 0.5, Vtx(-0.99,0,-0.8))
     faces += cube( 0.3, Vtx(+0.4,-0.3,-1))
+    faces += cube( 0.5, Vtx(+0.8,-0.3,+1))
+    faces += cube( 0.5, Vtx(+0.8,+1,+1))
 
 
 # Ogon ---------------------------------------------------------------
@@ -315,7 +317,7 @@ for frame_ndx in range(NB_FRAMES):
 
     #screen.fill(black)
 
-    theta = math.sin(frame_ndx * 2*math.pi / NB_FRAMES)*ATTENUATION
+    theta = math.sin(frame_ndx * 2*math.pi / NB_FRAMES) #*ATTENUATION
     rot = angle_axis_quat(theta, axis)
 
     drawn_edges = set()
@@ -388,7 +390,6 @@ for frame_ndx in range(NB_FRAMES):
         #print([f.number for f in sup_faces])
         segments.extend( zscreen.draw_line( xv[key[0]], xv[key[1]], 255, [f.number for f in sup_faces]))
 
-    recorded_lines.append( frame_lines)
 
     zscreen.show_pygame( screen)
     #print(segments)
@@ -400,6 +401,7 @@ for frame_ndx in range(NB_FRAMES):
         print("{} - {}".format( str(a), str(b)))
         frame_lines.append( (a.x,a.y,
                              b.x,b.y) )
+    recorded_lines.append( frame_lines)
 
 
     zscreen.clear()
@@ -1241,7 +1243,7 @@ with open("build/lines.s","w") as fo:
         nb_segments = len(frame)
         print(f"Frame draws {npixels} cycles; {nb_segments} segments. Clearing woud cost {surf} cycles ({win_w}x{win_h}).")
 
-        if frame != recorded_lines[-1]:
+        if i != len(recorded_lines)-1:
             fo.write("\t.byte 3\t;; end of block\n")
         else:
             fo.write("\t.byte 4\t;; end of animation\n")

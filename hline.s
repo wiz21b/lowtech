@@ -1,6 +1,10 @@
 start_y:	.byte 0
 start_x:	.byte 0
 
+	;; FIXME : left/right bitmask clipping routine
+	;; is anti-optimized :-) Needs a lot of reworking
+	;; to be performant.
+
 .macro hline_7pixels_masked mask_byte, debug
 	.scope
 

@@ -234,7 +234,7 @@ one_more_line:
 	LDY #0
 	LDA (line_data_ptr),Y
 
-	AND #31
+	AND #31			; 5 bits
 	CMP #3
 	BMI one_more_line	; A < 3 ?
 
