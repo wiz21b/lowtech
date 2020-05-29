@@ -46,22 +46,6 @@ BYTES_PER_LINE	= 6
 	.segment "CODE"
 
 
-	;; LDA #$1
-	;; CMP #$1
-	;; BPL dummytest
-
-	;; LDA #0
-	;; SEC
-	;; ADC #254		; SEC+ADC == DEC(A)
-
-	;; LDA #0
-	;; SEC
-	;; ADC #255		;0 as expected
-
-	;; LDA #0
-	;; SEC
-	;; ADC #0			; gives one as expected
-
 	jsr clear_hgr
 
 	.if DEBUG
@@ -75,7 +59,10 @@ BYTES_PER_LINE	= 6
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
 
-	jsr start_player
+	.ifdef MUSIC
+	JSR start_player
+	.endif
+
 loop_infinite:
 	;jmp loop_infinite
 	;; jsr draw_tile_line
@@ -140,6 +127,11 @@ all_lines:
 	;; Page flipping mode
 
 all_lines:
+	;; NOP
+	;JSR read_any_sector
+	;JSR read_any_sector
+	;; NOP
+
 	jsr draw_to_page4
 
 	copy_16 line_data_ptr, line_data_ptr1
@@ -185,7 +177,6 @@ freeze:
 	;jmp freeze
 
 	;jsr  pause
-	;jsr read_any_sector
 	JMP all_lines
 all_done:
 
@@ -584,87 +575,6 @@ prodos_params:
 block_read:
 	.word $0001 ; Block to read
 
-	;; DiskII : 300 rpm
-	;; 16 sectors per track
-	;; 300 rpm => 5 rps => 80 sectors per seconds
-
-init_disk_read:
-
-	; Read first sector so we know the drive's head is on the first track.
-	; I use prodos to do that 'cos it's much simpler
-
-	;; LDA #1
-	;; STA block_read
-	;; LDA #0
-	;; STA block_read + 1
-	;; JSR MLI
-	;; .byte $80	; Operation ($80=READ_BLOCK, $81=write)
-	;; .word prodos_params	    ; $0E0C
-
-	;; ; ProDOS has done its job, we configure ourselves accordingly.
-
-	LDA #SLOT_SELECT
-	STA slotz
-	LDA #0
-	STA curtrk
-
-	; Restart the motor
-
-	ldx #SLOT_SELECT
-.if DRIVE_SELECT = $80
-	LDA DRV2_SLCT, X
-.endif
-	LDA MOTOR_ON, X
-
-	RTS
-
-
-read_any_sector:
-
-	;; lda read_disk_delay
-	;; cmp #0
-	;; bne .success
-
-	ldx #SLOT_SELECT
-	jsr rdadr16
-	bcs ras_error
-
-	; Prepare RWTS buffer
-
-	lda #0
-	sta buf
-
-	TRACK_DATA_BANK = $04
-
-	;; lda sect
-	;; clc
-	;; adc track_buffer
-	;; clc
-	;; adc #TRACK_DATA_BANK
-
-	LDA #TRACK_DATA_BANK
-	sta buf + 1
-
-	; Read the sector
-
-	ldx #SLOT_SELECT
-	jsr read16
-
-	bcs ras_error
-	cli
-
-	ldx sect
-	lda #255
-	sta $2000,X
-	lda #2
-	sta $2000+20
-	RTS
-
-ras_error:
-	cli
-	lda #255
-	sta $2000+20
-	RTS
 
 
 lines_data:

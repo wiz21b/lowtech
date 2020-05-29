@@ -33,6 +33,7 @@ interrupt_handler:
 
 .include "pt3_lib_irq_handler.s"
 
+	jsr read_any_sector
 	jmp	exit_interrupt
 
 	;=================================

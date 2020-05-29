@@ -238,6 +238,7 @@ done_apple_detect:
 	; 9c40 / 1e6 = .040s, 25Hz
 	; 411a / 1e6 = .016s, 60Hz
 
+
 	sei			; disable interrupts just in case
 
 	lda	#$40		; Continuous interrupts, don't touch PB7
@@ -253,10 +254,11 @@ setup_irq_smc3:
 setup_irq_smc4:
 	sta	MOCK_6522_IER	; IER: 1100, enable timer one interrupt
 
-	lda	#$E7
+	CLOCK_SPEED = 1022727 / 38
+	lda	#<CLOCK_SPEED	; 40
 setup_irq_smc5:
 	sta	MOCK_6522_T1CL	; write into low-order latch
-	lda	#$4f
+	lda	#>CLOCK_SPEED	; 9C
 setup_irq_smc6:
 	sta	MOCK_6522_T1CH	; write into high-order latch,
 				; load both values into counter

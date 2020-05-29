@@ -26,6 +26,103 @@ unitnum          =        $43
 
 old_sect:	.byte 0
 sectors_passed:	.byte 0
+	;; DiskII : 300 rpm
+	;; 16 sectors per track
+	;; 300 rpm => 5 rps => 80 sectors per seconds
+
+init_disk_read:
+
+	; Read first sector so we know the drive's head is on the first track.
+	; I use prodos to do that 'cos it's much simpler
+
+	;; LDA #1
+	;; STA block_read
+	;; LDA #0
+	;; STA block_read + 1
+	;; JSR MLI
+	;; .byte $80	; Operation ($80=READ_BLOCK, $81=write)
+	;; .word prodos_params	    ; $0E0C
+
+	;; ; ProDOS has done its job, we configure ourselves accordingly.
+
+	LDA #SLOT_SELECT
+	STA slotz
+	LDA #0
+	STA curtrk
+
+	; Restart the motor
+
+	ldx #SLOT_SELECT
+.if DRIVE_SELECT = $80
+	LDA DRV2_SLCT, X
+.endif
+	LDA MOTOR_ON, X
+
+	RTS
+
+sectors_read:	.byte 0
+sector_status:	.byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+read_any_sector:
+
+	;; lda read_disk_delay
+	;; cmp #0
+	;; bne .success
+
+	ldx #SLOT_SELECT
+	jsr rdadr16
+	bcs ras_error
+
+	;; At this point, interrupts are stopped, it must
+	;; be kept like this so that the next sector read
+	;; works as expected. So don't CLI !
+
+	;; Is the sector alreay read ?
+	ldx sect
+	lda sector_status,X
+	beq read_any_sector1
+	rts			; Yes ! it is already read !
+read_any_sector1:
+
+	; Prepare RWTS buffer
+
+	lda #0
+	sta buf
+
+	TRACK_DATA_BANK = $04
+
+	;; lda sect
+	;; clc
+	;; adc track_buffer
+	;; clc
+	;; adc #TRACK_DATA_BANK
+
+	LDA #TRACK_DATA_BANK
+	sta buf + 1
+
+	; Read the sector
+
+	ldx #SLOT_SELECT
+	jsr read16
+	cli
+	bcs ras_error
+
+	;;  Remember we have read the sector
+	ldx sect
+	LDA #1
+	sta sector_status,X
+
+	ldx sect
+	lda #0
+	sta $2000,X
+	RTS
+
+ras_error:
+	cli
+	ldx sect
+	lda #9
+	sta $2000,X
+	RTS
 
 drvindx: pha                                              ;preserve acc.
                 lda          unitnum        ; for example : 0 (drive 1) 110 (slot 6) 0000

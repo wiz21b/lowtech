@@ -3,9 +3,8 @@ import subprocess
 import os
 import shutil
 import os.path
-
-import precalc
 import platform
+
 
 
 def run(cmd, stdin=None):
@@ -39,8 +38,12 @@ TUNE = "data/FR.PT3"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mame", action="store_true")
+parser.add_argument("--no-precalc", action="store_true")
+parser.add_argument("--music", action="store_true")
 args = parser.parse_args()
 
+if not args.no_precalc:
+    import precalc
 
 if not os.path.isdir( BUILD_DIR):
     os.makedirs(BUILD_DIR)
@@ -48,7 +51,13 @@ if not os.path.isdir( BUILD_DIR):
 
 print("Builing demo")
 
-run(f"{CA65} -o {BUILD_DIR}/td.o -t apple2 --listing {BUILD_DIR}/td.txt td.s")
+if args.music:
+    additional_options = "-D MUSIC"
+else:
+    additional_options = ""
+
+run(f"{CA65} -o {BUILD_DIR}/td.o -t apple2 --listing {BUILD_DIR}/td.txt {additional_options} td.s")
+
 run(f"{LD65} -o {BUILD_DIR}/THREED {BUILD_DIR}/td.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
 print("Builing loader")

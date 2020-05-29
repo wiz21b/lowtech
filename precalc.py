@@ -24,8 +24,8 @@ from utils import *
 
 
 #SHAPE = "Ogon"
-#SHAPE = "Tetrahedron"
-SHAPE = "Cube"
+SHAPE = "Tetrahedron"
+#SHAPE = "Cube"
 #SHAPE = "Cube2"
 #SHAPE="Grid"
 DEBUG = False
