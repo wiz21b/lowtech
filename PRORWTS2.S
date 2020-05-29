@@ -40,7 +40,7 @@ LC_RAM_SELECT	= $C08B
 	;; $D000 -> $FFFF = 12287
 	;; Total = 40kb available
 
-	+load_file file_to_read3, MUSIC_SIZE
+	;+load_file file_to_read3, MUSIC_SIZE
 	+load_file file_to_read2, DATAD000_SIZE
 	+load_file file_to_read, THREED_SIZE
 	jmp $6000

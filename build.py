@@ -1,3 +1,4 @@
+import re
 import argparse
 import subprocess
 import os
@@ -5,6 +6,51 @@ import shutil
 import os.path
 import platform
 
+memory_maps = dict()
+segments = dict()
+
+
+def memory_map():
+    print("\nMEMORY MAP")
+    print("----------")
+
+    with open("link.cfg") as mo:
+        LD65_MEMORY_MAP_RE = re.compile(r"\s*(\S+):.*start *= *\$([0-9A-F]+), *size *= *\$([0-9A-F]+)")
+        LD65_SEGMENT_MAP_RE = re.compile(r"\s*(\S+):.*load *= *([A-Za-z0-9_]+)")
+
+        for line in mo.readlines()[3:]:
+            line = line.strip()
+            match = LD65_MEMORY_MAP_RE.match(line)
+            if match:
+                seg_name, seg_size = match.groups()[0], int(match.groups()[2],16)
+                mfrom = int(match.groups()[1],16)
+                mto = mfrom + seg_size - 1
+                print(f"Memory {seg_name:<12s} : {seg_size:5d} bytes (from:{mfrom:0{4}x} to: {mto:0{4}x})")
+                memory_maps[seg_name] = seg_size
+
+
+            match = LD65_SEGMENT_MAP_RE.match(line)
+            if match:
+                seg_name, mem_name = match.groups()[0], match.groups()[1]
+                # print(f"Segment: {seg_name} -> memory: {mem_name}")
+
+                segments[seg_name] = memory_maps[mem_name]
+
+
+    with open("build/map.out") as mo:
+        CC65_SEGMENT_MAP_RE = re.compile(r"\s*(\S+).*Size=([0-9A-F]+)")
+        for line in mo.readlines()[3:]:
+            line = line.strip()
+            match = CC65_SEGMENT_MAP_RE.match(line)
+            if match:
+                seg_name, seg_size = match.groups()[0], int(match.groups()[1],16)
+                seg_max_size = segments[seg_name]
+
+
+                left = seg_max_size - seg_size
+                print(f"{seg_name:<12s}\t{seg_size:5d}/{seg_max_size:5d} bytes ({left:5d} left)")
+
+    print()
 
 
 def run(cmd, stdin=None):
@@ -51,8 +97,10 @@ if not os.path.isdir( BUILD_DIR):
 
 print("Builing demo")
 
+MUSIC_MEM = 'F700'
+
 if args.music:
-    additional_options = "-D MUSIC"
+    additional_options = f"-D MUSIC" # -D PT3_LOC=\\${MUSIC_MEM}"
 else:
     additional_options = ""
 
@@ -95,8 +143,8 @@ with open(f"{BUILD_DIR}/THREED") as stdin :
 with open(f"{BUILD_DIR}/datad000.o") as stdin :
     run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK LINES BIN 0xD000", stdin=stdin)
 
-with open(TUNE) as stdin :
-    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK MUSIC BIN 0x0C00", stdin=stdin)
+# with open(TUNE) as stdin :
+#     run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK MUSIC BIN 0x{MUSIC_MEM}", stdin=stdin)
 
 print("Additional tasks")
 if platform.system() == "Linux":
@@ -105,6 +153,10 @@ if platform.system() == "Linux":
     shutil.copyfile("asm-style.css",f"{BUILD_DIR}/asm-style.css")
     run(f"source-highlight --src-lang asm -f html --doc -c asm-style.css  --lang-def asm.lang --output-dir={BUILD_DIR} vline.s")
     run(f"source-highlight --src-lang asm -f html --doc -c asm-style.css  --lang-def asm.lang --output-dir={BUILD_DIR} hline.s")
+
+
+
+memory_map()
 
 print("Running emulator")
 if args.mame:

@@ -47,8 +47,20 @@ init_disk_read:
 
 	LDA #SLOT_SELECT
 	STA slotz
-	LDA #0
+
+notyet:
+	ldx #SLOT_SELECT
+	jsr rdadr16
+	bcs notyet
+
+	LDA track
+	ASL
 	STA curtrk
+
+	LDA #$0
+	LDX #SLOT_SELECT
+	JSR seek
+
 
 	; Restart the motor
 
@@ -89,15 +101,11 @@ read_any_sector1:
 	lda #0
 	sta buf
 
-	TRACK_DATA_BANK = $04
+	TRACK_DATA_BANK = $02
 
-	;; lda sect
-	;; clc
-	;; adc track_buffer
-	;; clc
-	;; adc #TRACK_DATA_BANK
-
-	LDA #TRACK_DATA_BANK
+	TXA			; X = sector number
+	CLC
+	ADC #TRACK_DATA_BANK
 	sta buf + 1
 
 	; Read the sector

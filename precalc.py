@@ -134,7 +134,7 @@ if SHAPE == "Tetrahedron":
 
     HIDDEN_FACES = True
     if HIDDEN_FACES:
-        NB_FRAMES = 160
+        NB_FRAMES = 140
     else:
         NB_FRAMES = 240
 

@@ -45,6 +45,7 @@ BYTES_PER_LINE	= 6
 
 	.segment "CODE"
 
+	JSR init_disk_read
 
 	jsr clear_hgr
 
@@ -84,7 +85,6 @@ loop_infinite:
 	store_16 line_data_ptr2, line_data_frame2
 
 				; 	add_const_to_16 line_data_ptr2, LINES_TO_DO * BYTES_PER_LINE +1
-	JSR init_disk_read
 demo3:
 
 	;; jsr clear_hgr
@@ -510,7 +510,7 @@ tile_loop:
 .endproc
 
 
-	PT3_LOC = $0C00
+	;PT3_LOC = $0C00
 	.include "pt3_lib/zp.inc"
 
 	;; https://github.com/deater/dos33fsprogs/tree/master/pt3_lib
@@ -577,9 +577,6 @@ block_read:
 
 
 
-lines_data:
-	.include "build/lines.s"
-
 modulo7:
 	.repeat 256,I
 	.byte	I .MOD 7
@@ -593,3 +590,13 @@ div7:
 	.include "build/htiles.s"
 	.include "build/tiles.s"
 	.include "build/tiles_lr.s"
+
+lines_data:
+	.include "build/lines.s"
+
+	;; For some reason, it seems that the PT3 must be
+	;; on a page bounday...
+	.align $100
+	PT3_LOC = *
+	.incbin "data/FR.PT3"
+	.byte "THEEND"
