@@ -45,19 +45,23 @@ init_disk_read:
 
 	;; ; ProDOS has done its job, we configure ourselves accordingly.
 
+	;; Step one, figure out on which track the drive is right now.
 	LDA #SLOT_SELECT
 	STA slotz
-
 notyet:
 	ldx #SLOT_SELECT
 	jsr rdadr16
 	bcs notyet
 
+	;; Now we know where it is, set up the seek routine to go
+	;; to our destinatiob
+
 	LDA track
 	ASL
 	STA curtrk
 
-	LDA #$0
+	;; To our destination
+	LDA #16*2			; half track we're moving the head to
 	LDX #SLOT_SELECT
 	JSR seek
 
@@ -95,6 +99,8 @@ read_any_sector:
 	beq read_any_sector1
 	rts			; Yes ! it is already read !
 read_any_sector1:
+
+	lda track		; DEBUG !
 
 	; Prepare RWTS buffer
 

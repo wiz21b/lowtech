@@ -8,6 +8,41 @@ import pygame
 APPLE_YRES = 64*3 # 192
 APPLE_XRES = 40*7 # 280
 APPLE_HGR_PIXELS_PER_BYTE = 7
+TRACKS_PER_DISK = 35
+SECTORS_PER_TRACK = 16
+DISK_SIZE = TRACKS_PER_DISK*SECTORS_PER_TRACK*256
+
+class AppleDisk:
+    DOS_SECTORS_MAP = [0x0, 0x7, 0xe, 0x6, 0xd, 0x5, 0xc, 0x4,
+                       0xb, 0x3, 0xa, 0x2, 0x9, 0x1, 0x8, 0xf]
+
+    def __init__( self, filename = None):
+        self.filename = filename
+
+        if not filename:
+            self._disk = bytearray( DISK_SIZE)
+        else:
+            with open(filename,"rb") as fin:
+                self._disk = bytearray(fin.read( DISK_SIZE))
+
+    def set_sector(self, track : int, logical_sector : int, data : bytearray):
+        assert len(data) == 256
+        assert type(data) == bytearray
+        assert 0 <= track < TRACKS_PER_DISK
+        assert 0 <= logical_sector < SECTORS_PER_TRACK
+
+        sector = self.DOS_SECTORS_MAP[logical_sector]
+        track_offset = track * SECTORS_PER_TRACK * 256
+        dsk_ofs = track_offset + sector*256
+        self._disk[dsk_ofs:dsk_ofs+256] = data
+
+    def save(self):
+        assert self.filename
+
+        with open( self.filename,"wb") as fout:
+            fout.write( self._disk)
+
+
 
 class FixedPoint:
     def __init__(self, x = 0):

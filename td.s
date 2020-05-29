@@ -45,8 +45,8 @@ BYTES_PER_LINE	= 6
 
 	.segment "CODE"
 
-	JSR init_disk_read
 
+	JSR init_disk_read	; Must be done before any read sector !
 	jsr clear_hgr
 
 	.if DEBUG
@@ -63,6 +63,7 @@ BYTES_PER_LINE	= 6
 	.ifdef MUSIC
 	JSR start_player
 	.endif
+
 
 loop_infinite:
 	;jmp loop_infinite
@@ -172,6 +173,11 @@ freeze:
 	LDA $C050 ; display graphics; last for cleaner mode change
 
 	.endif
+
+	.ifndef MUSIC
+	JSR read_any_sector
+	.endif
+
 
 	;jsr $FD0C		; wait key hit
 	;jmp freeze

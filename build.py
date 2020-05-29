@@ -5,6 +5,7 @@ import os
 import shutil
 import os.path
 import platform
+from utils import AppleDisk
 
 memory_maps = dict()
 segments = dict()
@@ -157,6 +158,15 @@ if platform.system() == "Linux":
 
 
 memory_map()
+
+
+
+disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
+track = 16
+for logical_sector in range(16):
+    disk.set_sector( track, logical_sector, bytearray([logical_sector]*256))
+disk.save()
+
 
 print("Running emulator")
 if args.mame:
