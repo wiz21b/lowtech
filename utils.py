@@ -3,6 +3,7 @@ import math
 import colorama
 import numpy as np
 import pygame
+from PIL import Image, ImageFilter
 
 
 APPLE_YRES = 64*3 # 192
@@ -702,6 +703,32 @@ def rotate_array(arr,numOfRotations = 1):
     arr = list(arr)
     return arr[numOfRotations:]+arr[:numOfRotations]
 
+
+def bool_array_to_stripes( d):
+    # d is an array of booleans
+    # d == True belongs to stripe, d == False doesn't.
+
+    # in_stripe = ( first_index, last_index )
+
+    in_stripe = None
+    stripes = []
+
+    for i in range(len(d)):
+        if d[i] and in_stripe:
+            # Extend stripe
+            in_stripe = (in_stripe[0], i)
+        elif d[i] and not in_stripe:
+            # Begin new stripe
+            in_stripe = (i,i)
+        elif not d[i] and in_stripe:
+            stripes.append( in_stripe)
+            in_stripe = None
+        elif not d[i] and not in_stripe:
+            pass
+
+    return stripes
+
+
 def logical_or(a,b):
     if a > 0:
         return a
@@ -930,6 +957,183 @@ def strip_asm_comments( code):
         res.append( RE_COMMENT.sub( "", line))
 
     return "\n".join( res)
+
+
+
+def append_images(images, direction='horizontal',
+                  bg_color=(255,255,255), aligment='center'):
+    """
+    Appends images in horizontal/vertical direction.
+
+    Args:
+        images: List of PIL images
+        direction: direction of concatenation, 'horizontal' or 'vertical'
+        bg_color: Background color (default: white)
+        aligment: alignment mode if images need padding;
+           'left', 'right', 'top', 'bottom', or 'center'
+
+    Returns:
+        Concatenated image as a new PIL image object.
+    """
+    widths, heights = zip(*(i.size for i in images))
+
+    if direction=='horizontal':
+        new_width = sum(widths)
+        new_height = max(heights)
+    else:
+        new_width = max(widths)
+        new_height = sum(heights)
+
+    new_im = Image.new('RGB', (new_width, new_height), color=bg_color)
+
+
+    offset = 0
+    for im in images:
+        if direction=='horizontal':
+            y = 0
+            if aligment == 'center':
+                y = int((new_height - im.size[1])/2)
+            elif aligment == 'bottom':
+                y = new_height - im.size[1]
+            new_im.paste(im, (offset, y))
+            offset += im.size[0]
+        else:
+            x = 0
+            if aligment == 'center':
+                x = int((new_width - im.size[0])/2)
+            elif aligment == 'right':
+                x = new_width - im.size[0]
+            new_im.paste(im, (x, offset))
+            offset += im.size[1]
+
+    return new_im
+
+
+def font_split( filename):
+
+    """ expecting a black on white font sheet
+    the pixels of the fonts are expected to be
+    exact squares.
+    """
+
+    im = Image.open( filename)
+    im = im.point(lambda p: p < 128 and 255)
+
+    im = im.convert( mode="L")
+    width, height = im.size
+
+    # im = im.resize( (width // 7, height // 7) )
+    # width, height = im.size
+
+    t = 0 # height*255
+    print(f"{width}, {height}, {t}")
+    ar = np.array(im)
+
+    # Now we autodetect the pixel widths.
+
+    vstripes = bool_array_to_stripes( [np.sum( ar[y,:] ) != t for y in range(height)])
+    hstripes = bool_array_to_stripes( [np.sum( ar[:,x] ) != t for x in range(width)])
+
+    pixel_widths = dict()
+
+    all_blocs = []
+
+    for vstripe in vstripes:
+
+        # ar [vstripe[0]-1, :] = 128
+        # ar [vstripe[1]+1, :] = 128
+
+        row = ar[ vstripe[0]:vstripe[1]+1, : ]
+
+        #hstripes = bool_array_to_stripes( [np.sum( row[:,x] ) != t for x in range(width)])
+        print( "For v-stripe {}, we have {} h-stripes".format( vstripe, len(hstripes)))
+
+        for hstripe in hstripes:
+            # ar [vstripe[0]-1:vstripe[1]+1, hstripe[0]] = 128
+            # ar [vstripe[0]-1:vstripe[1]+1, hstripe[1]] = 128
+
+            bloc = ar[ vstripe[0]:vstripe[1]+1, hstripe[0]:hstripe[1]+1 ].copy()
+
+            # with np.printoptions(threshold=np.inf):
+            #     print(bloc)
+
+            if np.sum(bloc) == 0:
+                # We skip empty blocks
+                print("Skipped a block !")
+                continue
+
+            # "strip" the block horizontally
+            while np.sum( bloc[:,0]) == 0:
+                bloc = bloc[:,1:]
+
+            while np.sum( bloc[:,-1]) == 0:
+                bloc = bloc[:,0:-1]
+
+            all_blocs.append( bloc)
+
+            # Analyse columns
+            for bx in range( bloc.shape[1]):
+                widths =  [ s[1]-s[0]+1 for s in bool_array_to_stripes( bloc[:,bx] )]
+
+                for w in widths:
+                    if w not in pixel_widths:
+                        pixel_widths[w] = 1
+                    else:
+                        pixel_widths[w] += 1
+
+
+            for by in range( vstripe[1] - vstripe[0] + 1):
+                widths =  [ s[1]-s[0]+1 for s in bool_array_to_stripes( bloc[by,:] )]
+
+                for w in widths:
+                    if w not in pixel_widths:
+                        pixel_widths[w] = 1
+                    else:
+                        pixel_widths[w] += 1
+
+            #print(s)
+
+    #Image.fromarray(ar).show()
+
+    zzz = []
+    for b in all_blocs:
+        zzz.append(Image.fromarray(b).convert( mode="RGB"))
+        zzz.append(Image.fromarray( np.ones( (60,2) )*128).convert( mode="RGB"))
+
+    #append_images( zzz).show()
+
+    # for pw,cnt in reversed(sorted( pixel_widths.items(), key=lambda t:t[1])):
+    #     print( f"{pw} {cnt}")
+
+    pixel_width = next(reversed(sorted( pixel_widths.items(), key=lambda t:t[1])))[0]
+    print(f"Best pixel size is {pixel_width}")
+
+    new_blocs = []
+
+    for bloc in all_blocs:
+
+        h,w = bloc.shape
+
+        nh,nw = (h+(pixel_width//2))//pixel_width, (w+(pixel_width//2))//pixel_width
+
+        new_bloc = np.zeros( ( nh, nw), dtype=np.uint8 )
+
+        print(f"{h}x{w} -> {nh}x{nw}, pixel size is {pixel_width}")
+        for x in range( nw): # pixel_width//2, w - pixel_width//2 + 1, pixel_width):
+            for y in range( nh): #pixel_width//2, h - pixel_width//2 + 1, pixel_width):
+                #print( bloc[x][y])
+                new_bloc[ y][x ] = bloc[ y*pixel_width + (pixel_width//2)][x*pixel_width + (pixel_width//2)]
+
+        new_blocs.append(new_bloc)
+        # if np.sum(new_bloc) > 0:
+        #     new_blocs.append(new_bloc)
+        # else:
+        #     print("!"*100)
+
+        #print( new_bloc)
+
+    im.close()
+    return new_blocs
 
 if __name__ == "__main__":
     print("Testing utils...")
