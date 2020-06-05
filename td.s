@@ -47,6 +47,7 @@ BYTES_PER_LINE	= 6
 
 
 	JSR init_disk_read	; Must be done before any read sector !
+	lda #$ff
 	jsr clear_hgr
 
 	.if DEBUG
@@ -604,5 +605,7 @@ lines_data:
 	;; on a page bounday...
 	.align $100
 	PT3_LOC = *
+	.ifdef MUSIC
 	.incbin "data/FR.PT3"
+	.endif
 	.byte "THEEND"

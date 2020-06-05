@@ -14,13 +14,16 @@ pause_count:	.word 0
 .endproc
 
 
-clear_hgr:
+	.proc clear_hgr
+
+	sta smc + 1
 	store_16 dummy_pointer, (HGR_RAM + $4000)
 
 clear_hgr_loop:
 	dec16 dummy_pointer
 
-	LDA #$FF
+smc:
+	LDA #$00
 	LDY #0
 	STA (dummy_pointer), Y
 
@@ -33,6 +36,7 @@ clear_hgr_loop:
 	bne clear_hgr_loop
 
 	RTS
+	.endproc
 
 
 

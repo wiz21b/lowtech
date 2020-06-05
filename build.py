@@ -1,3 +1,556 @@
+"""
+White-white
+White-blue
+blue-blue
+blue-black
+black
+"""
+import sys
+import numpy as np
+from PIL import Image, ImageFilter
+from utils import bits_to_hgr, hgr_address, APPLE_YRES, APPLE_XRES, bits_to_color_hgr2, array_to_asm, make_lo_hi_ptr_table
+
+
+def append_images(images, direction='horizontal',
+                  bg_color=(255,255,255), aligment='center'):
+    """
+    Appends images in horizontal/vertical direction.
+
+    Args:
+        images: List of PIL images
+        direction: direction of concatenation, 'horizontal' or 'vertical'
+        bg_color: Background color (default: white)
+        aligment: alignment mode if images need padding;
+           'left', 'right', 'top', 'bottom', or 'center'
+
+    Returns:
+        Concatenated image as a new PIL image object.
+    """
+    widths, heights = zip(*(i.size for i in images))
+
+    if direction=='horizontal':
+        new_width = sum(widths)
+        new_height = max(heights)
+    else:
+        new_width = max(widths)
+        new_height = sum(heights)
+
+    new_im = Image.new('RGB', (new_width, new_height), color=bg_color)
+
+
+    offset = 0
+    for im in images:
+        if direction=='horizontal':
+            y = 0
+            if aligment == 'center':
+                y = int((new_height - im.size[1])/2)
+            elif aligment == 'bottom':
+                y = new_height - im.size[1]
+            new_im.paste(im, (offset, y))
+            offset += im.size[0]
+        else:
+            x = 0
+            if aligment == 'center':
+                x = int((new_width - im.size[0])/2)
+            elif aligment == 'right':
+                x = new_width - im.size[0]
+            new_im.paste(im, (x, offset))
+            offset += im.size[1]
+
+    return new_im
+
+
+# Alphabeta here : https://fontmeme.com/pixel-fonts/
+# https://fontmeme.com/fonts/little-conquest-font/
+
+im = Image.open("data/Alphabeta 7 pixels font.png")
+im = im.point(lambda p: p < 128 and 255)
+
+im = im.convert( mode="L")
+width, height = im.size
+
+# im = im.resize( (width // 7, height // 7) )
+# width, height = im.size
+
+t = 0 # height*255
+print(f"{width}, {height}, {t}")
+ar = np.array(im)
+
+def bitarray_to_stripes( d):
+    # d is an array of booleans
+    # d == True belongs to stripe, d == False doesn't.
+
+    # in_stripe = ( first_index, last_index )
+
+    in_stripe = None
+    stripes = []
+
+    for i in range(len(d)):
+        if d[i] and in_stripe:
+            # Extend stripe
+            in_stripe = (in_stripe[0], i)
+        elif d[i] and not in_stripe:
+            # Begin new stripe
+            in_stripe = (i,i)
+        elif not d[i] and in_stripe:
+            stripes.append( in_stripe)
+            in_stripe = None
+        elif not d[i] and not in_stripe:
+            pass
+
+    return stripes
+
+vstripes = bitarray_to_stripes( [np.sum( ar[y,:] ) != t for y in range(height)])
+hstripes = bitarray_to_stripes( [np.sum( ar[:,x] ) != t for x in range(width)])
+
+pixel_widths = dict()
+
+all_blocs = []
+
+for vstripe in vstripes:
+
+    # ar [vstripe[0]-1, :] = 128
+    # ar [vstripe[1]+1, :] = 128
+
+    row = ar[ vstripe[0]:vstripe[1]+1, : ]
+
+    #hstripes = bitarray_to_stripes( [np.sum( row[:,x] ) != t for x in range(width)])
+    print( "For v-stripe {}, we have {} h-stripes".format( vstripe, len(hstripes)))
+
+    for hstripe in hstripes:
+        # ar [vstripe[0]-1:vstripe[1]+1, hstripe[0]] = 128
+        # ar [vstripe[0]-1:vstripe[1]+1, hstripe[1]] = 128
+
+        bloc = ar[ vstripe[0]:vstripe[1]+1, hstripe[0]:hstripe[1]+1 ].copy()
+
+        # with np.printoptions(threshold=np.inf):
+        #     print(bloc)
+
+        if np.sum(bloc) == 0:
+            # We skip empty blocks
+            print("Skipped a block !")
+            continue
+
+        # "strip" the block horizontally
+        while np.sum( bloc[:,0]) == 0:
+            bloc = bloc[:,1:]
+
+        while np.sum( bloc[:,-1]) == 0:
+            bloc = bloc[:,0:-1]
+
+        all_blocs.append( bloc)
+
+        # Analyse columns
+        for bx in range( bloc.shape[1]):
+            widths =  [ s[1]-s[0]+1 for s in bitarray_to_stripes( bloc[:,bx] )]
+
+            for w in widths:
+                if w not in pixel_widths:
+                    pixel_widths[w] = 1
+                else:
+                    pixel_widths[w] += 1
+
+
+        for by in range( vstripe[1] - vstripe[0] + 1):
+            widths =  [ s[1]-s[0]+1 for s in bitarray_to_stripes( bloc[by,:] )]
+
+            for w in widths:
+                if w not in pixel_widths:
+                    pixel_widths[w] = 1
+                else:
+                    pixel_widths[w] += 1
+
+        #print(s)
+
+#Image.fromarray(ar).show()
+
+zzz = []
+for b in all_blocs:
+    zzz.append(Image.fromarray(b).convert( mode="RGB"))
+    zzz.append(Image.fromarray( np.ones( (60,2) )*128).convert( mode="RGB"))
+
+#append_images( zzz).show()
+
+# for pw,cnt in reversed(sorted( pixel_widths.items(), key=lambda t:t[1])):
+#     print( f"{pw} {cnt}")
+
+pixel_width = next(reversed(sorted( pixel_widths.items(), key=lambda t:t[1])))[0]
+print(f"Best pixel size is {pixel_width}")
+
+new_blocs = []
+
+for bloc in all_blocs:
+
+    h,w = bloc.shape
+
+    nh,nw = (h+(pixel_width//2))//pixel_width, (w+(pixel_width//2))//pixel_width
+
+    new_bloc = np.zeros( ( nh, nw), dtype=np.uint8 )
+
+    print(f"{h}x{w} -> {nh}x{nw}, pixel size is {pixel_width}")
+    for x in range( nw): # pixel_width//2, w - pixel_width//2 + 1, pixel_width):
+        for y in range( nh): #pixel_width//2, h - pixel_width//2 + 1, pixel_width):
+            #print( bloc[x][y])
+            new_bloc[ y][x ] = bloc[ y*pixel_width + (pixel_width//2)][x*pixel_width + (pixel_width//2)]
+
+    new_blocs.append(new_bloc)
+    # if np.sum(new_bloc) > 0:
+    #     new_blocs.append(new_bloc)
+    # else:
+    #     print("!"*100)
+
+    #print( new_bloc)
+
+
+def np_append_row( a, v = 0):
+    return np.append( a, [ [v] * a.shape[1] ], axis=0)
+
+# Fix some letters
+for i in range(26):
+    new_blocs[i] = np_append_row( new_blocs[i])
+
+new_blocs = new_blocs[0:26+26+10]
+
+letter_9 = 26+26+10-1
+for i in range(3):
+    new_blocs[letter_9] = np.delete( new_blocs[letter_9], 0, axis=0)
+new_blocs[letter_9] = np.delete( new_blocs[letter_9], len(new_blocs[letter_9])-1, axis=0)
+
+
+max_height = max( [ b.shape[0] for b in new_blocs] )
+for i in range( len( new_blocs)):
+    b = new_blocs[i]
+    if b.shape[0] < max_height:
+        for j in range(max_height - b.shape[0]):
+            new_blocs[i] = np_append_row( new_blocs[i])
+
+hgr_blocks = []
+with open("data/alphabet.s","w") as fout:
+
+    # To send these pixels (2 bits per pixel) on the screen ABCDEFGH
+
+    # Byte 2*n Byte 2*n+1
+    # 76543210 76543210
+    # -------- --------
+    # For letter starting on pair byte, we need 4 ROL :
+    # xDCCBBAA xGGFFEED
+    # xCBBAA.. xFFEEDDC
+    # xBAA.... xEEDDCCB
+    # xA...... xDDCCBBA
+
+    # For letter starting on odd byte, we need 3 ROL :
+    # -------- xCCBBAA. x.FFEEDD x........
+    # -------- xBBAA... xFEEDDCC x.......F
+    # -------- xAA..... xEDDCCBB x.....FFE
+
+    # So, if we draw on odd byte we take data of even bytes and ROL
+    # each of them once (and transferring the 7th (not 8th!) bit to
+    # the first bit of the next byte)
+
+    # x-pos  : 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14
+    # offset : 0,0,0,0,1,1,1,2,2,2, 2, 3, 3, 3, 3
+
+
+
+    for rol in range(4):
+        labels = []
+        for i,b in enumerate(new_blocs):
+
+
+            data = []
+
+            for row in b:
+                # All rows have same length
+
+                # From 255 to 3 (white in HGR)
+                row_a2 = [z & 3 for z in row]
+
+                # Append a blank column to the left. That's for
+                # spacing but also to make sure that "half bits" don't
+                # exist (FIXME shouldn't we add that only when the
+                # width of the letter is 3 color-pixels ?)
+
+                row_a2.append( 0 )
+
+                if rol:
+                    row_a2 = ([0] * rol) + row_a2
+
+                bytes_a2 = bits_to_color_hgr2( row_a2)
+
+                if not data:
+                    data = [ len(bytes_a2), len(row) + 1 ]
+                data.extend( bytes_a2)
+
+
+            label = "letter_{}_{}".format("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"[i], rol)
+            labels.append( label)
+            array_to_asm( fout, data, ".byte", label)
+
+        make_lo_hi_ptr_table( fout, f"letter_ptrs_rol{rol}", labels)
+
+        text = []
+        #           ##################
+        MESSAGE = ["This demo was",
+                   "written by Wiz of",
+                   "Imphobia in 2020",
+                   "",
+                   "Keeping the spirit",
+                   "alive",
+                   "",
+                   "Greetings go to",
+                   "",
+                   "   Imphobia",
+                   "   Peter Ferrie",
+                   "   Deater",
+                   "   Fennarinarsa",
+                   "",
+                   "",
+                   "Additional Credits",
+                   "",
+                   "PT3 player",
+                   "   Vince Weaver",
+                   "",
+                   "RWTS",
+                   "   Peter Ferrie",
+                   "",
+                   "Font",
+                   "   Little Conquest",
+                   "   by Brixdee",
+                   "",
+                   "Iceberg",
+                   "   iStock free",
+                   "",
+                   "",
+                   "",
+                   "",
+                   "",
+                   "",
+        ]
+
+        for line in MESSAGE:
+            for c in line:
+                if c == " ":
+                    text.append(253)
+                else:
+                    text.append( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".index(c))
+            text.append(254) # end string
+        text.append(255) # end text
+
+    array_to_asm( fout, text, ".byte", "the_message")
+
+#         a = row
+#         if shape
+#         bits_to_color_hgr( row)
+
+
+print(len(all_blocs))
+
+#append_images( [Image.fromarray(b).convert( mode="RGB") for b in new_blocs]).show()
+
+# im = im.filter(ImageFilter.FIND_EDGES)
+# im.show()
+#Image.fromarray(ar).show()
+im.close()
+#exit()
+
+im = Image.open("data/black_ice2.bmp")
+im = im.resize( (APPLE_XRES,APPLE_YRES) )
+# https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes
+
+# add some black horizontal lines for underwater part of the iceberg
+ar = np.array(im)
+for i in range( 85, APPLE_YRES, 2):
+    ar[i,:] = 0
+im = Image.fromarray(ar)
+
+im = im.convert( mode="1").convert( mode="L")
+
+#im = im.resize( (APPLE_XRES//2,APPLE_YRES) ).convert( mode="L")
+
+
+width, height = im.size
+
+# px = im.load()
+# for x in range(width):
+#     px[x, 100] = 255
+
+hgr = bytearray( 8192)
+hgr2 = bytearray( 8192)
+
+for y in range(height):
+    row = np.array(im)[y,:]
+
+    # for x in range(40):
+    #     hgr_line.append( 0x80 + bits_to_hgr( (np.packbits( row[x*7:(x+1)*7])[0] >> 1)))
+
+    def merge_pixel( a,b):
+        if a and b:
+            return 3
+        elif a == 0 and b == 0:
+            return 0
+        else:
+            return 1
+
+    def merge(a):
+        r = int( 4*a/256 + 0.5)
+        return [(0,0),(1,0),(1,1),(3,1),(3,3)][r]
+
+    # 7 pixels becomes 3
+
+    ofs = 0
+    px = row
+    hgr_line = []
+    hgr_line2 = []
+
+    while ofs < len(px) - 7:
+
+        msb = 0
+        lsb = 0
+
+        bmsb=0
+        blsb=0
+
+        # t,b = merge(px[ofs])
+        # msb += t << 0
+        # bmsb += b << 0
+
+        # t,b = merge(px[ofs+1])
+        # msb += t << 2
+        # bmsb += b << 2
+
+        # t,b = merge(px[ofs+2])
+        # msb += t << 4
+        # bmsb += b << 4
+
+        # t,b = merge( px[ofs+3])
+        # msb += (t & 1) << 6
+        # lsb += ((t & 2) >> 1)
+        # bmsb += (b & 1) << 6
+        # blsb += ((b & 2) >> 1)
+
+        # t,b = merge(px[ofs+4])
+        # lsb += t << 1
+        # blsb += b << 1
+
+        # t,b = merge(px[ofs+5])
+        # lsb += t << 3
+        # blsb += b << 3
+
+        # t,b = merge(px[ofs+6])
+        # lsb += t << 5
+        # blsb += b << 5
+
+        # hgr_line.append( 0x80 | msb)
+        # hgr_line.append( 0x80 | lsb)
+        # hgr_line2.append( 0x80 | bmsb)
+        # hgr_line2.append( 0x80 | blsb)
+
+        # ofs += 7
+
+        msb += merge_pixel( px[ofs],    px[ofs+1]) << 0     # AA
+        msb += merge_pixel( px[ofs+2],  px[ofs+2+1]) << 2   # BB
+        msb += merge_pixel( px[ofs+4],  px[ofs+4+1]) << 4   # CC
+
+        p = merge_pixel( px[ofs+6],  px[ofs+6+1])
+        msb += (p & 1) << 6
+
+        lsb += ((p & 2) >> 1)
+        lsb += merge_pixel( px[ofs+8],  px[ofs+8+1]) << 1
+        lsb += merge_pixel( px[ofs+10],  px[ofs+10+1]) << 3
+        lsb += merge_pixel( px[ofs+12], px[ofs+12+1]) << 5
+
+        hgr_line.append( 0x80 | msb)
+        hgr_line.append( 0x80 | lsb)
+        hgr_line2.append( 0x80 | msb)
+        hgr_line2.append( 0x80 | lsb)
+
+        ofs += 14
+
+
+    assert len(hgr_line) == 40, "{}".format(len(hgr_line))
+
+    # for x in range(20):
+    #     px = row[x*7:(x+1)*7]
+    #     b = 0
+    #     for i in range(3):
+    #         b += merge_pixel( px[i*2], px[i*2+1]) << ((2 - i)*2)
+
+    #     hgr_line.append( 0x80 | (bits_to_hgr(b) << (x%2)))
+
+
+
+
+
+    ofs = hgr_address( y, 0, format=2)
+    hgr[ ofs : ofs + 40] = hgr_line
+    hgr2[ ofs : ofs + 40] = hgr_line2
+    print( hgr_address( y, 0, format=2))
+    print(hgr_line)
+
+print(np.array(im)[90,:])
+
+# https://www.istockphoto.com/be/vectoriel/iceberg-main-illustration-dessin%C3%A9e-convertie-au-vecteur-gm1038069650-277863881
+# libre de droit
+with open("data/TITLEPIC.BIN","wb") as f_out:
+    print( len( hgr))
+    f_out.write( hgr)
+    # hgr2[0] = 255
+    # f_out.write( hgr2)
+
+#im.show()
+im.close()
+
+
+
+def gen_code_vertical_scroll():
+
+
+    with open("data/vscroll.s","w") as fo:
+        code = ";; Generated code "
+        for y in range(0,APPLE_YRES-2):
+
+            line_base = hgr_address((y+2)% APPLE_YRES)
+            line_base2 = hgr_address(y)
+
+            code += f"""
+        LDA {line_base},x
+        STA {line_base2},x
+"""
+        code += "RTS"
+        fo.write( code)
+
+    with open("data/vscroll2.s","w") as fo:
+        code = ";; Generated code "
+
+        for y in range(0,APPLE_YRES-2):
+
+            line_base  = hgr_address( (y+2) % APPLE_YRES, page=0x4000)
+            line_base2 = hgr_address( y, page=0x4000)
+
+            code += f"""
+        LDA {line_base},x
+        STA {line_base2},x
+"""
+        code += "RTS"
+        fo.write( code)
+
+    with open("data/vscroll3.s","w") as fo:
+        code = ";; Generated code "
+        for y in range(0,APPLE_YRES):
+
+            line_base = hgr_address((y+1)% APPLE_YRES)
+            line_base2 = hgr_address(y)
+
+            code += f"""
+        LDA {line_base},x
+        STA {line_base2},x
+"""
+        code += "RTS"
+        fo.write( code)
+
+#exit()
+
+
 import re
 import argparse
 import subprocess
@@ -80,16 +633,18 @@ else:
 
 
 BUILD_DIR = "build"
+DATA_DIR = "data"
 BUILD_DIR_ABSOLUTE = os.path.join( os.path.dirname(os.path.abspath(__file__)), BUILD_DIR)
 TUNE = "data/FR.PT3"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mame", action="store_true")
 parser.add_argument("--no-precalc", action="store_true")
+parser.add_argument("--precalc", action="store_true")
 parser.add_argument("--music", action="store_true")
 args = parser.parse_args()
 
-if not args.no_precalc:
+if args.precalc:
     import precalc
 
 if not os.path.isdir( BUILD_DIR):
@@ -105,9 +660,15 @@ if args.music:
 else:
     additional_options = ""
 
-run(f"{CA65} -o {BUILD_DIR}/td.o -t apple2 --listing {BUILD_DIR}/td.txt {additional_options} td.s")
+gen_code_vertical_scroll()
+run(f"{CA65} -o {BUILD_DIR}/vscroll.o -t apple2 --listing {BUILD_DIR}/vscroll.txt {additional_options} vscroll.s")
+run(f"{LD65} -o {BUILD_DIR}/VSCROLL {BUILD_DIR}/vscroll.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
+
+run(f"{CA65} -o {BUILD_DIR}/td.o -t apple2 --listing {BUILD_DIR}/td.txt {additional_options} td.s")
 run(f"{LD65} -o {BUILD_DIR}/THREED {BUILD_DIR}/td.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
+
+
 
 print("Builing loader")
 
@@ -125,6 +686,13 @@ with open(f"{BUILD_DIR}/file_size.s","w") as fout:
     print(f"Music : {size} bytes")
     fout.write(f"MUSIC_SIZE = {size}\n")
 
+    size = os.path.getsize(f"{DATA_DIR}/TITLEPIC.BIN")
+    print(f"Pix : {size} bytes")
+    fout.write(f"ICEBERG_SIZE = {size}\n")
+
+    size = os.path.getsize(f"{BUILD_DIR}/VSCROLL")
+    print(f"Scroller : {size} bytes")
+    fout.write(f"VSCROLL_SIZE = {size}\n")
 
 run(f"{ACME} -o {BUILD_DIR}/prorwts2.o PRORWTS2.S ")
 
@@ -138,11 +706,18 @@ shutil.copyfile("data/BLANK_PRODOS2.DSK",f"{BUILD_DIR}/NEW.DSK")
 with open(f"{BUILD_DIR}/prorwts2.o") as stdin :
     run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK RWTS  BIN 0x0800", stdin=stdin)
 
+with open(f"{BUILD_DIR}/VSCROLL") as stdin :
+    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK VSCROLL BIN 0x6000", stdin=stdin)
+
 with open(f"{BUILD_DIR}/THREED") as stdin :
     run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK START BIN 0x6000", stdin=stdin)
 
 with open(f"{BUILD_DIR}/datad000.o") as stdin :
     run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK LINES BIN 0xD000", stdin=stdin)
+
+with open(f"{DATA_DIR}/TITLEPIC.BIN") as stdin :
+    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK PIX BIN 0x2000", stdin=stdin)
+
 
 # with open(TUNE) as stdin :
 #     run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK MUSIC BIN 0x{MUSIC_MEM}", stdin=stdin)
@@ -161,16 +736,17 @@ memory_map()
 
 
 
-disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
-track = 16
-for logical_sector in range(16):
-    disk.set_sector( track, logical_sector, bytearray([logical_sector]*256))
-disk.save()
+# disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
+# track = 16
+# for logical_sector in range(16):
+#     disk.set_sector( track, logical_sector, bytearray([logical_sector]*256))
+# disk.save()
 
 
 print("Running emulator")
 if args.mame:
-    run(f"{MAME} apple2p -window  -switchres -resolution 1200x900 -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.DSK")
+    # -resolution 1200x900
+    run(f"{MAME} apple2p -sound none -window  -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.DSK")
 else:
     dsk = os.path.join( BUILD_DIR_ABSOLUTE, "NEW.DSK")
     if platform.system() == "Linux":

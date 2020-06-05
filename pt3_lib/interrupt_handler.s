@@ -57,12 +57,12 @@ exit_interrupt:
 	pla			; restore a				; 4
 
 	; on II+/IIe (but not IIc) we need to do this?
-interrupt_smc:
-	;lda	$45		; restore A
 	plp
 
 	rti			; return from interrupt			; 6
 
+interrupt_smc:
+	lda	$45		; restore A
 								;============
 								; typical
 								; ???? cycles

@@ -153,13 +153,12 @@ if SHAPE == "Tetrahedron":
 # Cube ---------------------------------------------------------------
 
 if SHAPE == "Cube":
-    NB_FRAMES = 138
     ATTENUATION = math.pi
     ZOOM=250
     HIDDEN_FACES = True
 
     if HIDDEN_FACES:
-        NB_FRAMES = 137
+        NB_FRAMES = 110
     else:
         NB_FRAMES = 110
 
@@ -198,7 +197,7 @@ if SHAPE == "Cube2":
     faces += cube( 0.5, Vtx(-0.99,0,-0.8))
     faces += cube( 0.3, Vtx(+0.4,-0.3,-1))
     faces += cube( 0.5, Vtx(+0.8,-0.3,+1))
-    faces += cube( 0.5, Vtx(+0.8,+1,+1))
+    #faces += cube( 0.5, Vtx(+0.8,+1,+1))
 
 
 # Ogon ---------------------------------------------------------------

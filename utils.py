@@ -708,6 +708,98 @@ def logical_or(a,b):
     else:
         return b
 
+def bits_to_color_hgr2( b):
+
+    bytes = []
+
+    while b:
+        msb = lsb = 0
+
+        if len(b) <= 3:
+            for i in range( len( b)):
+                msb += b[i] << (2*i)
+            bytes.append(msb)
+            break
+
+        p = b[3]
+
+        if len(b) >= 4:
+            msb += b[0] << 0     # AA
+            msb += b[1] << 2   # BB
+            msb += b[2] << 4   # CC
+            msb += (p & 1) << 6
+            lsb += ((p & 2) >> 1)
+
+        if len(b) >= 5:
+            for i in range( min(7, len(b)) - 5 +1):
+                lsb += b[4+i] << (2*i+1)
+
+        bytes.extend([msb, lsb])
+
+        if len(b) > 7:
+            b = b[7:]
+        else:
+            break
+
+        # if len(b) >= 7:
+        #     msb = 0
+        #     msb += b[0] << 0     # AA
+        #     msb += b[1] << 2   # BB
+        #     msb += b[2] << 4   # CC
+
+        #     lsb = 0
+        #     p = b[3]
+        #     msb += (p & 1) << 6
+
+        #     lsb += ((p & 2) >> 1)
+        #     lsb += b[4] << 1
+        #     lsb += b[5] << 3
+        #     lsb += b[6] << 5
+
+        #     bytes.append(msb)
+        #     bytes.append(lsb)
+        #     b = b[7:]
+
+        # elif len(b) >= 3:
+        #     msb = 0
+        #     msb += b[0] << 0     # AA
+        #     msb += b[1] << 2   # BB
+        #     msb += b[2] << 4   # CC
+        #     bytes.append(msb)
+        #     b = b[3:]
+
+        # else:
+
+    return bytes
+
+
+def bits_to_color_hgr( b):
+    """ b = [ left most pixel, ..., right most pixel]
+    returns msb, lsb : in HGR : mem[x] = msb and mem[x+1] = lsb
+    or returns msb, None
+    """
+    assert len(b) == 7 or len(b) == 3
+    for x in b:
+        assert 0 <= x <= 3
+
+    msb = 0
+    msb += b[0] << 0     # AA
+    msb += b[1] << 2   # BB
+    msb += b[2] << 4   # CC
+
+    if len(b) == 3:
+        return msb, None
+
+    lsb = 0
+    p = b[3]
+    msb += (p & 1) << 6
+
+    lsb += ((p & 2) >> 1)
+    lsb += b[4] << 1
+    lsb += b[5] << 3
+    lsb += b[6] << 5
+
+    return msb, lsb
 
 
 def bits_to_hgr(b):
@@ -733,7 +825,7 @@ def bits_to_hgr(b):
 
 
 def hgr_address( y, page=0x2000, format=0):
-    assert page == 0x2000 or page == 0x4000, "I'll work only for legal pages"
+    #assert page == 0x2000 or page == 0x4000, "I'll work only for legal pages"
     assert 0 <= y < APPLE_YRES, "You're outside Apple's veritcal resolution"
 
     if 0 <= y < 64:
@@ -747,9 +839,11 @@ def hgr_address( y, page=0x2000, format=0):
     j = (y % 64) % 8
 
     if format == 0:
-         return "${:X} + ${:X}".format( page + ofs + 0x80*i, 0x400*j)
+        return "${:X} + ${:X}".format( page + ofs + 0x80*i, 0x400*j)
+    elif format == 1:
+        return "${:X}".format( page + ofs + 0x80*i + 0x400*j)
     else:
-         return "${:X}".format( page + ofs + 0x80*i + 0x400*j)
+        return page + ofs + 0x80*i + 0x400*j
 
 def image_to_ascii( pic, grid_size):
     data = []
@@ -798,11 +892,11 @@ def array_to_asm( fo, a, line_prefix, label = ""):
         raise Exception("Unknown format {}".format( line_prefix))
 
     if label:
-        label = "{}:".format(label)
-    else:
-        label = ""
+        fo.write("{}:".format(label))
 
-    fo.write("{}\t; {} values\n".format(label, len(a)))
+    if len(a) > 3:
+        fo.write("\t; {} values\n".format(len(a)))
+
     for i in range( 0, len( a), 10):
         end = min( i + 10, len( a))
         fo.write("\t{} {}\n".format( line_prefix, ", ".join( [ fmt.format(x) for x in a[i:end]])))
@@ -875,3 +969,6 @@ if __name__ == "__main__":
 
     print( [s for s in map( str, special_points([Vertex(0,-1,0), Vertex(-1,0,2), Vertex(+1,0,0)]))])
     print( [s for s in map( str, special_points([Vertex(-1,0,2), Vertex(0,-1,0),  Vertex(+1,0,0)]))])
+
+    print( ".".join( [ "{:08b}".format(s) for s in bits_to_color_hgr2( [1,3,3,3,3,3,2] )]))
+    print( ".".join( [ "{:08b}".format(s) for s in bits_to_color_hgr2( [1,3,3,3,3,3,2]*2 )]))

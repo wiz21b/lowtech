@@ -33,22 +33,65 @@ LC_RAM_SELECT	= $C08B
 	LDA LC_RAM_SELECT
 	LDA LC_RAM_SELECT
 
-	;; $0400 -> $07FF = should be usable...
-	;; $0C00 -> $1FFF =  5120 bytes
-	;; $6000 -> $BC00 = 23552
-	;; $BC00 -> $BFFF = ProRWTS2
-	;; $D000 -> $FFFF = 12287
-	;; Total = 40kb available
+;; 	LDA $C052	     ; mix text and gfx (c052 = full text/gfx)
+;; 	LDA $C054		; Page 1
+;; 	;LDA $C055		; Page 2
+;; 	LDA $C057
+;; 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
 
-	;+load_file file_to_read3, MUSIC_SIZE
-	+load_file file_to_read2, DATAD000_SIZE
-	+load_file file_to_read, THREED_SIZE
+;; 	;; $0400 -> $07FF = should be usable...
+;; 	;; $0C00 -> $1FFF =  5120 bytes
+;; 	;; $6000 -> $BC00 = 23552
+;; 	;; $BC00 -> $BFFF = ProRWTS2
+;; 	;; $D000 -> $FFFF = 12287
+;; 	;; Total = 40kb available
+
+;; 	+load_file file_to_read4, 8192*2
+
+
+;; infinite_loop:
+;; 	LDA $C052	     ; mix text and gfx (c052 = full text/gfx)
+;; 	LDA $C054		; Page 1
+;; 	LDA $C057
+;; 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
+
+;; 	JSR pause
+
+;; 	LDA $C052	     ; mix text and gfx (c052 = full text/gfx)
+;; 	LDA $C055		; Page 2
+;; 	LDA $C057
+;; 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
+
+;; 	JSR pause
+
+;; 	jmp infinite_loop
+
+
+	;; +load_file file_to_read2, DATAD000_SIZE
+	;; +load_file file_to_read, THREED_SIZE
+
+	;; End scroll part
+	+load_file file_to_read5, VSCROLL_SIZE
+	+load_file file_to_read4, ICEBERG_SIZE
 	jmp $6000
- 	rts
+
+;; pause:
+;; 	;; inner loop = (5 cycle * X) * Y == 20000
+;; 	LDY #20
+;; pause_loop0:
+;; 	LDX #200
+;; pause_loop:
+;; 	DEX			; 2 cycles
+;; 	BNE pause_loop		; 3 cycles => 200*(2+3 cycles) = 1000
+;; 	DEY
+;; 	BNE pause_loop0		; 20*1000 = 20000 cycles = 1/50th of seconds
+;; 	RTS
 
 file_to_read	!raw 5, "START"
 file_to_read2	!raw 5, "LINES"
 file_to_read3	!raw 5, "MUSIC"
+file_to_read4	!raw 3, "PIX"
+file_to_read5	!raw 7, "VSCROLL"
 
 ;file_to_read	!byte 5, 'S' | $80, 'T' | $80, 'A' | $80, 'R' | $80, 'T' | $80
 
