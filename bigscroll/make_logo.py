@@ -2,6 +2,21 @@
 # ;;; It is published under the terms of the
 # ;;; GUN GPL License Version 3.
 
+# https://www.dafont.com/electric-toaster.font?text=LOW+TECH
+
+"""
+https://www.dafont.com/retrobound.font
+
+In 2020, 50M
+tons of e-waste
+were created.
+
+This is
+madness.
+
+Let's start
+the age of ...
+"""
 
 import sys
 import xxhash
@@ -13,9 +28,11 @@ import io
 import random
 random.seed(125)
 
+from bigscroll.godot import read_godot_tiles
+
 VERTICAL_OFFSET=5
 TILE_SIZE = 8
-ROL_SPEED=1
+ROL_SPEED=2
 
 def roller( tile, block_y, code_stream, roll_func, routine_base_name):
     jump_table = []
@@ -168,7 +185,7 @@ def image_to_tiles( filename, tile_size):
             elif s == tile_size**2:
                 pic[y // tile_size, x // tile_size] = 1
 
-    return tiles, a, pic
+    return tiles, pic
 
 
 def hgr_address( y):
@@ -318,7 +335,12 @@ def add_column(a, n = 1):
 
 
 def make_all( BUILD_DIR, DATA_DIR):
-    tiles, original_image, tiled_image = image_to_tiles( f"{DATA_DIR}/slomo2.png", 8)
+
+    # tiles, tiled_image = image_to_tiles( f"{DATA_DIR}/slomo2.png", TILE_SIZE)
+
+    tiles, tiled_image = read_godot_tiles()
+
+    scroller_height_in_pixels = tiled_image.shape[0] * TILE_SIZE
 
 
     col = np.zeros( (tiled_image.shape[0], 1), dtype=np.int)
@@ -424,10 +446,12 @@ def make_all( BUILD_DIR, DATA_DIR):
 
         fo.write("matrix_row_count:\t.byte {}\n".format( len(labels) - 40))
 
+
     with open(f"{BUILD_DIR}/stars.s","w") as fo:
+        # Stars "inside" the scroller
         for i in range(15):
             fo.write( "TXA\n")
-            adr = hgr_address( VERTICAL_OFFSET*TILE_SIZE + random.randrange(original_image.shape[0])) +\
+            adr = hgr_address( VERTICAL_OFFSET*TILE_SIZE + random.randrange( scroller_height_in_pixels)) +\
                 " + {}".format(random.randrange(280 // 7))
             fo.write( "ORA " + adr + "\n")
             fo.write( "STA " + adr + "\n")
@@ -441,7 +465,7 @@ def make_all( BUILD_DIR, DATA_DIR):
                                " + {}".format(random.randrange(280 // 7))
             fo.write( "STA " + adr + "\n")
 
-            v = VERTICAL_OFFSET*TILE_SIZE + original_image.shape[0]
+            v = VERTICAL_OFFSET*TILE_SIZE + scroller_height_in_pixels
 
             adr = hgr_address( v + random.randrange(192-v)) +\
                 " + {}".format(random.randrange(280 // 7))

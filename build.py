@@ -4,6 +4,17 @@ White-blue
 blue-blue
 blue-black
 black
+
+Big scroll fonts :
+
+https://www.dafont.com/cyberspace-raceway.font?text=LOW+TECH&psize=l&back=theme
+
+https://www.dafont.com/scifi-adventure.font?text=LOW+TECH
+
+https://www.dafont.com/electric-toaster.font?text=LOW+TECH
+
+https://www.dafont.com/alien-android.font?text=LOW+TECH
+
 """
 import sys
 import numpy as np
