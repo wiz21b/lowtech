@@ -3,7 +3,7 @@ import math
 import colorama
 import numpy as np
 import pygame
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageFont, ImageDraw
 
 
 APPLE_YRES = 64*3 # 192
@@ -12,6 +12,9 @@ APPLE_HGR_PIXELS_PER_BYTE = 7
 TRACKS_PER_DISK = 35
 SECTORS_PER_TRACK = 16
 DISK_SIZE = TRACKS_PER_DISK*SECTORS_PER_TRACK*256
+
+def np_append_row( a, v = 0):
+    return np.append( a, [ [v] * a.shape[1] ], axis=0)
 
 class AppleDisk:
     DOS_SECTORS_MAP = [0x0, 0x7, 0xe, 0x6, 0xd, 0x5, 0xc, 0x4,
@@ -726,6 +729,9 @@ def bool_array_to_stripes( d):
         elif not d[i] and not in_stripe:
             pass
 
+    if in_stripe:
+        stripes.append( in_stripe)
+
     return stripes
 
 
@@ -907,6 +913,84 @@ def image_to_ascii( pic, grid_size):
     return data
 
 
+def image_to_hgr( image):
+    """ image : a Pillow image
+    """
+    im = image.convert( mode="1").convert( mode="L")
+
+    width, height = im.size
+
+    hgr = bytearray( 8192)
+
+    for y in range(height):
+        row = np.array(im)[y,:]
+
+        # for x in range(40):
+        #     hgr_line.append( 0x80 + bits_to_hgr( (np.packbits( row[x*7:(x+1)*7])[0] >> 1)))
+
+        def merge_pixel( a,b):
+            if a and b:
+                return 3 # white
+            elif a == 0 and b == 0:
+                return 0 # black
+            else:
+                return 1 # blue
+
+        def merge(a):
+            r = int( 4*a/256 + 0.5)
+            return [(0,0),(1,0),(1,1),(3,1),(3,3)][r]
+
+        # 7 pixels becomes 3
+
+        ofs = 0
+        px = row
+        hgr_line = []
+        hgr_line2 = []
+
+        while ofs < len(px) - 7:
+
+            msb = 0
+            lsb = 0
+
+            msb += merge_pixel( px[ofs],    px[ofs+1]) << 0     # AA
+            msb += merge_pixel( px[ofs+2],  px[ofs+2+1]) << 2   # BB
+            msb += merge_pixel( px[ofs+4],  px[ofs+4+1]) << 4   # CC
+
+            p = merge_pixel( px[ofs+6],  px[ofs+6+1])
+            msb += (p & 1) << 6
+
+            lsb += ((p & 2) >> 1)
+            lsb += merge_pixel( px[ofs+8],  px[ofs+8+1]) << 1
+            lsb += merge_pixel( px[ofs+10],  px[ofs+10+1]) << 3
+            lsb += merge_pixel( px[ofs+12], px[ofs+12+1]) << 5
+
+            hgr_line.append( 0x80 | msb)
+            hgr_line.append( 0x80 | lsb)
+            hgr_line2.append( 0x80 | msb)
+            hgr_line2.append( 0x80 | lsb)
+
+            ofs += 14
+
+
+        assert len(hgr_line) == 40, "{}".format(len(hgr_line))
+
+        # for x in range(20):
+        #     px = row[x*7:(x+1)*7]
+        #     b = 0
+        #     for i in range(3):
+        #         b += merge_pixel( px[i*2], px[i*2+1]) << ((2 - i)*2)
+
+        #     hgr_line.append( 0x80 | (bits_to_hgr(b) << (x%2)))
+
+
+
+
+
+        ofs = hgr_address( y, 0, format=2)
+        hgr[ ofs : ofs + 40] = hgr_line
+
+    return hgr
+
 def array_to_asm( fo, a, line_prefix, label = ""):
 
     if type(a[0]) == str:
@@ -1009,14 +1093,114 @@ def append_images(images, direction='horizontal',
     return new_im
 
 
-def font_split( filename):
+def generate_font_data( fout, prefix, new_blocs, alphabet, nb_ROLs=4):
+
+    hgr_blocks = []
+
+    # To send these pixels (2 bits per pixel) on the screen ABCDEFGH
+
+    # Byte 2*n Byte 2*n+1
+                        # 76543210 76543210
+                        # -------- --------
+                        # For letter starting on pair byte, we need 4 ROL :
+                        # xDCCBBAA xGGFFEED
+                        # xCBBAA.. xFFEEDDC
+                        # xBAA.... xEEDDCCB
+                        # xA...... xDDCCBBA
+
+    # For letter starting on odd byte, we need 3 ROL :
+                        # -------- xCCBBAA. x.FFEEDD x........
+                        # -------- xBBAA... xFEEDDCC x.......F
+                        # -------- xAA..... xEDDCCBB x.....FFE
+
+    # So, if we draw on odd byte we take data of even bytes and ROL
+                        # each of them once (and transferring the 7th (not 8th!) bit to
+                        # the first bit of the next byte)
+
+    # x-pos  : 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14
+                        # offset : 0,0,0,0,1,1,1,2,2,2, 2, 3, 3, 3, 3
+
+    for rol in range( nb_ROLs):
+
+        labels = []
+        for i,b in enumerate(new_blocs):
+
+            data = []
+            for row in b:
+                # All rows have same length
+
+                # From 255 to 3 (white in HGR)
+                row_a2 = [z & 3 for z in row]
+
+                # print( len( row_a2))
+                # if len( row_a2) in (3,5,10):
+
+                # Append a blank column to the left. That's for
+                # spacing but also to make sure that "half bits" don't
+                # exist (FIXME shouldn't we add that only when the
+                # width of the letter is 3 color-pixels ?)
+                row_a2.append( 0 )
+
+
+                if rol:
+                    row_a2 = ([0] * rol) + row_a2
+
+                bytes_a2 = bits_to_color_hgr2( row_a2)
+
+                if not data:
+                    data = [ len(bytes_a2), len(row) + 1 ]
+                data.extend( bytes_a2)
+
+
+            letter = alphabet[i]
+            if letter == "-":
+                letter = "MINUS"
+            elif letter == ".":
+                letter = "DOT"
+            elif letter == ",":
+                letter = "COMA"
+            elif letter == "!":
+                letter = "EXCLAM"
+
+            label = "letter_{}_{}_{}".format( prefix, letter, rol)
+            labels.append( label)
+            array_to_asm( fout, data, ".byte", label)
+
+        make_lo_hi_ptr_table( fout, f"{prefix}_letter_ptrs_rol{rol}", labels)
+
+
+def message_to_font( fout, prefix, message, alphabet):
+    text = []
+
+    for line in message:
+        for c in line:
+            if c == " ":
+                text.append(253)
+            else:
+                text.append( alphabet.index(c))
+        text.append(254) # end string
+    text.append(255) # end text
+
+    array_to_asm( fout, text, ".byte", f"{prefix}the_message")
+
+
+def font_split( filename_or_image, mod_width = None):
 
     """ expecting a black on white font sheet
     the pixels of the fonts are expected to be
     exact squares.
+
+    all letters' widths will be adjusted so that
+    with % mod_width = 0
+
     """
 
-    im = Image.open( filename)
+    if type(filename_or_image) == str:
+        im = Image.open( filename_or_image)
+    else:
+        im = filename_or_image
+
+    # Make it white on black
     im = im.point(lambda p: p < 128 and 255)
 
     im = im.convert( mode="L")
@@ -1033,6 +1217,10 @@ def font_split( filename):
 
     vstripes = bool_array_to_stripes( [np.sum( ar[y,:] ) != t for y in range(height)])
     hstripes = bool_array_to_stripes( [np.sum( ar[:,x] ) != t for x in range(width)])
+
+    # print("-"*80)
+    # print( vstripes)
+    # print( hstripes)
 
     pixel_widths = dict()
 
@@ -1093,32 +1281,45 @@ def font_split( filename):
 
             #print(s)
 
-    #Image.fromarray(ar).show()
+    # Image.fromarray(ar).show()
+    # zzz = []
+    # for b in all_blocs:
+    #     zzz.append(Image.fromarray(b).convert( mode="RGB"))
+    #     zzz.append(Image.fromarray( np.ones( (100,2) )*128).convert( mode="RGB"))
+    # append_images( zzz).show()
 
-    zzz = []
-    for b in all_blocs:
-        zzz.append(Image.fromarray(b).convert( mode="RGB"))
-        zzz.append(Image.fromarray( np.ones( (60,2) )*128).convert( mode="RGB"))
+    for pw,cnt in reversed(sorted( pixel_widths.items(), key=lambda t:t[1])):
+        print( f"width:{pw}\tcnt:{cnt}")
 
-    #append_images( zzz).show()
+    l = list( sorted( pixel_widths.items(), key=lambda t:t[0]))
+    for i in range( len( l)):
+        if abs(l[i][0] - l[i-1][0]) < 2:
+            l[i] = ( l[i][0], l[i][1] +  l[i-1][1])
+            l[i-1] = None
+    l = list(filter(lambda f:f is not None, l))
 
-    # for pw,cnt in reversed(sorted( pixel_widths.items(), key=lambda t:t[1])):
-    #     print( f"{pw} {cnt}")
-
-    pixel_width = next(reversed(sorted( pixel_widths.items(), key=lambda t:t[1])))[0]
+    pixel_width = l[0][0]
+    #pixel_width = next(reversed(sorted( pixel_widths.items(), key=lambda t:t[1])))[0]
     print(f"Best pixel size is {pixel_width}")
 
     new_blocs = []
 
-    for bloc in all_blocs:
+    for ndx, bloc in enumerate( all_blocs):
 
         h,w = bloc.shape
 
         nh,nw = (h+(pixel_width//2))//pixel_width, (w+(pixel_width//2))//pixel_width
 
-        new_bloc = np.zeros( ( nh, nw), dtype=np.uint8 )
+        if mod_width and  nw % mod_width > 0:
+            # -1 compensate for the add one zero later on
+            # in HGR data generator
+            adjusted_width = ((nw // mod_width)  + 1) * mod_width - 1
+        else:
+            adjusted_width = nw
 
-        print(f"{h}x{w} -> {nh}x{nw}, pixel size is {pixel_width}")
+        new_bloc = np.zeros( ( nh, adjusted_width), dtype=np.uint8 )
+
+        print(f"Block #{ndx} {h}x{w} with pixel size is {pixel_width} ->  {new_bloc.shape[1]}x{nh} pixels character")
         for x in range( nw): # pixel_width//2, w - pixel_width//2 + 1, pixel_width):
             for y in range( nh): #pixel_width//2, h - pixel_width//2 + 1, pixel_width):
                 #print( bloc[x][y])
@@ -1134,6 +1335,47 @@ def font_split( filename):
 
     im.close()
     return new_blocs
+
+
+def make_bitmap_font( font_path, alphabet, mod_width=None, base_size=64):
+
+    # Take a base_size big enough to avoid rounding error
+    # in Pillow's font rendering
+
+    font = ImageFont.truetype(font_path, base_size)
+    (width, baseline), (offset_x, offset_y) = font.font.getsize(alphabet)
+
+    ascent, descent = font.getmetrics()
+
+    print(f"{ascent}, {descent}")
+    image = Image.new('L', ( width, ascent + descent), color = 255)
+    draw = ImageDraw.Draw(image)
+
+    draw.text((0, 0), alphabet, font=font, color=0)
+    #image.show()
+
+    return font_split(image, mod_width)
+
+
+def show_bitmap_font( blocks):
+    height = max( [ b.shape[0] for b in blocks ])
+
+    zzz = []
+    for b in blocks:
+        zzz.append( Image.fromarray(b).convert( mode="1"))
+        #zzz.append( Image.new('1', (2,height), color=0))
+
+    #zzz = [ Image.new('L', (8,height)) ] + zzz + [ Image.new('L', (8,height)) ]
+
+    im = append_images( zzz)
+    im = im.resize( (im.size[0]*4,im.size[1]*2 ))
+
+    s = im.size
+    im2 = Image.new( "1", ( s[0]+10, s[1]+10))
+    im2.paste( im, (5,5) )
+    im2.show()
+
+
 
 if __name__ == "__main__":
     print("Testing utils...")

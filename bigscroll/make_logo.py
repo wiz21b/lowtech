@@ -45,6 +45,7 @@ def roller( tile, block_y, code_stream, roll_func, routine_base_name):
         code_stream.write( "\n{}:\n".format( routine_name))
 
         if rol_factor % ROL_SPEED > 0:
+            code_stream.write( "\n RTS ; left blank\n")
             # Very dirty way of not producing some code :-)
             # (while keeping jump tables the same, which allows me to keep the code rather unchanged)
             continue
@@ -338,7 +339,7 @@ def make_all( BUILD_DIR, DATA_DIR):
 
     # tiles, tiled_image = image_to_tiles( f"{DATA_DIR}/slomo2.png", TILE_SIZE)
 
-    tiles, tiled_image = read_godot_tiles()
+    tiles, tiled_image = read_godot_tiles( DATA_DIR + "/Tiles")
 
     scroller_height_in_pixels = tiled_image.shape[0] * TILE_SIZE
 
@@ -361,7 +362,7 @@ def make_all( BUILD_DIR, DATA_DIR):
 
         filler_code = io.StringIO()
 
-        fo.write(".segment \"PRECALC\"\n")
+        #fo.write(".segment \"PRECALC\"\n")
 
         big_jump_table = []
         data = np.copy(optimized)

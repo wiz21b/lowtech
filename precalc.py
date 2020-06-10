@@ -1270,6 +1270,9 @@ with open("build/htiles.s","w") as fo:
     compute_horizontal_tiles_up(fo)
     compute_hgr_offsets(fo)
 
+with open("build/hgr_ofs.s","w") as fo:
+    compute_hgr_offsets(fo)
+
 
 
 """

@@ -1,6 +1,10 @@
 .proc pause
 
-	store_16 pause_count, 1000
+	STA pause_count + 1
+	LDA #$FF
+	STA pause_count
+
+	;store_16 pause_count, 1000
 loop:
 	dec16 pause_count
 	lda pause_count

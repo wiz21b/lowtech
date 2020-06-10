@@ -3,8 +3,8 @@ from PIL import Image
 import numpy
 
 
-def read_godot_tiles( show_tiles=False):
-    im = Image.open("/home/stefan/Tiles/tileset/tiles.png")
+def read_godot_tiles( godot_path, show_tiles=False):
+    im = Image.open(f"{godot_path}/tileset/tiles.png")
 
     im = Image.fromarray(
         numpy.uint8(
@@ -16,7 +16,7 @@ def read_godot_tiles( show_tiles=False):
 
     unsorted_tiles = dict()
 
-    with open("/home/stefan/Tiles/new_tileset.tres") as fin:
+    with open(f"{godot_path}/new_tileset.tres") as fin:
 
         for line in fin.readlines():
 
@@ -59,7 +59,7 @@ def read_godot_tiles( show_tiles=False):
 
     points = []
 
-    with open("/home/stefan/Tiles/TileMap.tscn") as fin:
+    with open(f"{godot_path}/TileMap.tscn") as fin:
         for line in fin.readlines():
             m = TILE_DATA_RE.match(line)
 
@@ -98,7 +98,7 @@ def read_godot_tiles( show_tiles=False):
                     image.show()
 
                 print( pic)
-    im = Image.open("/home/stefan/Tiles/tileset/tiles.png")
+    im = Image.open(f"{godot_path}/tileset/tiles.png")
 
     im = Image.fromarray(
         numpy.uint8(
@@ -110,7 +110,7 @@ def read_godot_tiles( show_tiles=False):
 
     unsorted_tiles = dict()
 
-    with open("/home/stefan/Tiles/new_tileset.tres") as fin:
+    with open(f"{godot_path}/new_tileset.tres") as fin:
 
         for line in fin.readlines():
 
@@ -153,7 +153,7 @@ def read_godot_tiles( show_tiles=False):
 
     points = []
 
-    with open("/home/stefan/Tiles/TileMap.tscn") as fin:
+    with open(f"{godot_path}/TileMap.tscn") as fin:
         for line in fin.readlines():
             m = TILE_DATA_RE.match(line)
 
@@ -196,4 +196,4 @@ def read_godot_tiles( show_tiles=False):
         return tiles, pic
 
 if __name__ == '__main__':
-    read_godot_tiles(show_tiles=True)
+    read_godot_tiles( r"c:/Users/stc/Dropbox/demo2/bigscroll/data/Tiles", show_tiles=True)

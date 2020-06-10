@@ -46,7 +46,7 @@ BYTES_PER_LINE	= 6
 	.segment "CODE"
 
 
-	JSR init_disk_read	; Must be done before any read sector !
+	;JSR init_disk_read	; Must be done before any read sector !
 	lda #$ff
 	jsr clear_hgr
 
@@ -161,6 +161,7 @@ freeze:
 	LDA #$0
 	STA color
 	JSR draw_or_erase_multiple_lines
+	BCS all_done
 
 	jsr skip_a_frame
 	copy_16 line_data_ptr2, line_data_ptr
@@ -176,7 +177,7 @@ freeze:
 	.endif
 
 	.ifndef MUSIC
-	JSR read_any_sector
+	;JSR read_any_sector
 	.endif
 
 
@@ -187,6 +188,8 @@ freeze:
 	JMP all_lines
 all_done:
 
+	RTS
+
 	.if DEBUG
 	jsr draw_status
 	.endif
@@ -194,6 +197,7 @@ all_done:
 	jmp demo3
 
 
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 .proc draw_or_erase_multiple_lines
 
@@ -214,10 +218,12 @@ one_more_line:
 
 end_of_all_frames:
 	store_16 line_data_ptr, lines_data
+	SEC
 	RTS
 
 end_of_frame:
 	add_const_to_16 line_data_ptr, 1
+	CLC
 	RTS
 
 

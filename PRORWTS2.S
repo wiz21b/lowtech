@@ -30,6 +30,18 @@ LC_RAM_SELECT	= $C08B
 	;; D000 is in bank switched memory => i activate it (so my
 	;; apple is now 64kb !)
 
+clear_gr_outter:
+	LDY #0
+	LDA #$A0		; A0 == space
+clear_gr:
+	STA $0400,Y
+	DEY
+	BNE clear_gr
+	INC clear_gr + 2
+	LDY clear_gr + 2
+	CPY #$08
+	BNE clear_gr_outter
+
 	LDA LC_RAM_SELECT
 	LDA LC_RAM_SELECT
 
@@ -67,8 +79,13 @@ LC_RAM_SELECT	= $C08B
 ;; 	jmp infinite_loop
 
 
-	;; +load_file file_to_read2, DATAD000_SIZE
-	;; +load_file file_to_read, THREED_SIZE
+	+load_file file_to_read7, EARTH_SIZE
+	+load_file file_to_read6, BSCROLL_SIZE
+	JSR $6000
+
+	+load_file file_to_read2, DATAD000_SIZE
+	+load_file file_to_read, THREED_SIZE
+	JSR $6000
 
 	;; End scroll part
 	+load_file file_to_read5, VSCROLL_SIZE
@@ -87,14 +104,17 @@ LC_RAM_SELECT	= $C08B
 ;; 	BNE pause_loop0		; 20*1000 = 20000 cycles = 1/50th of seconds
 ;; 	RTS
 
+
+;file_to_read	!byte 5, 'S' | $80, 'T' | $80, 'A' | $80, 'R' | $80, 'T' | $80
+
+
 file_to_read	!raw 5, "START"
 file_to_read2	!raw 5, "LINES"
 file_to_read3	!raw 5, "MUSIC"
 file_to_read4	!raw 3, "PIX"
 file_to_read5	!raw 7, "VSCROLL"
-
-;file_to_read	!byte 5, 'S' | $80, 'T' | $80, 'A' | $80, 'R' | $80, 'T' | $80
-
+file_to_read6	!raw 7, "BSCROLL"
+file_to_read7	!raw 5, "EARTH"
 
 	;;  version du 14 mars 2020
 

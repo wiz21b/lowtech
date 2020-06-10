@@ -13,161 +13,94 @@ https://www.dafont.com/scifi-adventure.font?text=LOW+TECH
 
 https://www.dafont.com/electric-toaster.font?text=LOW+TECH
 
+# Inspiration for my big scroller font
 https://www.dafont.com/alien-android.font?text=LOW+TECH
 
 """
 import sys
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageFont, ImageDraw
 from utils import *
 
 from bigscroll.make_logo import make_all
 
 
+
+PUSAB_ALPHABET="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-,.!"
+new_blocs = make_bitmap_font("data/8-bit-pusab.ttf", PUSAB_ALPHABET, 7)
+
+MESSAGE = ["IN 2020, 50M TONS",
+           "OF E-WASTE WERE",
+           "PRODUCED.",
+           "",
+           "STOP THAT MADNESS,",
+           "PROTECT NATURE !",
+           "",
+           "HAIL THE AGE OF..."]
+
+with open("data/alphabet2.s","w") as fout:
+    generate_font_data( fout, "f2", new_blocs, PUSAB_ALPHABET, nb_ROLs=1)
+    message_to_font( fout, "m2_", MESSAGE, PUSAB_ALPHABET)
+
+
+#show_bitmap_font( new_blocs)
+# exit()
+
 # Alphabeta here : https://fontmeme.com/pixel-fonts/
 # https://fontmeme.com/fonts/little-conquest-font/
 
-new_blocs = font_split("data/Alphabeta 7 pixels font.png")
+#new_blocs = font_split("data/Alphabeta 7 pixels font.png")
 
-def np_append_row( a, v = 0):
-    return np.append( a, [ [v] * a.shape[1] ], axis=0)
+LITTLE_CONQUEST_ALPHABET= "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+new_blocs = make_bitmap_font("data/Little Conquest.ttf", LITTLE_CONQUEST_ALPHABET)
+MESSAGE = ["This demo was",
+           "written by Wiz of",
+           "Imphobia in 2020",
+           "",
+           "Keeping the spirit",
+           "alive",
+           "",
+           "Greetings go to",
+           "",
+           "   Imphobia",
+           "   Peter Ferrie",
+           "   Deater",
+           "   Fennarinarsa",
+           "",
+           "",
+           "Additional Credits",
+           "",
+           "PT3 player",
+           "",
+           "   Vince Weaver",
+           "",
+           "RWTS",
+           "",
+           "   Peter Ferrie",
+           "",
+           "Fonts",
+           "",
+           "   Little Conquest",
+           "   by Brixdee",
+           "",
+           "   Alien Android",
+           "   by Darrell Flood",
+           "",
+           "Iceberg",
+           "",
+           "   iStock free",
+           "",
+           "",
+           "",
+           "",
+           "",
+           "",
+]
 
-# Fix some letters
-for i in range(26):
-    new_blocs[i] = np_append_row( new_blocs[i])
-
-new_blocs = new_blocs[0:26+26+10]
-
-letter_9 = 26+26+10-1
-for i in range(3):
-    new_blocs[letter_9] = np.delete( new_blocs[letter_9], 0, axis=0)
-new_blocs[letter_9] = np.delete( new_blocs[letter_9], len(new_blocs[letter_9])-1, axis=0)
-
-
-max_height = max( [ b.shape[0] for b in new_blocs] )
-for i in range( len( new_blocs)):
-    b = new_blocs[i]
-    if b.shape[0] < max_height:
-        for j in range(max_height - b.shape[0]):
-            new_blocs[i] = np_append_row( new_blocs[i])
-
-hgr_blocks = []
 with open("data/alphabet.s","w") as fout:
+    generate_font_data( fout, "f1", new_blocs, LITTLE_CONQUEST_ALPHABET, nb_ROLs=4)
+    message_to_font( fout, "", MESSAGE, LITTLE_CONQUEST_ALPHABET)
 
-    # To send these pixels (2 bits per pixel) on the screen ABCDEFGH
-
-    # Byte 2*n Byte 2*n+1
-    # 76543210 76543210
-    # -------- --------
-    # For letter starting on pair byte, we need 4 ROL :
-    # xDCCBBAA xGGFFEED
-    # xCBBAA.. xFFEEDDC
-    # xBAA.... xEEDDCCB
-    # xA...... xDDCCBBA
-
-    # For letter starting on odd byte, we need 3 ROL :
-    # -------- xCCBBAA. x.FFEEDD x........
-    # -------- xBBAA... xFEEDDCC x.......F
-    # -------- xAA..... xEDDCCBB x.....FFE
-
-    # So, if we draw on odd byte we take data of even bytes and ROL
-    # each of them once (and transferring the 7th (not 8th!) bit to
-    # the first bit of the next byte)
-
-    # x-pos  : 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14
-    # offset : 0,0,0,0,1,1,1,2,2,2, 2, 3, 3, 3, 3
-
-
-
-    for rol in range(4):
-        labels = []
-        for i,b in enumerate(new_blocs):
-
-
-            data = []
-
-            for row in b:
-                # All rows have same length
-
-                # From 255 to 3 (white in HGR)
-                row_a2 = [z & 3 for z in row]
-
-                # Append a blank column to the left. That's for
-                # spacing but also to make sure that "half bits" don't
-                # exist (FIXME shouldn't we add that only when the
-                # width of the letter is 3 color-pixels ?)
-
-                row_a2.append( 0 )
-
-                if rol:
-                    row_a2 = ([0] * rol) + row_a2
-
-                bytes_a2 = bits_to_color_hgr2( row_a2)
-
-                if not data:
-                    data = [ len(bytes_a2), len(row) + 1 ]
-                data.extend( bytes_a2)
-
-
-            label = "letter_{}_{}".format("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"[i], rol)
-            labels.append( label)
-            array_to_asm( fout, data, ".byte", label)
-
-        make_lo_hi_ptr_table( fout, f"letter_ptrs_rol{rol}", labels)
-
-        text = []
-        #           ##################
-        MESSAGE = ["This demo was",
-                   "written by Wiz of",
-                   "Imphobia in 2020",
-                   "",
-                   "Keeping the spirit",
-                   "alive",
-                   "",
-                   "Greetings go to",
-                   "",
-                   "   Imphobia",
-                   "   Peter Ferrie",
-                   "   Deater",
-                   "   Fennarinarsa",
-                   "",
-                   "",
-                   "Additional Credits",
-                   "",
-                   "PT3 player",
-                   "   Vince Weaver",
-                   "",
-                   "RWTS",
-                   "   Peter Ferrie",
-                   "",
-                   "Font",
-                   "   Little Conquest",
-                   "   by Brixdee",
-                   "",
-                   "Iceberg",
-                   "   iStock free",
-                   "",
-                   "",
-                   "",
-                   "",
-                   "",
-                   "",
-        ]
-
-        for line in MESSAGE:
-            for c in line:
-                if c == " ":
-                    text.append(253)
-                else:
-                    text.append( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".index(c))
-            text.append(254) # end string
-        text.append(255) # end text
-
-    array_to_asm( fout, text, ".byte", "the_message")
-
-#         a = row
-#         if shape
-#         bits_to_color_hgr( row)
 
 
 
@@ -177,6 +110,9 @@ with open("data/alphabet.s","w") as fout:
 # im.show()
 #Image.fromarray(ar).show()
 #exit()
+
+# https://www.istockphoto.com/be/vectoriel/iceberg-main-illustration-dessin%C3%A9e-convertie-au-vecteur-gm1038069650-277863881
+# libre de droit
 
 im = Image.open("data/black_ice2.bmp")
 im = im.resize( (APPLE_XRES,APPLE_YRES) )
@@ -188,142 +124,20 @@ for i in range( 85, APPLE_YRES, 2):
     ar[i,:] = 0
 im = Image.fromarray(ar)
 
-im = im.convert( mode="1").convert( mode="L")
+hgr = image_to_hgr( im)
 
-#im = im.resize( (APPLE_XRES//2,APPLE_YRES) ).convert( mode="L")
-
-
-width, height = im.size
-
-# px = im.load()
-# for x in range(width):
-#     px[x, 100] = 255
-
-hgr = bytearray( 8192)
-hgr2 = bytearray( 8192)
-
-for y in range(height):
-    row = np.array(im)[y,:]
-
-    # for x in range(40):
-    #     hgr_line.append( 0x80 + bits_to_hgr( (np.packbits( row[x*7:(x+1)*7])[0] >> 1)))
-
-    def merge_pixel( a,b):
-        if a and b:
-            return 3 # white
-        elif a == 0 and b == 0:
-            return 0 # black
-        else:
-            return 1 # blue
-
-    def merge(a):
-        r = int( 4*a/256 + 0.5)
-        return [(0,0),(1,0),(1,1),(3,1),(3,3)][r]
-
-    # 7 pixels becomes 3
-
-    ofs = 0
-    px = row
-    hgr_line = []
-    hgr_line2 = []
-
-    while ofs < len(px) - 7:
-
-        msb = 0
-        lsb = 0
-
-        bmsb=0
-        blsb=0
-
-        # t,b = merge(px[ofs])
-        # msb += t << 0
-        # bmsb += b << 0
-
-        # t,b = merge(px[ofs+1])
-        # msb += t << 2
-        # bmsb += b << 2
-
-        # t,b = merge(px[ofs+2])
-        # msb += t << 4
-        # bmsb += b << 4
-
-        # t,b = merge( px[ofs+3])
-        # msb += (t & 1) << 6
-        # lsb += ((t & 2) >> 1)
-        # bmsb += (b & 1) << 6
-        # blsb += ((b & 2) >> 1)
-
-        # t,b = merge(px[ofs+4])
-        # lsb += t << 1
-        # blsb += b << 1
-
-        # t,b = merge(px[ofs+5])
-        # lsb += t << 3
-        # blsb += b << 3
-
-        # t,b = merge(px[ofs+6])
-        # lsb += t << 5
-        # blsb += b << 5
-
-        # hgr_line.append( 0x80 | msb)
-        # hgr_line.append( 0x80 | lsb)
-        # hgr_line2.append( 0x80 | bmsb)
-        # hgr_line2.append( 0x80 | blsb)
-
-        # ofs += 7
-
-        msb += merge_pixel( px[ofs],    px[ofs+1]) << 0     # AA
-        msb += merge_pixel( px[ofs+2],  px[ofs+2+1]) << 2   # BB
-        msb += merge_pixel( px[ofs+4],  px[ofs+4+1]) << 4   # CC
-
-        p = merge_pixel( px[ofs+6],  px[ofs+6+1])
-        msb += (p & 1) << 6
-
-        lsb += ((p & 2) >> 1)
-        lsb += merge_pixel( px[ofs+8],  px[ofs+8+1]) << 1
-        lsb += merge_pixel( px[ofs+10],  px[ofs+10+1]) << 3
-        lsb += merge_pixel( px[ofs+12], px[ofs+12+1]) << 5
-
-        hgr_line.append( 0x80 | msb)
-        hgr_line.append( 0x80 | lsb)
-        hgr_line2.append( 0x80 | msb)
-        hgr_line2.append( 0x80 | lsb)
-
-        ofs += 14
-
-
-    assert len(hgr_line) == 40, "{}".format(len(hgr_line))
-
-    # for x in range(20):
-    #     px = row[x*7:(x+1)*7]
-    #     b = 0
-    #     for i in range(3):
-    #         b += merge_pixel( px[i*2], px[i*2+1]) << ((2 - i)*2)
-
-    #     hgr_line.append( 0x80 | (bits_to_hgr(b) << (x%2)))
-
-
-
-
-
-    ofs = hgr_address( y, 0, format=2)
-    hgr[ ofs : ofs + 40] = hgr_line
-    hgr2[ ofs : ofs + 40] = hgr_line2
-    print( hgr_address( y, 0, format=2))
-    print(hgr_line)
-
-print(np.array(im)[90,:])
-
-# https://www.istockphoto.com/be/vectoriel/iceberg-main-illustration-dessin%C3%A9e-convertie-au-vecteur-gm1038069650-277863881
-# libre de droit
 with open("data/TITLEPIC.BIN","wb") as f_out:
-    print( len( hgr))
-    f_out.write( hgr)
-    # hgr2[0] = 255
-    # f_out.write( hgr2)
+    f_out.write( bytearray(hgr))
 
 #im.show()
 im.close()
+
+
+im = Image.open("data/earth.png")
+im = im.resize( (APPLE_XRES,APPLE_YRES) )
+with open("build/earth.bin","wb") as f_out:
+    f_out.write( bytearray( image_to_hgr( im)))
+
 
 
 
@@ -467,6 +281,7 @@ parser.add_argument("--mame", action="store_true")
 parser.add_argument("--no-precalc", action="store_true")
 parser.add_argument("--precalc", action="store_true")
 parser.add_argument("--music", action="store_true")
+parser.add_argument("--build", action="store_true")
 args = parser.parse_args()
 
 if args.precalc:
@@ -528,6 +343,14 @@ with open(f"{BUILD_DIR}/file_size.s","w") as fout:
     print(f"Scroller : {size} bytes")
     fout.write(f"VSCROLL_SIZE = {size}\n")
 
+    size = os.path.getsize(f"{BUILD_DIR}/BSCROLL")
+    print(f"Big scroller : {size} bytes")
+    fout.write(f"BSCROLL_SIZE = {size}\n")
+
+    size = os.path.getsize(f"{BUILD_DIR}/earth.bin")
+    print(f"Earth : {size} bytes")
+    fout.write(f"EARTH_SIZE = {size}\n")
+
 run(f"{ACME} -o {BUILD_DIR}/prorwts2.o PRORWTS2.S ")
 
 print("Packaging DSK file")
@@ -552,11 +375,13 @@ with open(f"{BUILD_DIR}/datad000.o") as stdin :
 with open(f"{DATA_DIR}/TITLEPIC.BIN") as stdin :
     run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK PIX BIN 0x2000", stdin=stdin)
 
+with open(f"{BUILD_DIR}/earth.bin") as stdin :
+    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK EARTH BIN 0x2000", stdin=stdin)
 
 # big scroller
 
 with open(f"{BUILD_DIR}/BSCROLL") as stdin :
-    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK BSCROLL BIN 0x0C00", stdin=stdin)
+    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK BSCROLL BIN 0x6000", stdin=stdin)
 
 with open(f"{BUILD_DIR}/data6000.o") as stdin :
     run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK FILLER BIN 0x6000", stdin=stdin)
@@ -591,11 +416,13 @@ if platform.system() == "Linux":
 #     disk.set_sector( track, logical_sector, bytearray([logical_sector]*256))
 # disk.save()
 
+if args.build:
+    exit()
 
 print("Running emulator")
 if args.mame:
     # -resolution 1200x900
-    run(f"{MAME} apple2e -sound none -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.DSK")
+    run(f"{MAME} apple2e -sound none -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.DSK")
 else:
     dsk = os.path.join( BUILD_DIR_ABSOLUTE, "NEW.DSK")
     if platform.system() == "Linux":
