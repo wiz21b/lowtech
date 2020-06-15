@@ -523,76 +523,56 @@ tile_loop:
 .endproc
 
 
-	;PT3_LOC = $0C00
-	.include "pt3_lib/zp.inc"
+;; 	;PT3_LOC = $0C00
+;; 	.include "pt3_lib/zp.inc"
 
-	;; https://github.com/deater/dos33fsprogs/tree/master/pt3_lib
-start_player:
-	lda	#0
-	sta	DONE_PLAYING
-	lda	#1
-	sta LOOP
+;; 	;; https://github.com/deater/dos33fsprogs/tree/master/pt3_lib
+;; start_player:
+;; 	lda	#0
+;; 	sta	DONE_PLAYING
+;; 	lda	#1
+;; 	sta LOOP
 
-	;jsr	mockingboard_detect
-	;jsr	mockingboard_patch
-	jsr	mockingboard_init
-	jsr	mockingboard_setup_interrupt
+;; 	;jsr	mockingboard_detect
+;; 	;jsr	mockingboard_patch
+;; 	jsr	mockingboard_init
+;; 	jsr	mockingboard_setup_interrupt
 
-	;============================
-	; Init the Mockingboard
-	;============================
+;; 	;============================
+;; 	; Init the Mockingboard
+;; 	;============================
 
-	jsr	reset_ay_both
-	jsr	clear_ay_both
+;; 	jsr	reset_ay_both
+;; 	jsr	clear_ay_both
 
-	;==================
-	; init song
-	;==================
+;; 	;==================
+;; 	; init song
+;; 	;==================
 
-	jsr	pt3_init_song
+;; 	jsr	pt3_init_song
 
-	;============================
-	; Enable 6502 interrupts
-	;============================
-	cli ; clear interrupt mask
+;; 	;============================
+;; 	; Enable 6502 interrupts
+;; 	;============================
+;; 	cli ; clear interrupt mask
 
-	RTS
+;; 	RTS
 
-	; some firmware locations
-	.include "pt3_lib/hardware.inc"
-	.include "pt3_lib/pt3_lib_core.s"
-	.include "pt3_lib/pt3_lib_init.s"
-	.include "pt3_lib/pt3_lib_mockingboard_setup.s"
-	.include "pt3_lib/interrupt_handler.s"
-	; if you're self patching, detect has to be after
-	; interrupt_handler.s
-	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
+	;; ; some firmware locations
+	;; .include "pt3_lib/hardware.inc"
+	;; .include "pt3_lib/pt3_lib_core.s"
+	;; .include "pt3_lib/pt3_lib_init.s"
+	;; .include "pt3_lib/pt3_lib_mockingboard_setup.s"
+	;; .include "pt3_lib/interrupt_handler.s"
+	;; ; if you're self patching, detect has to be after
+	;; ; interrupt_handler.s
+	;; .include "pt3_lib/pt3_lib_mockingboard_detect.s"
 
 	;; DATA ////////////////////////////////////////////////////
 	.include "build/precalc.s"
-
-
-	;; /////////////////////////////////////////////////////////
-	;; D000 SEGMENT
-	;; /////////////////////////////////////////////////////////
-	.segment "RAM_D000"
-
-
-	.include "read_sector.s"
-
 	.proc read_any_sector
 	RTS
 	.endproc
-
-MLI		= $BF00
-prodos_params:
-	.byte 3	; 3 parameters
-	.byte SLOT_SELECT + DRIVE_SELECT
-	.word GR2_RAM ; Memory buffer, make sure it's not in ProDos's stuff
-block_read:
-	.word $0001 ; Block to read
-
-
 
 modulo7:
 	.repeat 256,I
@@ -608,14 +588,38 @@ div7:
 	.include "build/tiles.s"
 	.include "build/tiles_lr.s"
 
+	;; /////////////////////////////////////////////////////////
+	;; D000 SEGMENT
+	;; /////////////////////////////////////////////////////////
+	.segment "RAM_D000"
+
+
+	;; .include "read_sector.s"
+
+
+;; MLI		= $BF00
+;; prodos_params:
+;; 	.byte 3	; 3 parameters
+;; 	.byte SLOT_SELECT + DRIVE_SELECT
+;; 	.word GR2_RAM ; Memory buffer, make sure it's not in ProDos's stuff
+;; block_read:
+;; 	.word $0001 ; Block to read
+
+
+
+
 lines_data:
+
+;; line_data_frame1:
+;; line_data_frame2:
+
 	.include "build/lines.s"
 
 	;; For some reason, it seems that the PT3 must be
 	;; on a page bounday...
-	.align $100
-	PT3_LOC = *
-	.ifdef MUSIC
-	.incbin "data/FR.PT3"
-	.endif
-	.byte "THEEND"
+	;; .align $100
+	;; PT3_LOC = *
+	;; .ifdef MUSIC
+	;; .incbin "data/FR.PT3"
+	;; .endif
+	;; .byte "THEEND"

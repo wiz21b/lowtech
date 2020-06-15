@@ -2,24 +2,21 @@
 ;;; It is published under the terms of the
 ;;; GUN GPL License Version 3.
 
-;;; Part of this code (see below) is copied from the PT3 player by Vince "Deater" Weaver and is licensed accordingly
-
 	.segment "CODE_6000"
 
 
 	.include "defs.s"
 	.include "precalc_def.s"
 
-DEBUG = 0
+	DEBUG = 0
 
 	text_pointer	= 240
-	x_pos	= 242
-	y_pos	= 243
+	x_pos	= 252
+	y_pos	= 254
 	dummy_ptr3	= 244
-
-dummy_ptr		= 246
-scroll_matric_ptr       = 248
-dummy_ptr2		= 248
+	dummy_ptr	= 246
+	scroll_matric_ptr       = 248
+	dummy_ptr2		= 248
 
 	;; store_16  dummy_ptr, filename_FILLER
 	;; store_16  iobuffer, ($6000-1024)
@@ -600,34 +597,34 @@ stars_fixed:
 
 	.include "build/matrix.s"
 
-filename_FILLER:	.asciiz "FILLER"
-filename_SONG:	.asciiz "SONG"
-filename_EARTH:	.asciiz "EARTH"
+;; filename_FILLER:	.asciiz "FILLER"
+;; filename_SONG:	.asciiz "SONG"
+;; filename_EARTH:	.asciiz "EARTH"
 
-open_file_param:
-	.byte 3	; three params
-	.word filename_bfr
-iobuffer:
-	.word $5000		; I/O 1024 bytes buffer address
-ref_num0:
-	.byte 0
-filename_bfr:
-	.byte 6 ; length
-	.byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+;; open_file_param:
+;; 	.byte 3	; three params
+;; 	.word filename_bfr
+;; iobuffer:
+;; 	.word $5000		; I/O 1024 bytes buffer address
+;; ref_num0:
+;; 	.byte 0
+;; filename_bfr:
+;; 	.byte 6 ; length
+;; 	.byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
-read_file_param:
-	.byte 4	; three params
-ref_num1:
-	.byte 0 ; ref_number
-file_buffer:	.word $6000	; where to put the data
-	.word 20000	; requested length to read
-	.word 0	; actual length
+;; read_file_param:
+;; 	.byte 4	; three params
+;; ref_num1:
+;; 	.byte 0 ; ref_number
+;; file_buffer:	.word $6000	; where to put the data
+;; 	.word 20000	; requested length to read
+;; 	.word 0	; actual length
 
 
-close_file_param:
-	.byte 1	; three params
-ref_num2:
-	.byte 0
+;; close_file_param:
+;; 	.byte 1	; three params
+;; ref_num2:
+;; 	.byte 0
 
 
 
@@ -643,65 +640,67 @@ read_any_sector:
 ;;; The following code is (c) Vince "Deater" Weaver an dis not covered by the GNU GPL License
 
 
-	PT3_LOC = $4000
+;; 	PT3_LOC = $4000
 
 
-	.include "pt3_lib/zp.inc"
+;; 	.include "pt3_lib/zp.inc"
 
-	;; https://github.com/deater/dos33fsprogs/tree/master/pt3_lib
-start_player:
-	lda	#0
-	sta	DONE_PLAYING
-	lda	#1
-	sta LOOP
+;; 	;; https://github.com/deater/dos33fsprogs/tree/master/pt3_lib
+;; start_player:
+;; 	lda	#0
+;; 	sta	DONE_PLAYING
+;; 	lda	#1
+;; 	sta LOOP
 
-	;jsr	mockingboard_detect
-	;jsr	mockingboard_patch
-	jsr	mockingboard_init
-	jsr	mockingboard_setup_interrupt
+;; 	;jsr	mockingboard_detect
+;; 	;jsr	mockingboard_patch
+;; 	jsr	mockingboard_init
+;; 	jsr	mockingboard_setup_interrupt
 
-	;============================
-	; Init the Mockingboard
-	;============================
+;; 	;============================
+;; 	; Init the Mockingboard
+;; 	;============================
 
-	jsr	reset_ay_both
-	jsr	clear_ay_both
+;; 	jsr	reset_ay_both
+;; 	jsr	clear_ay_both
 
-	;==================
-	; init song
-	;==================
+;; 	;==================
+;; 	; init song
+;; 	;==================
 
-	jsr	pt3_init_song
+;; 	jsr	pt3_init_song
 
-	;============================
-	; Enable 6502 interrupts
-	;============================
-	cli ; clear interrupt mask
+;; 	;============================
+;; 	; Enable 6502 interrupts
+;; 	;============================
+;; 	cli ; clear interrupt mask
 
-	RTS
+;; 	RTS
 
-	; some firmware locations
-	.include "pt3_lib/hardware.inc"
-	.include "pt3_lib/pt3_lib_core.s"
-	.include "pt3_lib/pt3_lib_init.s"
-	.include "pt3_lib/pt3_lib_mockingboard_setup.s"
-	.include "pt3_lib/interrupt_handler.s"
-	; if you're self patching, detect has to be after
-	; interrupt_handler.s
-	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
+;; 	; some firmware locations
+;; 	.include "pt3_lib/hardware.inc"
+;; 	.include "pt3_lib/pt3_lib_core.s"
+;; 	.include "pt3_lib/pt3_lib_init.s"
+;; 	.include "pt3_lib/pt3_lib_mockingboard_setup.s"
+;; 	.include "pt3_lib/interrupt_handler.s"
+;; 	; if you're self patching, detect has to be after
+;; 	; interrupt_handler.s
+;; 	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
 
-times8hi:
-	.REPEAT 64,i			; i starts at 0
-	.byte ($7400 + i * 8 * 2)   >> 8
-	.ENDREP
-times8lo:
-	.REPEAT 64,i
-	.byte ($7400 + i * 8 * 2)  & 255
-	.ENDREP
 
 	.align $100 		; FIXME do nothing
 bs_precalc:
 	.include "build/bs_precalc.s"
+
+times8hi:
+	.REPEAT 64,i			; i starts at 0
+	.byte >bs_precalc + ((i * 8 * 2)   >> 8)
+	.ENDREP
+times8lo:
+	.REPEAT 64,i
+	.byte <bs_precalc + ((i * 8 * 2)  & 255)
+	.ENDREP
+
 	.include "../data/alphabet2.s"
 	.include "../build/hgr_ofs.s"
 div3:

@@ -220,11 +220,6 @@ done_apple_detect:
 	; FIXME: should chain any existing handler
 
 	lda	#<interrupt_handler
-	sta	$fffe
-	lda	#>interrupt_handler
-	sta	$ffff
-
-	lda	#<interrupt_handler
 	sta	$03fe
 	lda	#>interrupt_handler
 	sta	$03ff

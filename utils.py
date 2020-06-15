@@ -26,7 +26,7 @@ fsbt_sectors_read_order = [  (1,2),  (1,4),  (1,6),  (1,8),  (1,10), (1,12), (1,
 def configure_boot_code( fout, loader_size, page_base):
 
     pages = (loader_size + 255) // 256
-    assert 0 < pages < 15+16, "FSTBT.S supports up to 31 sectors, no more"
+    assert 0 < pages <= 15+16, f"FSTBT.S supports up to 31 sectors, no more. You asked {pages} pages"
     page_map = [0] * len(fsbt_sectors_read_order)
 
     for page in range( pages):
@@ -47,11 +47,11 @@ def configure_boot_code( fout, loader_size, page_base):
 
     page_map = page_map[0:i]
 
-    for i,disk_pos in enumerate(fsbt_sectors_read_order):
-        if i < len(page_map):
-            print( "{:0X}\t{}".format( page_map[i], disk_pos))
-        else:
-            print( "--\t{}".format( disk_pos))
+    # for i,disk_pos in enumerate(fsbt_sectors_read_order):
+    #     if i < len(page_map):
+    #         print( "{:0X}\t{}".format( page_map[i], disk_pos))
+    #     else:
+    #         print( "--\t{}".format( disk_pos))
 
 
     fout.write("!byte {}\n".format(
@@ -103,7 +103,7 @@ class AppleDisk:
         sectors_written = 0
         data = bytearray(data)
 
-        print( "Writing {} bytes from T:{} S:{}".format(len(data), self._track, self._sector))
+        #print( "Writing {} bytes from T:{} S:{}".format(len(data), self._track, self._sector))
 
         for offset in range( 0, len(data), 256 ):
 
@@ -111,8 +111,9 @@ class AppleDisk:
                 s = data[offset:offset+256]
             else:
                 s = data[offset:len(data)]
-                s.extend( [0] * (256 - (len(data) - offset)))
+                s.extend( [0] * (256 - len(s)))
 
+            assert len(s) == 256
             #print(f"Writing  {self._track}/{self._sector}, offset {offset:x}")
             last_sector = self._track, self._sector
             self.set_sector( self._track, self._sector, bytearray(s))
@@ -131,8 +132,8 @@ class AppleDisk:
         #                   last_sector[0],last_sector[1],
         #                   load_page, label) )
 
-        print("init_track_read {},{},{},{},${:x}\t; {} bytes, {} pages".format( first_sector[0],first_sector[1],last_sector[0],last_sector[1], load_page, len(data), (len(data) + 255)//256))
-        print(f"{sectors_written} sectors written")
+        #print("init_track_read {},{},{},{},${:x}\t; {} bytes, {} pages".format( first_sector[0],first_sector[1],last_sector[0],last_sector[1], load_page, len(data), (len(data) + 255)//256))
+        #print(f"{sectors_written} sectors written")
         self.nb_writes += 1
 
         return (first_sector[0],first_sector[1],

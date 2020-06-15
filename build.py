@@ -365,55 +365,82 @@ disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
 # ####################################################################
 # Creating the boot sector and boot loader
 
+TUNE = f"{DATA_DIR}/BH.PT3"
+TUNE_ADDRESS = 0xC000 - (((os.path.getsize(TUNE) + 255 + 256) >> 8) << 8)
+
+file_list = [
+    (f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
+    (TUNE,  TUNE_ADDRESS >> 8, "pt3"),
+    (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
+    (f"{BUILD_DIR}/BSCROLL",0x60,"big_scroll"),
+    (f"{BUILD_DIR}/THREED",0x60,"threed"),
+    (f"{BUILD_DIR}/threed_data",0xd0,"data_threed"),
+    (f"{DATA_DIR}/TITLEPIC.BIN", 0x20, "picture"),
+    (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")]
+
+
+
 # We compile the loader first, not knowing
-# the disk TOC size. So we propose a TOC size.
+# the disk TOC content precisely. So we propose a TOC with dummies.
 # (chicken and egg problem, without the TOC size, I can't guess
 # the loader final size !)
 
-file_list = [
-    (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
-    (f"{BUILD_DIR}/BSCROLL",0x60,"big scroll"),
-    (f"{BUILD_DIR}/THREED",0x60,"threed"),
-    (f"{BUILD_DIR}/threed_data",0xd0,"data threed"),
-    (f"{DATA_DIR}/TITLEPIC.BIN", 0x20, "picture"),
-    (f"{BUILD_DIR}/VSCROLL",0x60,"verti scroll")]
+with open(f"{BUILD_DIR}/loader_toc.s","w") as fout:
+    for i, entry in enumerate(file_list):
+        filepath, page_base, label = entry
+        uplbl = label.upper()
+        fout.write(f"FILE_{uplbl} = {i}\n")
+        fout.write("\t.byte 0,0,0,0,0\n")
 
-
-
-file_cnt = len( file_list)
-
-run(f"{CA65} -o {BUILD_DIR}/loader.o -DTOC_SIZE={file_cnt} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
+run(f"{CA65} -o {BUILD_DIR}/loader.o -DPT3_LOC={TUNE_ADDRESS} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
 run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
-loader_page_base = 0x0A
+loader_page_base = 0x0A # Just below HGR1
 with open(f"{BUILD_DIR}/fstbt_pages.s","w") as fout:
     configure_boot_code( fout,
                          os.path.getsize(f"{BUILD_DIR}/LOADER"),
                          loader_page_base)
 
-run(f"{ACME} -DJUMP_ADDRESS=\\${loader_page_base:X}00 -o {BUILD_DIR}/fstbt.o fstbt.s")
+# Now we know the loader size, we can build the
+# fastboot sector correctly.
+run(f"{ACME} -DJUMP_ADDRESS=\\${loader_page_base:02X}00 -o {BUILD_DIR}/fstbt.o fstbt.s")
 
 disk.set_track_sector( 0, 0)
 with open(f"{BUILD_DIR}/fstbt.o","rb") as fin:
     disk.write_data( fin.read(), 0x08)
 
-disk.set_track_sector( 0, 1)
-with open(f"{BUILD_DIR}/LOADER","rb") as fin:
-    disk.write_data( fin.read(), loader_page_base)
+# We write the loader once (it will be rewritten
+# when the TOC will be fully known). This is just to
+# position the other file (ie not the loader) correctly
+# on the disk.
 
+disk.set_track_sector( 0, 1)
 
 toc = []
-for filepath, page_base, label in file_list:
+entry_ndx = 0
+for i, entry in enumerate(file_list):
+    filepath, page_base, label = entry
+
     with open( filepath,"rb") as fin:
-        t = disk.write_data( fin.read(), page_base)
-        s = ".byte {},{},{},{},${:X}\t; {}".format(*t, label)
-        toc.append( s)
+        data = fin.read()
+        t = disk.write_data( data, page_base)
+        size = len(data)
+        end = (page_base * 256 + size) & 0xFF00
+        print(f"${page_base:02X}00 - ${end:4X}: {filepath}, {size} bytes")
+
+        if i > 0:
+            # Skip the loader, cos it won't load itself :-)
+            uplbl = label.upper()
+            toc.append( f"FILE_{uplbl} = {entry_ndx}")
+            s = ".byte {},{},{},{},${:X}\t; {}".format(*t, label)
+            toc.append( s)
+            entry_ndx += 1
 
 with open(f"{BUILD_DIR}/loader_toc.s","w") as fout:
     fout.write("\n".join( toc))
 
 # Now we have the correct TOC, we rebuild the loader with it.
-run(f"{CA65} -o {BUILD_DIR}/loader.o -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
+run(f"{CA65} -o {BUILD_DIR}/loader.o  -DPT3_LOC=\\${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
 run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
 # And overwrite it on the disk
@@ -499,7 +526,8 @@ if args.build:
 print("Running emulator")
 if args.mame:
     # -resolution 1200x900
-    run(f"{MAME} apple2e -sound none -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.DSK")
+    # -sound none
+    run(f"{MAME} apple2e -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.DSK")
 else:
     dsk = os.path.join( BUILD_DIR_ABSOLUTE, "NEW.DSK")
     if platform.system() == "Linux":

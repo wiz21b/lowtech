@@ -25,29 +25,29 @@ PTRIG		=	$C070
 
 ;; BASIC ROUTINES
 
-NORMAL	=	$F273
+; NORMAL	=	$F273
 
 ;; MONITOR ROUTINES
 
-HLINE	= $F819			;; HLINE Y,$2C at A
-VLINE	= $F828			;; VLINE A,$2D at Y
-CLRSCR	= $F832			;; Clear low-res screen
-CLRTOP	= $F836			;; clear only top of low-res screen
-SETCOL	= $F864			;; COLOR=A
-TEXT	= $FB36
-TABV	= $FB5B			;; VTAB to A
-BASCALC	= $FBC1			;;
-VTAB	= $FC22			;; VTAB to CV
-HOME	= $FC58			;; Clear the text screen
-WAIT	= $FCA8			;; delay 1/2(26+27A+5A^2) us
-SETINV	= $FE80			;; INVERSE
-SETNORM	= $FE84			;; NORMAL
-COUT	= $FDED			;; output A to screen
-COUT1	= $FDF0			;; output A to screen
-CROUT	= $FD8E			;; send a RETURN
-CROUT1	= $FD8B			;; send a RETURN and clear end of line
-PRBYTE	= $FDDA
-PRHEX	= $FDE3
+; HLINE	= $F819			;; HLINE Y,$2C at A
+; VLINE	= $F828			;; VLINE A,$2D at Y
+; CLRSCR	= $F832			;; Clear low-res screen
+; CLRTOP	= $F836			;; clear only top of low-res screen
+; SETCOL	= $F864			;; COLOR=A
+; TEXT	= $FB36
+; TABV	= $FB5B			;; VTAB to A
+; BASCALC	= $FBC1			;;
+; VTAB	= $FC22			;; VTAB to CV
+; HOME	= $FC58			;; Clear the text screen
+; WAIT	= $FCA8			;; delay 1/2(26+27A+5A^2) us
+; SETINV	= $FE80			;; INVERSE
+; SETNORM	= $FE84			;; NORMAL
+; COUT	= $FDED			;; output A to screen
+; COUT1	= $FDF0			;; output A to screen
+; CROUT	= $FD8E			;; send a RETURN
+; CROUT1	= $FD8B			;; send a RETURN and clear end of line
+; PRBYTE	= $FDDA
+; PRHEX	= $FDE3
 
 ;; Applesoft routines
 HCLR	= $F3F2

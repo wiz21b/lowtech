@@ -27,14 +27,12 @@ interrupt_handler:
 	pha			; save Y
 
 
-
-;	inc	$0404		; debug (flashes char onscreen)
-
-
-.include "pt3_lib_irq_handler.s"
-
-	jsr read_any_sector
+	;bit	MOCK_6522_T1CL	; clear 6522 interrupt by reading T1C-L	;
+	.include "pt3_lib_irq_handler.s"
 	jmp	exit_interrupt
+
+	;inc	$0404		; debug (flashes char onscreen)
+	;; jsr read_any_sector
 
 	;=================================
 	; Finally done with this interrupt
@@ -57,12 +55,14 @@ exit_interrupt:
 	pla			; restore a				; 4
 
 	; on II+/IIe (but not IIc) we need to do this?
+
+interrupt_smc:
+	lda	$45		; restore A
+
 	plp
 
 	rti			; return from interrupt			; 6
 
-interrupt_smc:
-	lda	$45		; restore A
 								;============
 								; typical
 								; ???? cycles

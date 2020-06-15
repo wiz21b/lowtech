@@ -9,7 +9,7 @@
 	OPCODE_BEQ 	= $F0
 	OPCODE_BPL 	= $10
 
-	LC_RAM_SELECT	= $C08B
+	LC_RAM_SELECT	= $C08B	; 4K Bank A, RAM read, Write enabled
 
 .macro store_8 target, const
 	lda #(const)
