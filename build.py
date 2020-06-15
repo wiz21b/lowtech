@@ -427,47 +427,51 @@ with open(f"{BUILD_DIR}/LOADER","rb") as fin:
 
 print("Packaging DSK file")
 
-if os.path.isfile( f"{BUILD_DIR}/NEW.DSK"):
-    os.remove(f"{BUILD_DIR}/NEW.DSK")
+if False:
 
-shutil.copyfile("data/BLANK_PRODOS2.DSK",f"{BUILD_DIR}/NEW.DSK")
+    if os.path.isfile( f"{BUILD_DIR}/NEW.DSK"):
+        os.remove(f"{BUILD_DIR}/NEW.DSK")
 
-with open(f"{BUILD_DIR}/LOADER") as stdin :
-    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK LOADER BIN 0x6000", stdin=stdin)
+    shutil.copyfile("data/BLANK_PRODOS2.DSK",f"{BUILD_DIR}/NEW.DSK")
 
-with open(f"{BUILD_DIR}/prorwts2.o") as stdin :
-    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK RWTS  BIN 0x0800", stdin=stdin)
+    with open(f"{BUILD_DIR}/LOADER") as stdin :
+        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK LOADER BIN 0x6000", stdin=stdin)
 
-with open(f"{BUILD_DIR}/VSCROLL") as stdin :
-    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK VSCROLL BIN 0x6000", stdin=stdin)
+    with open(f"{BUILD_DIR}/prorwts2.o") as stdin :
+        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK RWTS  BIN 0x0800", stdin=stdin)
 
-with open(f"{BUILD_DIR}/THREED") as stdin :
-    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK START BIN 0x6000", stdin=stdin)
+    with open(f"{BUILD_DIR}/VSCROLL") as stdin :
+        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK VSCROLL BIN 0x6000", stdin=stdin)
 
-with open(f"{BUILD_DIR}/datad000.o") as stdin :
-    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK LINES BIN 0xD000", stdin=stdin)
+    with open(f"{BUILD_DIR}/THREED") as stdin :
+        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK START BIN 0x6000", stdin=stdin)
 
-with open(f"{DATA_DIR}/TITLEPIC.BIN") as stdin :
-    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK PIX BIN 0x2000", stdin=stdin)
+    with open(f"{BUILD_DIR}/datad000.o") as stdin :
+        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK LINES BIN 0xD000", stdin=stdin)
 
-with open(f"{BUILD_DIR}/earth.bin") as stdin :
-    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK EARTH BIN 0x2000", stdin=stdin)
+    with open(f"{DATA_DIR}/TITLEPIC.BIN") as stdin :
+        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK PIX BIN 0x2000", stdin=stdin)
 
-# big scroller
+    with open(f"{BUILD_DIR}/earth.bin") as stdin :
+        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK EARTH BIN 0x2000", stdin=stdin)
 
-with open(f"{BUILD_DIR}/BSCROLL") as stdin :
-    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK BSCROLL BIN 0x6000", stdin=stdin)
+    # big scroller
 
-with open(f"{BUILD_DIR}/data6000.o") as stdin :
-    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK FILLER BIN 0x6000", stdin=stdin)
+    with open(f"{BUILD_DIR}/BSCROLL") as stdin :
+        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK BSCROLL BIN 0x6000", stdin=stdin)
 
-with open(f"{DATA_DIR}/FR.PT3") as stdin :
-    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK SONG BIN 0x4000", stdin=stdin)
+    with open(f"{BUILD_DIR}/data6000.o") as stdin :
+        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK FILLER BIN 0x6000", stdin=stdin)
 
-# with open(TUNE) as stdin :
-#     run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK MUSIC BIN 0x{MUSIC_MEM}", stdin=stdin)
+    with open(f"{DATA_DIR}/FR.PT3") as stdin :
+        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK SONG BIN 0x4000", stdin=stdin)
 
-run(f"{ACMDER} -l {BUILD_DIR}/NEW.DSK")
+    # with open(TUNE) as stdin :
+    #     run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK MUSIC BIN 0x{MUSIC_MEM}", stdin=stdin)
+
+    run(f"{ACMDER} -l {BUILD_DIR}/NEW.DSK")
+else:
+    disk.save()
 
 
 print("Additional tasks")
@@ -488,7 +492,6 @@ if platform.system() == "Linux":
 
 
 
-disk.save()
 
 if args.build:
     exit()

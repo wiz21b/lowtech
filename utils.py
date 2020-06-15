@@ -71,6 +71,9 @@ class AppleDisk:
 
         self.toc = 0
 
+        self.sector_map = [   [0] * SECTORS_PER_TRACK for i in range(TRACKS_PER_DISK)]
+        self.nb_writes = 0
+
         if not filename:
             self._disk = bytearray( DISK_SIZE)
         else:
@@ -95,6 +98,7 @@ class AppleDisk:
     def write_data( self, data, load_page):
         assert data
 
+
         first_sector = self._track, self._sector
         sectors_written = 0
         data = bytearray(data)
@@ -114,6 +118,8 @@ class AppleDisk:
             self.set_sector( self._track, self._sector, bytearray(s))
             sectors_written += 1
 
+            self.sector_map[self._track][self._sector] = 1 + self.nb_writes
+
             #if len(data) - offset > 256:
             if self._sector < 15:
                 self._sector += 1
@@ -127,6 +133,7 @@ class AppleDisk:
 
         print("init_track_read {},{},{},{},${:x}\t; {} bytes, {} pages".format( first_sector[0],first_sector[1],last_sector[0],last_sector[1], load_page, len(data), (len(data) + 255)//256))
         print(f"{sectors_written} sectors written")
+        self.nb_writes += 1
 
         return (first_sector[0],first_sector[1],
                 last_sector[0],last_sector[1],
@@ -137,6 +144,10 @@ class AppleDisk:
 
         with open( self.filename,"wb") as fout:
             fout.write( self._disk)
+
+        for s in range( SECTORS_PER_TRACK):
+            all_sect = [self.sector_map[t][s] for t in range(TRACKS_PER_DISK)]
+            print("".join([ ".ABCDEFGHIJKLMNOPQRSTUVWXYZ"[s] for s in all_sect  ]))
 
 
 
