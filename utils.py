@@ -16,12 +16,60 @@ DISK_SIZE = TRACKS_PER_DISK*SECTORS_PER_TRACK*256
 def np_append_row( a, v = 0):
     return np.append( a, [ [v] * a.shape[1] ], axis=0)
 
+
+fsbt_sectors_read_order = [  (1,2),  (1,4),  (1,6),  (1,8),  (1,10), (1,12), (1,14),
+                             (1,1),  (1,3),  (1,5),  (1,7),   (1,9), (1,11), (1,13), (1,15),
+                             (2,0),  (2,2),  (2,4),  (2,6),  (2,8),  (2,10), (2,12), (2,14),
+                             (2,1),  (2,3),  (2,5),  (2,7),   (2,9), (2,11), (2,13), (2,15) ]
+
+
+def configure_boot_code( fout, loader_size, page_base):
+
+    pages = (loader_size + 255) // 256
+    assert 0 < pages < 15+16, "FSTBT.S supports up to 31 sectors, no more"
+    page_map = [0] * len(fsbt_sectors_read_order)
+
+    for page in range( pages):
+        if page <= 14:
+            # First sector is the boot sector
+            track,sector = 1, 1 + page
+        else:
+            track,sector = 2, page - 15
+
+        for i,disk_pos in enumerate(fsbt_sectors_read_order):
+            if (track, sector) == disk_pos:
+                page_map[ i] = page + page_base
+                break
+
+    i = len(page_map)
+    while not page_map[i-1]:
+        i -= 1
+
+    page_map = page_map[0:i]
+
+    for i,disk_pos in enumerate(fsbt_sectors_read_order):
+        if i < len(page_map):
+            print( "{:0X}\t{}".format( page_map[i], disk_pos))
+        else:
+            print( "--\t{}".format( disk_pos))
+
+
+    fout.write("!byte {}\n".format(
+        ",".join(
+            [ f"${p:X}" for p in page_map] )))
+    fout.write("!byte $C0\n")
+
+
 class AppleDisk:
     DOS_SECTORS_MAP = [0x0, 0x7, 0xe, 0x6, 0xd, 0x5, 0xc, 0x4,
                        0xb, 0x3, 0xa, 0x2, 0x9, 0x1, 0x8, 0xf]
 
     def __init__( self, filename = None):
         self.filename = filename
+
+        self.set_track_sector( 0,0)
+
+        self.toc = 0
 
         if not filename:
             self._disk = bytearray( DISK_SIZE)
@@ -39,6 +87,50 @@ class AppleDisk:
         track_offset = track * SECTORS_PER_TRACK * 256
         dsk_ofs = track_offset + sector*256
         self._disk[dsk_ofs:dsk_ofs+256] = data
+
+
+    def set_track_sector( self, track, sector):
+        self._track, self._sector = track, sector
+
+    def write_data( self, data, load_page):
+        assert data
+
+        first_sector = self._track, self._sector
+        sectors_written = 0
+        data = bytearray(data)
+
+        print( "Writing {} bytes from T:{} S:{}".format(len(data), self._track, self._sector))
+
+        for offset in range( 0, len(data), 256 ):
+
+            if len(data) - offset  >=  256:
+                s = data[offset:offset+256]
+            else:
+                s = data[offset:len(data)]
+                s.extend( [0] * (256 - (len(data) - offset)))
+
+            #print(f"Writing  {self._track}/{self._sector}, offset {offset:x}")
+            last_sector = self._track, self._sector
+            self.set_sector( self._track, self._sector, bytearray(s))
+            sectors_written += 1
+
+            #if len(data) - offset > 256:
+            if self._sector < 15:
+                self._sector += 1
+            else:
+                self._sector = 0
+                self._track += 1
+
+        # self.toc.append( (first_sector[0],first_sector[1],
+        #                   last_sector[0],last_sector[1],
+        #                   load_page, label) )
+
+        print("init_track_read {},{},{},{},${:x}\t; {} bytes, {} pages".format( first_sector[0],first_sector[1],last_sector[0],last_sector[1], load_page, len(data), (len(data) + 255)//256))
+        print(f"{sectors_written} sectors written")
+
+        return (first_sector[0],first_sector[1],
+                last_sector[0],last_sector[1],
+                load_page)
 
     def save(self):
         assert self.filename

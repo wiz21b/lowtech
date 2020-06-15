@@ -51,7 +51,7 @@ with open("data/alphabet2.s","w") as fout:
 
 #new_blocs = font_split("data/Alphabeta 7 pixels font.png")
 
-LITTLE_CONQUEST_ALPHABET= "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+LITTLE_CONQUEST_ALPHABET= "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789,"
 new_blocs = make_bitmap_font("data/Little Conquest.ttf", LITTLE_CONQUEST_ALPHABET)
 MESSAGE = ["This demo was",
            "written by Wiz of",
@@ -74,7 +74,7 @@ MESSAGE = ["This demo was",
            "",
            "   Vince Weaver",
            "",
-           "RWTS",
+           "RWTS, boot sector",
            "",
            "   Peter Ferrie",
            "",
@@ -300,6 +300,9 @@ if args.music:
 else:
     additional_options = ""
 
+
+
+
 gen_code_vertical_scroll()
 run(f"{CA65} -o {BUILD_DIR}/vscroll.o -t apple2 --listing {BUILD_DIR}/vscroll.txt {additional_options} vscroll.s")
 run(f"{LD65} -o {BUILD_DIR}/VSCROLL {BUILD_DIR}/vscroll.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
@@ -307,6 +310,8 @@ run(f"{LD65} -o {BUILD_DIR}/VSCROLL {BUILD_DIR}/vscroll.o -C link.cfg --mapfile 
 
 run(f"{CA65} -o {BUILD_DIR}/td.o -t apple2 --listing {BUILD_DIR}/td.txt {additional_options} td.s")
 run(f"{LD65} -o {BUILD_DIR}/THREED {BUILD_DIR}/td.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
+shutil.copyfile(f"{BUILD_DIR}/datad000.o",f"{BUILD_DIR}/threed_data")
+
 memory_map()
 
 
@@ -318,8 +323,9 @@ run(f"{LD65} -o {BUILD_DIR}/BSCROLL {BUILD_DIR}/big_scroll.o -C bigscroll/link.c
 
 
 
-
 print("Builing loader")
+
+
 
 with open(f"{BUILD_DIR}/file_size.s","w") as fout:
 
@@ -351,7 +357,73 @@ with open(f"{BUILD_DIR}/file_size.s","w") as fout:
     print(f"Earth : {size} bytes")
     fout.write(f"EARTH_SIZE = {size}\n")
 
+
 run(f"{ACME} -o {BUILD_DIR}/prorwts2.o PRORWTS2.S ")
+
+disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
+
+# ####################################################################
+# Creating the boot sector and boot loader
+
+# We compile the loader first, not knowing
+# the disk TOC size. So we propose a TOC size.
+# (chicken and egg problem, without the TOC size, I can't guess
+# the loader final size !)
+
+file_list = [
+    (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
+    (f"{BUILD_DIR}/BSCROLL",0x60,"big scroll"),
+    (f"{BUILD_DIR}/THREED",0x60,"threed"),
+    (f"{BUILD_DIR}/threed_data",0xd0,"data threed"),
+    (f"{DATA_DIR}/TITLEPIC.BIN", 0x20, "picture"),
+    (f"{BUILD_DIR}/VSCROLL",0x60,"verti scroll")]
+
+
+
+file_cnt = len( file_list)
+
+run(f"{CA65} -o {BUILD_DIR}/loader.o -DTOC_SIZE={file_cnt} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
+run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
+
+loader_page_base = 0x0A
+with open(f"{BUILD_DIR}/fstbt_pages.s","w") as fout:
+    configure_boot_code( fout,
+                         os.path.getsize(f"{BUILD_DIR}/LOADER"),
+                         loader_page_base)
+
+run(f"{ACME} -DJUMP_ADDRESS=\\${loader_page_base:X}00 -o {BUILD_DIR}/fstbt.o fstbt.s")
+
+disk.set_track_sector( 0, 0)
+with open(f"{BUILD_DIR}/fstbt.o","rb") as fin:
+    disk.write_data( fin.read(), 0x08)
+
+disk.set_track_sector( 0, 1)
+with open(f"{BUILD_DIR}/LOADER","rb") as fin:
+    disk.write_data( fin.read(), loader_page_base)
+
+
+toc = []
+for filepath, page_base, label in file_list:
+    with open( filepath,"rb") as fin:
+        t = disk.write_data( fin.read(), page_base)
+        s = ".byte {},{},{},{},${:X}\t; {}".format(*t, label)
+        toc.append( s)
+
+with open(f"{BUILD_DIR}/loader_toc.s","w") as fout:
+    fout.write("\n".join( toc))
+
+# Now we have the correct TOC, we rebuild the loader with it.
+run(f"{CA65} -o {BUILD_DIR}/loader.o -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
+run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
+
+# And overwrite it on the disk
+disk.set_track_sector( 0, 1)
+with open(f"{BUILD_DIR}/LOADER","rb") as fin:
+    disk.write_data( fin.read(), loader_page_base)
+
+
+# ####################################################################
+
 
 print("Packaging DSK file")
 
@@ -359,6 +431,9 @@ if os.path.isfile( f"{BUILD_DIR}/NEW.DSK"):
     os.remove(f"{BUILD_DIR}/NEW.DSK")
 
 shutil.copyfile("data/BLANK_PRODOS2.DSK",f"{BUILD_DIR}/NEW.DSK")
+
+with open(f"{BUILD_DIR}/LOADER") as stdin :
+    run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK LOADER BIN 0x6000", stdin=stdin)
 
 with open(f"{BUILD_DIR}/prorwts2.o") as stdin :
     run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK RWTS  BIN 0x0800", stdin=stdin)
@@ -410,11 +485,10 @@ if platform.system() == "Linux":
 
 
 
-# disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
-# track = 16
-# for logical_sector in range(16):
-#     disk.set_sector( track, logical_sector, bytearray([logical_sector]*256))
-# disk.save()
+
+
+
+disk.save()
 
 if args.build:
     exit()

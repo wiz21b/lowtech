@@ -2,13 +2,18 @@
 ;;; So it's obviously not covered my the GPL license like the rest
 ;;; of this project.
 
+;;; DiskII : 300 rpm
+;;; 16 sectors per track
+;;; 300 rpm => 5 rps => 80 sectors per seconds
+;;; 35*16*256 = 143360 bytes per side
+
+TRACKS_PER_SIDE		= 35
+BYTES_PER_SECTOR 	= 256
+SECTORS_PER_TRACK 	= 16
 
 MOTOR_ON	= $C089
 DRIVE_SELECT	= $0	; 0 == drive 1; $80 = drive 2
 SLOT_SELECT	= $60	; 0 (drive 1) 110 (slot 6) 0000
-TRACKS_PER_SIDE		= 35
-BYTES_PER_SECTOR 	= 256
-SECTORS_PER_TRACK 	= 16
 
 ; Prodos stuff
 
@@ -20,17 +25,14 @@ slotz            =        wtemp + 4
 yend             =        wtemp+5
 buf              =        $44
 
-
 phaseoff         =        $c080                     ;stepper phase off.
 unitnum          =        $43
 
-old_sect:	.byte 0
-sectors_passed:	.byte 0
-	;; DiskII : 300 rpm
-	;; 16 sectors per track
-	;; 300 rpm => 5 rps => 80 sectors per seconds
 
-init_disk_read:
+	.proc init_disk_read
+
+
+	PHA
 
 	; Read first sector so we know the drive's head is on the first track.
 	; I use prodos to do that 'cos it's much simpler
@@ -61,26 +63,211 @@ notyet:
 	STA curtrk
 
 	;; To our destination
-	LDA #16*2			; half track we're moving the head to
+	;LDA #16*2		; half track we're moving the head to
+
+	PLA
+	ASL
+
 	LDX #SLOT_SELECT
 	JSR seek
-
 
 	; Restart the motor
 
 	ldx #SLOT_SELECT
-.if DRIVE_SELECT = $80
+.if ::DRIVE_SELECT = $80
 	LDA DRV2_SLCT, X
 .endif
 	LDA MOTOR_ON, X
 
 	RTS
+	.endproc
 
+
+
+	IGNORE = 0		; sector must be ignored
+	;; any other values is the page where the sector was read
+	ALL_TRACKS_READ = $FF
 sectors_read:	.byte 0
-sector_status:	.byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+sectors_to_read:	.byte 0
+old_sect:	.byte 0
+sectors_passed:	.byte 0
 
-read_any_sector:
+first_page:	.byte $20
+first_sector:	.byte 0
+first_track:	.byte 0
+last_sector:	.byte 0
+last_track:	.byte 0
+current_track:	.byte 0
 
+track_first_sector:	.byte 0
+track_last_sector:	.byte 0
+
+	;;
+sector_status:	.repeat SECTORS_PER_TRACK
+	.byte IGNORE
+	.endrepeat
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	.macro init_track_read t0, s0, t1, s1, mempage
+	SEI			; Don't forget we might read sector from inside an interrupt !
+	LDA #t0
+	STA first_track
+	STA current_track
+	JSR init_disk_read
+	LDA #s0
+	STA first_sector
+	LDA #t1
+	STA last_track
+	LDA #s1
+	STA last_sector
+	LDA #mempage
+	STA first_page
+	LDA #0			; FIXME should not be necessary
+	STA sectors_to_read
+	CLI
+	.endmacro
+
+
+
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	.proc prepare_track_read
+
+	;; Are we still reading some sectors ?
+
+	LDA sectors_to_read
+	CMP #0
+	BNE do_nothing		; Yes, so no need to set up a new track read
+
+	;; Is the current track_s_ read still ongoing or are
+	;; we done ith it ?
+
+	LDA current_track
+	CMP last_track
+	BMI still_track_to_read
+	BEQ still_track_to_read
+do_nothing:
+
+	CLC
+	RTS
+
+still_track_to_read:
+
+	;; So we set up to be able to read a new track
+	;; The idea is to determine which sectors must
+	;; be read on the current track
+
+	;; A = current track. At this point, we have
+	;; first_track <= current_track <= last_track
+
+	CMP first_track
+	BEQ on_first_track
+
+not_on_first_track:
+	CMP last_track
+	BEQ on_last_track
+
+not_on_last_track:
+	;; neither on first track nor on last track
+	;; (so on a track between)
+
+	LDA #0
+	STA track_first_sector
+	LDA #SECTORS_PER_TRACK - 1
+	STA track_last_sector
+	JMP done_config
+
+on_last_track:
+	;; on last track and not on first track
+	LDA #0
+	STA track_first_sector
+	LDA last_sector
+	STA track_last_sector
+	JMP done_config
+
+on_first_track:
+
+	CMP last_track
+	BEQ first_and_last_track_equal
+
+	;;  on first track and not on last track
+
+	LDA first_sector
+	STA track_first_sector
+	LDA #SECTORS_PER_TRACK - 1
+	STA track_last_sector
+	JMP done_config
+
+
+first_and_last_track_equal:
+	;;  on first track and on last track
+	LDA first_sector
+	STA track_first_sector
+	LDA last_sector
+	STA track_last_sector
+
+done_config:
+
+	LDX #16
+	LDA #0
+clear_status:
+	DEX
+	STA sector_status,X
+	BNE clear_status
+
+	LDA track_last_sector
+	SEC
+	SBC track_first_sector
+	CLC
+	ADC #1
+	STA sectors_to_read
+
+	;; Configure one track read
+loop_start:
+	LDX track_first_sector
+	LDA first_page
+set_page_loop:
+	STA sector_status,X
+	INX
+	CLC
+	ADC #1
+smc0:
+	CPX track_last_sector	; did we just fill the last sector ?
+	BMI set_page_loop
+	BEQ set_page_loop	; nope
+
+	;;  Be ready for next track
+
+	STA first_page
+
+	LDA current_track
+	CMP first_track
+	BEQ no_advance
+
+	JSR advance_drive_latch
+no_advance:
+	INC current_track
+
+	SEC
+	RTS
+	.endproc
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+old_sect2:	.byte 0
+
+.proc read_sector_in_track
+
+	LDA sectors_to_read
+	CMP #0
+	BNE work_to_do
+	JSR prepare_track_read
+
+	RTS
+
+work_to_do:
 	;; lda read_disk_delay
 	;; cmp #0
 	;; bne .success
@@ -95,48 +282,57 @@ read_any_sector:
 
 	;; Is the sector alreay read ?
 	ldx sect
-	lda sector_status,X
-	beq read_any_sector1
-	rts			; Yes ! it is already read !
+	;; stx old_sect2
+
+	lda sector_status,X	;A = sector's destination page (still to read) or zero
+	bne read_any_sector1
+	;; sector already read. We will wait for another one.
+	SEC
+	rts
 read_any_sector1:
 
-	lda track		; DEBUG !
-
 	; Prepare RWTS buffer
-
+	STA buf + 1
 	lda #0
 	sta buf
-
-	TRACK_DATA_BANK = $02
-
-	TXA			; X = sector number
-	CLC
-	ADC #TRACK_DATA_BANK
-	sta buf + 1
 
 	; Read the sector
 
 	ldx #SLOT_SELECT
 	jsr read16
-	cli
 	bcs ras_error
 
 	;;  Remember we have read the sector
-	ldx sect
-	LDA #1
-	sta sector_status,X
+	LDX sect
+fuck:
+	;; CPX old_sect2
+	;; BNE fuck
+	LDA #0
+	STA sector_status,X
+
+	DEC sectors_to_read
 
 	ldx sect
 	lda #0
 	sta $2000,X
+	;; Caller will have to restore interrupts with CLI
+	SEC
 	RTS
 
 ras_error:
-	cli
 	ldx sect
 	lda #9
 	sta $2000,X
+	;; Caller will have to restore interrupts with CLI
+	SEC
 	RTS
+.endproc
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 drvindx: pha                                              ;preserve acc.
                 lda          unitnum        ; for example : 0 (drive 1) 110 (slot 6) 0000

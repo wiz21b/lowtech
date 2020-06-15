@@ -580,6 +580,10 @@ start_player:
 
 	.include "read_sector.s"
 
+	.proc read_any_sector
+	RTS
+	.endproc
+
 MLI		= $BF00
 prodos_params:
 	.byte 3	; 3 parameters
