@@ -591,21 +591,8 @@ div7:
 	;; /////////////////////////////////////////////////////////
 	;; D000 SEGMENT
 	;; /////////////////////////////////////////////////////////
+
 	.segment "RAM_D000"
-
-
-	;; .include "read_sector.s"
-
-
-;; MLI		= $BF00
-;; prodos_params:
-;; 	.byte 3	; 3 parameters
-;; 	.byte SLOT_SELECT + DRIVE_SELECT
-;; 	.word GR2_RAM ; Memory buffer, make sure it's not in ProDos's stuff
-;; block_read:
-;; 	.word $0001 ; Block to read
-
-
 
 
 lines_data:
@@ -614,12 +601,3 @@ lines_data:
 ;; line_data_frame2:
 
 	.include "build/lines.s"
-
-	;; For some reason, it seems that the PT3 must be
-	;; on a page bounday...
-	;; .align $100
-	;; PT3_LOC = *
-	;; .ifdef MUSIC
-	;; .incbin "data/FR.PT3"
-	;; .endif
-	;; .byte "THEEND"

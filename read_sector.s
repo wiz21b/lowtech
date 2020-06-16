@@ -191,12 +191,17 @@ first_and_last_track_equal:
 
 done_config:
 
+	;; Clear previous data (much easier this way
+	;; than to compute what is zero and what is not)
+
 	LDX #16
 	LDA #0
 clear_status:
 	DEX
 	STA sector_status,X
 	BNE clear_status
+
+	;; Compute how many sectors we'll need to read in this track
 
 	LDA track_last_sector
 	SEC
