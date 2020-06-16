@@ -18,6 +18,9 @@
 	;	to be sure status flag and accumulator set properly
 
 interrupt_handler:
+	;; From doc : interrupt flag is set by 6502
+	;; => no more IRQ here.
+
 	php			; save status flags
 	pha			; save A				; 3
 				; A is saved in $45 by firmware
@@ -26,9 +29,27 @@ interrupt_handler:
 	tya
 	pha			; save Y
 
+	;; Guard is not necessary. My tests prove that
+	;; there's no re-entry.
 
-	;bit	MOCK_6522_T1CL	; clear 6522 interrupt by reading T1C-L	;
+;; 	LDA guard
+;; 	BEQ ok
+;; 	INC $400
+;; 	;BRK
+;; ok:
+;; 	LDA #1
+;; 	STA guard
+
+	LDA read_in_pogress
+	CMP #0
+	BEQ no_read
+	JSR read_sector_in_track
+no_read:
+
+
+	;.import read_sector_in_track
 	.include "pt3_lib_irq_handler.s"
+
 	jmp	exit_interrupt
 
 	;inc	$0404		; debug (flashes char onscreen)
@@ -48,6 +69,9 @@ quiet_exit:
 
 exit_interrupt:
 
+	;; LDA #0
+	;; STA guard
+
 	pla
 	tay			; restore Y
 	pla
@@ -57,11 +81,19 @@ exit_interrupt:
 	; on II+/IIe (but not IIc) we need to do this?
 
 interrupt_smc:
-	lda	$45		; restore A
+
+	;; This seems to be important
+
+	nop
+	nop
+
+	;; lda	$45		; restore A
 
 	plp
 
 	rti			; return from interrupt			; 6
+
+guard:	.byte 0
 
 								;============
 								; typical

@@ -87,6 +87,10 @@ notyet:
 	IGNORE = 0		; sector must be ignored
 	;; any other values is the page where the sector was read
 	ALL_TRACKS_READ = $FF
+
+read_in_pogress:	.byte 0
+	.export  read_in_pogress
+
 sectors_read:	.byte 0
 sectors_to_read:	.byte 0
 old_sect:	.byte 0
@@ -108,29 +112,6 @@ sector_status:	.repeat SECTORS_PER_TRACK
 	.endrepeat
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-	.macro init_track_read t0, s0, t1, s1, mempage
-	SEI			; Don't forget we might read sector from inside an interrupt !
-	LDA #t0
-	STA first_track
-	STA current_track
-	JSR init_disk_read
-	LDA #s0
-	STA first_sector
-	LDA #t1
-	STA last_track
-	LDA #s1
-	STA last_sector
-	LDA #mempage
-	STA first_page
-	LDA #0			; FIXME should not be necessary
-	STA sectors_to_read
-	CLI
-	.endmacro
-
-
-
-
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	.proc prepare_track_read
@@ -258,13 +239,22 @@ no_advance:
 
 old_sect2:	.byte 0
 
+.export  read_sector_in_track
+
 .proc read_sector_in_track
 
 	LDA sectors_to_read
 	CMP #0
 	BNE work_to_do
 	JSR prepare_track_read
+	;; RTS
 
+	;; Carry will be returned
+	BCC all_done
+	RTS
+all_done:
+	LDA #0
+	STA read_in_pogress
 	RTS
 
 work_to_do:
@@ -287,6 +277,7 @@ work_to_do:
 	lda sector_status,X	;A = sector's destination page (still to read) or zero
 	bne read_any_sector1
 	;; sector already read. We will wait for another one.
+
 	SEC
 	rts
 read_any_sector1:
@@ -312,17 +303,11 @@ fuck:
 
 	DEC sectors_to_read
 
-	ldx sect
-	lda #0
-	sta $2000,X
 	;; Caller will have to restore interrupts with CLI
 	SEC
 	RTS
 
 ras_error:
-	ldx sect
-	lda #9
-	sta $2000,X
 	;; Caller will have to restore interrupts with CLI
 	SEC
 	RTS
