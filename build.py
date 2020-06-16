@@ -248,6 +248,8 @@ def memory_map():
 
 def run(cmd, stdin=None):
     print(cmd)
+    if platform.system() == "Linux":
+        cmd = cmd.replace("$",r"\$")
     r = subprocess.run(cmd, shell=True, stdin=stdin)
     r.check_returncode()
     return r
@@ -365,7 +367,7 @@ disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
 # ####################################################################
 # Creating the boot sector and boot loader
 
-TUNE = f"{DATA_DIR}/BH.PT3"
+TUNE = f"{DATA_DIR}/2UNLIM.pt3"
 TUNE_ADDRESS = 0xC000 - (((os.path.getsize(TUNE) + 255 + 256) >> 8) << 8)
 
 file_list = [
@@ -403,7 +405,7 @@ with open(f"{BUILD_DIR}/fstbt_pages.s","w") as fout:
 
 # Now we know the loader size, we can build the
 # fastboot sector correctly.
-run(f"{ACME} -DJUMP_ADDRESS=\\${loader_page_base:02X}00 -o {BUILD_DIR}/fstbt.o fstbt.s")
+run(f"{ACME} -DJUMP_ADDRESS=${loader_page_base:02X}00 -o {BUILD_DIR}/fstbt.o fstbt.s")
 
 disk.set_track_sector( 0, 0)
 with open(f"{BUILD_DIR}/fstbt.o","rb") as fin:
@@ -440,7 +442,7 @@ with open(f"{BUILD_DIR}/loader_toc.s","w") as fout:
     fout.write("\n".join( toc))
 
 # Now we have the correct TOC, we rebuild the loader with it.
-run(f"{CA65} -o {BUILD_DIR}/loader.o  -DPT3_LOC=\\${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
+run(f"{CA65} -o {BUILD_DIR}/loader.o  -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
 run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
 # And overwrite it on the disk

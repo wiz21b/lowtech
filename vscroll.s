@@ -632,49 +632,49 @@ modulo3:
 message_ndx:	.byte 0
 scroll_count: .byte 0
 
-	.include "pt3_lib/zp.inc"
+;; 	.include "pt3_lib/zp.inc"
 
-	;; https://github.com/deater/dos33fsprogs/tree/master/pt3_lib
-start_player:
-	lda	#0
-	sta	DONE_PLAYING
-	lda	#1
-	sta LOOP
+;; 	;; https://github.com/deater/dos33fsprogs/tree/master/pt3_lib
+;; start_player:
+;; 	lda	#0
+;; 	sta	DONE_PLAYING
+;; 	lda	#1
+;; 	sta LOOP
 
-	;jsr	mockingboard_detect
-	;jsr	mockingboard_patch
-	jsr	mockingboard_init
-	jsr	mockingboard_setup_interrupt
+;; 	;jsr	mockingboard_detect
+;; 	;jsr	mockingboard_patch
+;; 	jsr	mockingboard_init
+;; 	jsr	mockingboard_setup_interrupt
 
-	;============================
-	; Init the Mockingboard
-	;============================
+;; 	;============================
+;; 	; Init the Mockingboard
+;; 	;============================
 
-	jsr	reset_ay_both
-	jsr	clear_ay_both
+;; 	jsr	reset_ay_both
+;; 	jsr	clear_ay_both
 
-	;==================
-	; init song
-	;==================
+;; 	;==================
+;; 	; init song
+;; 	;==================
 
-	jsr	pt3_init_song
+;; 	jsr	pt3_init_song
 
-	;============================
-	; Enable 6502 interrupts
-	;============================
-	cli ; clear interrupt mask
+;; 	;============================
+;; 	; Enable 6502 interrupts
+;; 	;============================
+;; 	cli ; clear interrupt mask
 
-	RTS
+;; 	RTS
 
-	; some firmware locations
-	.include "pt3_lib/hardware.inc"
-	.include "pt3_lib/pt3_lib_core.s"
-	.include "pt3_lib/pt3_lib_init.s"
-	.include "pt3_lib/pt3_lib_mockingboard_setup.s"
-	.include "pt3_lib/interrupt_handler.s"
-	; if you're self patching, detect has to be after
-	; interrupt_handler.s
-	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
+;; 	; some firmware locations
+;; 	.include "pt3_lib/hardware.inc"
+;; 	.include "pt3_lib/pt3_lib_core.s"
+;; 	.include "pt3_lib/pt3_lib_init.s"
+;; 	.include "pt3_lib/pt3_lib_mockingboard_setup.s"
+;; 	.include "pt3_lib/interrupt_handler.s"
+;; 	; if you're self patching, detect has to be after
+;; 	; interrupt_handler.s
+;; 	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
 
 read_any_sector:
 	inc irq_count
@@ -710,9 +710,10 @@ LVBL2:
 
 
 	.endproc
-	.align $100
-	PT3_LOC = *
-	.incbin "data/FR.PT3"
-	.repeat 255
-	.byte 0
-	.endrepeat
+
+	;; .align $100
+	;; PT3_LOC = *
+	;; .incbin "data/FR.PT3"
+	;; .repeat 255
+	;; .byte 0
+	;; .endrepeat
