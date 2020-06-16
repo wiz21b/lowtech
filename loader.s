@@ -73,6 +73,24 @@ run:
 
 	LDA #FILE_PT3
 	JSR load_file_no_irq
+
+	;; B800
+
+	TUNE_PACKED = $6000
+	TUNE_ADDRESS = $B800
+
+	LDA #<TUNE_PACKED
+	STA LZSA_SRC_LO
+	LDA #>TUNE_PACKED
+	STA LZSA_SRC_HI
+
+	LDA #<TUNE_ADDRESS
+	STA LZSA_DST_LO
+	LDA #>TUNE_ADDRESS
+	STA LZSA_DST_HI
+
+	JSR DECOMPRESS_LZSA2_FAST
+
 	;JSR start_player
 
 
@@ -313,3 +331,5 @@ LVBL2:
         BMI LVBL2                         ; attend fin display
         RTS
 	.endproc
+
+.include "decompress_fast_v2.s"

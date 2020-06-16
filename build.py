@@ -367,12 +367,14 @@ disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
 # ####################################################################
 # Creating the boot sector and boot loader
 
-TUNE = f"{DATA_DIR}/2UNLIM.pt3"
-TUNE_ADDRESS = 0xC000 - (((os.path.getsize(TUNE) + 255 + 256) >> 8) << 8)
+TUNE = f"{DATA_DIR}/2UNLIM.lzsa"
+TUNE_ORIGINAL = f"{DATA_DIR}/2UNLIM.pt3"
+# lzsa -r -f2 data\2UNLIM.pt3 data\2UNLIM.lzsa
+TUNE_ADDRESS = 0xC000 - (((os.path.getsize(TUNE_ORIGINAL) + 255 + 256) >> 8) << 8)
 
 file_list = [
     (f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
-    (TUNE,  TUNE_ADDRESS >> 8, "pt3"),
+    (TUNE,  0x60, "pt3"),
     (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
     (f"{BUILD_DIR}/BSCROLL",0x60,"big_scroll"),
     (f"{BUILD_DIR}/THREED",0x60,"threed"),
@@ -398,6 +400,15 @@ run(f"{CA65} -o {BUILD_DIR}/loader.o -DPT3_LOC={TUNE_ADDRESS} -t apple2 --listin
 run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
 loader_page_base = 0x0A # Just below HGR1
+loader_page_base = (0x2000 - os.path.getsize(f"{BUILD_DIR}/LOADER")) >> 8
+print(f"loader_page_base = {loader_page_base:02X}")
+assert loader_page_base > 0x08, f"Loader space will conflict (start page {loader_page_base}) with FSTBT ROM calls to $801"
+
+assert loader_page_base == 0x9, "You must update the link.cfg file"
+
+file_list[0] = (f"{BUILD_DIR}/LOADER", loader_page_base, "loader")
+
+
 with open(f"{BUILD_DIR}/fstbt_pages.s","w") as fout:
     configure_boot_code( fout,
                          os.path.getsize(f"{BUILD_DIR}/LOADER"),
