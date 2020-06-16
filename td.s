@@ -10,7 +10,7 @@
 DEBUG = 0
 ONE_PAGE = 0
 
-x_shift = $80
+x_shift = $84
 
 tile_ptr2a	= 212
 
@@ -61,9 +61,9 @@ BYTES_PER_LINE	= 6
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
 
-	.ifdef MUSIC
-	JSR start_player
-	.endif
+	;; .ifdef MUSIC
+	;; JSR start_player
+	;; .endif
 
 
 loop_infinite:
