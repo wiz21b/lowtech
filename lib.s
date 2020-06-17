@@ -44,7 +44,7 @@ smc:
 
 
 
-hexa:		.asciiz "0123456789ABCDEF"
+hexa:		.byte "0123456789ABCDEF"
 ticks:		.word $0000
 STATUS_BUFFER = $7D0	; $750 $650
 draw_status:

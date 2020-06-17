@@ -310,9 +310,6 @@ run(f"{CA65} -o {BUILD_DIR}/vscroll.o -t apple2 --listing {BUILD_DIR}/vscroll.tx
 run(f"{LD65} -o {BUILD_DIR}/VSCROLL {BUILD_DIR}/vscroll.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
 
-run(f"{CA65} -o {BUILD_DIR}/td.o -t apple2 --listing {BUILD_DIR}/td.txt {additional_options} td.s")
-run(f"{LD65} -o {BUILD_DIR}/THREED {BUILD_DIR}/td.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
-shutil.copyfile(f"{BUILD_DIR}/datad000.o",f"{BUILD_DIR}/threed_data")
 
 memory_map()
 
@@ -372,32 +369,62 @@ TUNE_ORIGINAL = f"{DATA_DIR}/2UNLIM.pt3"
 # lzsa -r -f2 data\2UNLIM.pt3 data\2UNLIM.lzsa
 TUNE_ADDRESS = 0xC000 - (((os.path.getsize(TUNE_ORIGINAL) + 255 + 256) >> 8) << 8)
 
+td_files = []
+import glob
+
+for i,fn in enumerate( sorted( glob.glob(f"{BUILD_DIR}/bin_lines*"))):
+    if i % 2 == 0:
+        page= 0xD0
+    else:
+        page = 0xE0
+
+    td_files.append( (fn, page, f"data_3d_{i}") )
+
+# This is a hack to avoid complex calculations to determine
+# when to stop reading sectors.
+# FIXME It wastes a sector on the disk :-(
+
+with open(f"{BUILD_DIR}/td_dummy","wb") as fout:
+    fout.write( bytes([4] * 256))
+
+td_files.append( (f"{BUILD_DIR}/td_dummy", 0x08, "dummy") )
+
 file_list = [
     (f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
     (TUNE,  0x60, "pt3"),
     (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
     (f"{BUILD_DIR}/BSCROLL",0x60,"big_scroll"),
-    (f"{BUILD_DIR}/THREED",0x60,"threed"),
-    (f"{BUILD_DIR}/threed_data",0xd0,"data_threed"),
-    (f"{DATA_DIR}/TITLEPIC.BIN", 0x20, "picture"),
-    (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")]
+    (f"{BUILD_DIR}/THREED",0x60,"threed") ] + td_files + \
+    [ (f"{DATA_DIR}/TITLEPIC.BIN", 0x20, "picture"),
+      (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")]
 
 
 
 # We compile the loader first, not knowing
 # the disk TOC content precisely. So we propose a TOC with dummies.
 # (chicken and egg problem, without the TOC size, I can't guess
-# the loader final size !)
+# the loader final size !). The TOC is incomplete in the sense
+# that we miss track/sector locations of various files
 
 with open(f"{BUILD_DIR}/loader_toc.s","w") as fout:
-    for i, entry in enumerate(file_list):
+    # Skip the loader
+    for i, entry in enumerate(file_list[1:]):
         filepath, page_base, label = entry
         uplbl = label.upper()
         fout.write(f"FILE_{uplbl} = {i}\n")
         fout.write("\t.byte 0,0,0,0,0\n")
 
 run(f"{CA65} -o {BUILD_DIR}/loader.o -DPT3_LOC={TUNE_ADDRESS} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
-run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
+run(f"{LD65} {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
+
+
+# Now that the loader is built (with incomplete data but correct
+# size), we can build other modules which depends on its routines.
+
+run(f"{CA65} -o {BUILD_DIR}/td.o -t apple2 --listing {BUILD_DIR}/td.txt {additional_options} td.s")
+run(f"{LD65} -o {BUILD_DIR}/THREED {BUILD_DIR}/td.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
+shutil.copyfile(f"{BUILD_DIR}/datad000.o",f"{BUILD_DIR}/threed_data")
+
 
 loader_page_base = 0x0A # Just below HGR1
 loader_page_base = (0x2000 - os.path.getsize(f"{BUILD_DIR}/LOADER")) >> 8

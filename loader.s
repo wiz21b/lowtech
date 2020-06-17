@@ -10,6 +10,10 @@ dummy_pointer = 254
 
 	.segment "LOADER"
 
+	.export first_page
+	.export init_track_read2
+	.export read_in_pogress
+
 	JMP run
 disk_toc:
 	.include "build/loader_toc.s"
@@ -18,6 +22,10 @@ disk_toc:
 
 	.proc init_track_read2
 	;;  A = file index in TOC
+
+	CMP file_being_loaded
+	BEQ file_in_load
+	STA file_being_loaded
 
 	;;  Compute A * 5
 	STA smc + 1
@@ -41,6 +49,7 @@ smc:
 	STA last_sector
 	LDA disk_toc+4,X
 	STA first_page
+	PHA
 	LDA #0			; FIXME should not be necessary
 	STA sectors_to_read
 
@@ -50,8 +59,14 @@ smc:
 	LDA #1
 	STA read_in_pogress
 
+	PLA
 	CLI
+file_in_load:
 	RTS
+
+.export file_being_loaded
+file_being_loaded:	.byte $FF
+
 	.endproc
 
 	.include "read_sector.s"
@@ -101,6 +116,10 @@ run:
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+	LDA #FILE_EARTH
+	JSR load_file_no_irq
+	LDA #FILE_BIG_SCROLL
+	JSR load_file_no_irq
 
 	JSR start_player
 
@@ -122,22 +141,23 @@ run:
 	LDA LC_RAM_SELECT
 	JSR start_player2
 
-	LDA #FILE_EARTH
-	JSR load_file
-	LDA #FILE_BIG_SCROLL
-	JSR load_file
 	JSR $6000
 
 	LDA #FILE_THREED
 	JSR load_file
-	LDA #FILE_DATA_THREED
+	LDA #FILE_DATA_3D_0
 	JSR load_file
+
+	LDA #FILE_DATA_3D_1
+	JSR init_track_read2
+	;JSR load_file
 
 	;LDA LC_RAM_SELECT
 
 ;; stop:
 ;; 	jmp stop
 
+	LDA #FILE_DATA_3D_2
 	JSR $6000
 
 	LDA #FILE_PICTURE

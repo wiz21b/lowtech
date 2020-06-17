@@ -9,6 +9,7 @@
 # 617D draw hline full
 
 import sys
+import os
 from collections import OrderedDict
 import io
 import math
@@ -158,9 +159,9 @@ if SHAPE == "Cube":
     HIDDEN_FACES = True
 
     if HIDDEN_FACES:
-        NB_FRAMES = 110
+        NB_FRAMES = 220*6
     else:
-        NB_FRAMES = 110
+        NB_FRAMES = 220*6
 
     axis = [3,2,0.5]
 
@@ -186,10 +187,10 @@ if SHAPE == "Cube":
 
 
 if SHAPE == "Cube2":
-    ATTENUATION = math.pi / 32
+    ATTENUATION = math.pi
     ZOOM=250
     HIDDEN_FACES = True
-    NB_FRAMES = 55
+    NB_FRAMES = 400
 
     axis = [3,2,0.5]
 
@@ -211,6 +212,8 @@ if SHAPE == "Ogon":
         NB_FRAMES = 70
     else:
         NB_FRAMES = 40
+
+    NB_FRAMES = 600
 
     axis = [3,2,0.5]
     a = Vtx(-0.75,-0.75,-1)
@@ -316,7 +319,7 @@ for frame_ndx in range(NB_FRAMES):
 
     #screen.fill(black)
 
-    theta = math.sin(frame_ndx * 2*math.pi / NB_FRAMES) #*ATTENUATION
+    theta = math.sin(frame_ndx * 2*math.pi / NB_FRAMES) *ATTENUATION
     rot = angle_axis_quat(theta, axis)
 
     drawn_edges = set()
@@ -1172,9 +1175,15 @@ def gen_data_line( fo, a, b):
               max(1, int(dy )), #  // TILE_SIZE
               int_to_16( TILE_SIZE*dx/dy)]
 
-    #print(d)
-    fo.write("\t.byte {}\n".format(",".join(map(str,d[0:-1]))))
-    fo.write("\t.word {}\t;{}\n".format(d[4],slope))
+    if fo is not None:
+        #print(d)
+        fo.write("\t.byte {}\n".format(",".join(map("${:02X}".format,d[0:-1]))))
+        #fo.write("\t.word {}\t;{}\n".format(d[4],slope))
+
+        fo.write("\t.byte {},{} \t;{}\n".format((d[4] & 255),d[4]>>8,slope))
+
+    return bytearray( d[0:-1] + [(d[4] & 255), d[4]>>8])
+    # fobin.write( bytearray( d[0:-1] + [(d[4] & 255), d[4]>>8]))
 
 
 compute_vertical_tiles()
@@ -1192,6 +1201,17 @@ delta = 0
 #         gen_data_line( fo, CENTER + Vertex(x,y), CENTER + Vertex(-x,-y))
 
 print("Recorded {} lines".format( len(recorded_lines)))
+
+mem_block = bytearray()
+nb_mem_blocks = 1
+last_end_block_mark = None
+
+import glob
+
+for fn in glob.glob(f"build/bin_lines*"):
+    os.remove(fn)
+
+
 with open("build/lines.s","w") as fo:
 
     fo.write("; generated \n")
@@ -1222,7 +1242,15 @@ with open("build/lines.s","w") as fo:
 
             a = Vertex( l[0],l[1])
             b = Vertex( l[2],l[3])
-            gen_data_line( fo, a, b)
+
+            if i == 0:
+                bin_data = gen_data_line( fo, a, b)
+            else:
+                bin_data = gen_data_line( None, a, b)
+
+            #if type(bin_data) == bytearray:
+            if bin_data:
+                mem_block.extend(bin_data)
 
             update_win_boundaries(a)
             update_win_boundaries(b)
@@ -1243,12 +1271,37 @@ with open("build/lines.s","w") as fo:
         print(f"Frame draws {npixels} cycles; {nb_segments} segments. Clearing woud cost {surf} cycles ({win_w}x{win_h}).")
 
         if i != len(recorded_lines)-1:
-            fo.write("\t.byte 3\t;; end of block\n")
+            # not the last frame
+
+            # One disk track = 4KB, memory above 0xD000 is 12 kb => 3
+            # tracks I just need to have two alternating tracks (I
+            # could use 1.5 tracks because 12kb / 2 = 6 kb = 1.5
+            # track).
+
+            if len(mem_block) > 16*256 - 512:
+                mem_block.extend( bytes([5]))
+
+                fo.write(f"; File split {nb_mem_blocks}\n")
+                assert len(mem_block) <= 16*256, "the threshold is too big, {}".format(len(mem_block))
+                with open(f"build/bin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
+                    fo_bin.write(mem_block)
+                    nb_mem_blocks += 1
+
+                mem_block = bytearray()
+
+
+            else:
+                fo.write(f"\t.byte 3\t;; end of frame {i}\n")
+                mem_block.extend( bytes([3]))
+
         else:
             fo.write("\t.byte 4\t;; end of animation\n")
+            mem_block.extend( bytes([4]))
+
 
         if i == 0:
-            fo.write("line_data_frame2:\t;Beginning of second frame\n")
+            l = len(mem_block)
+            fo.write(f"line_data_frame2:\t;Beginning of second frame; {l} bytes\n")
 
 
     TOTAL_ANIM_SECONDS = 6.74/2 # 14.6 with player
@@ -1257,6 +1310,17 @@ with open("build/lines.s","w") as fo:
     cycles_per_pixel = ONE_MHZ * TOTAL_ANIM_SECONDS / total_pixels
     print("Total pixels drawn : {} in {} frames => {:.1f} cycles/pixel".format(total_pixels, len(recorded_lines), cycles_per_pixel))
 
+    if len( mem_block) > 0:
+        with open(f"build/bin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
+            fo_bin.write(mem_block)
+
+    # fix_block = nb_mem_blocks - 2
+    # data = None
+    # with open(f"build/bin_lines{fix_block}","rb") as fo_bin:
+    #     data = fo_bin.read()
+    #     data[-1] = 6
+    # with open(f"build/bin_lines{fix_block}","wb") as fo_bin:
+    #     fo_bin.write(data)
 
 with open("build/precalc.s","w") as fo:
     for page in [1,2]:

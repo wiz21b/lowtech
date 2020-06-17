@@ -4,6 +4,10 @@
 
 ;;; Part of this code (see below) is copied from the PT3 player by Vince "Deater" Weaver and is licensed accordingly
 
+	.import init_track_read2
+	.import first_page
+	.import read_in_pogress
+	.import file_being_loaded
 
 	.include "defs.s"
 
@@ -46,9 +50,11 @@ BYTES_PER_LINE	= 6
 	.segment "CODE"
 
 
+	STA next_file_to_load
 	;JSR init_disk_read	; Must be done before any read sector !
 	lda #$ff
 	jsr clear_hgr
+
 
 	.if DEBUG
 	LDA $C053
@@ -147,6 +153,7 @@ all_lines:
 	LDA #1
 	STA color
 	JSR draw_or_erase_multiple_lines
+	BCS all_done
 
 	LDA $C055	; Show page 4
 	LDA $C057
@@ -161,7 +168,6 @@ freeze:
 	LDA #$0
 	STA color
 	JSR draw_or_erase_multiple_lines
-	BCS all_done
 
 	jsr skip_a_frame
 	copy_16 line_data_ptr2, line_data_ptr
@@ -169,6 +175,7 @@ freeze:
 	LDA #1
 	STA color
 	JSR draw_or_erase_multiple_lines
+	BCS all_done
 
 	LDA $C054		; Show page 2
 	LDA $C057
@@ -184,15 +191,42 @@ freeze:
 	;jsr $FD0C		; wait key hit
 	;jmp freeze
 
-	;jsr  pause
+				;jsr  pause
+	.if DEBUG
+	add_const_to_16 ticks, 2
+	;jsr draw_status
+	.endif
+
+
+	LDA end_of_block
+	CMP #255
+	BEQ no_track_load
+	CMP #0
+	BEQ wait_track_load
+	DEC end_of_block
+	JMP no_track_load
+wait_track_load:
+	LDA #255
+	STA end_of_block
+
+;; wait_track_load2:
+;; 	LDA read_in_pogress
+;; 	CMP #0
+;; 	BNE wait_track_load2
+
+	LDA next_file_to_load
+	;; CMP #19
+	;; BEQ all_done
+	JSR init_track_read2
+	INC next_file_to_load
+
+no_track_load:
+
 	JMP all_lines
 all_done:
 
 	RTS
 
-	.if DEBUG
-	jsr draw_status
-	.endif
 
 	jmp demo3
 
@@ -216,6 +250,63 @@ one_more_line:
 
 	BEQ end_of_frame	; A = 3 => end of frame
 
+	CMP #4
+	BEQ end_of_all_frames
+
+	;; A = 5 : end of data file,
+	;store_16 line_data_ptr, $E000
+
+
+	;; Since we draw on alternating pages, we'll come
+	;; here twice in sequence at the end of each block.
+	;; We thus make sure we don't do the same work
+	;; twice.
+
+;; 	INC end_of_block
+;; 	LDA end_of_block
+;; 	CMP #2
+;; 	BNE dont_init_load
+;; 	LDA #0
+;; 	STA end_of_block
+
+	;; Guard against delay in the track read
+
+;; wait_read:
+;; 	LDA read_in_pogress
+;; 	CMP #0
+;; 	BNE wait_read
+
+
+	;; This is a huge hack to avoid counting the right moment
+	;;  to start loading data (rememebr we're dealing with two
+	;; buffers, with skip frames, redraws, etc. where it's quite
+	;; difficult to know when to start loading new data)
+	;; FIXME Although it works, I'm sure this wastes some time.
+
+	LDA #3
+	STA end_of_block
+
+
+;; wait_read2:
+;; 	LDA read_in_pogress
+;; 	CMP #0
+;; 	BNE wait_read2
+
+load_already_initiated:
+dont_init_load:
+
+	LDA line_data_ptr + 1
+	AND #$F0
+	EOR #($D0 ^ $E0)
+	STA line_data_ptr + 1
+	LDA #0
+	STA line_data_ptr
+
+
+	;; FIXME 	add_const_to_16 line_data_ptr, BYTES_PER_LINE
+	CLC
+	RTS
+
 end_of_all_frames:
 	store_16 line_data_ptr, lines_data
 	SEC
@@ -226,8 +317,10 @@ end_of_frame:
 	CLC
 	RTS
 
+	.endproc
+end_of_block:	.byte 255
 
-.endproc
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	.proc skip_a_frame
 
@@ -241,8 +334,20 @@ one_more_line:
 	AND #31			; 5 bits
 	CMP #3
 	BMI one_more_line	; A < 3 ?
-
 	BEQ end_of_frame	; A = 3 => end of frame
+
+	CMP #4
+	BEQ end_of_all_frames
+
+end_of_memblock:
+	;; A = 5 end of block
+	LDA line_data_ptr + 1
+	AND #$F0
+	EOR #($D0 ^ $E0)
+	STA line_data_ptr + 1
+	LDA #0
+	STA line_data_ptr
+	RTS
 
 end_of_all_frames:
 	store_16 line_data_ptr, lines_data
@@ -270,7 +375,10 @@ end_of_frame:
 	jsr draw_hline_full
 	rts
 vline:
+	CMP #1
+	BNE unsupported_command
 	jsr draw_vline_full
+unsupported_command:
 	rts
 .endproc
 
@@ -355,6 +463,7 @@ x_end:	.byte 0
 
 x7_start:	.byte 0
 x7_end:	.byte 0
+next_file_to_load:	.byte 0
 
 .proc draw_hline_full
 

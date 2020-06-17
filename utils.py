@@ -148,7 +148,7 @@ class AppleDisk:
 
         for s in range( SECTORS_PER_TRACK):
             all_sect = [self.sector_map[t][s] for t in range(TRACKS_PER_DISK)]
-            print("".join([ ".ABCDEFGHIJKLMNOPQRSTUVWXYZ"[s] for s in all_sect  ]))
+            print("".join([ ".0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"[s] for s in all_sect  ]))
 
 
 
