@@ -1,3 +1,4 @@
+
 .proc pause
 
 	STA pause_count + 1
@@ -43,42 +44,45 @@ smc:
 	.endproc
 
 
+hexa:
+hexa_apple:
+	.byte $30,$31,$32,$33,$34,$35,$36,$37,$38,$39
+	.byte $1,$2,$3,$4,$5,$6
 
-hexa:		.byte "0123456789ABCDEF"
-ticks:		.word $0000
+;hexa:		.byte "0123456789ABCDEF"
 STATUS_BUFFER = $7D0	; $750 $650
-draw_status:
+;; draw_status:
 
-	LDA ticks
-	AND #$F
-	TAY
-	LDA hexa,Y
-	STA STATUS_BUFFER+4
+;; 	LDA ticks
+;; 	AND #$F
+;; 	TAY
+;; 	LDA hexa,Y
+;; 	STA STATUS_BUFFER+4
 
-	LDA ticks
-	AND #$F0
-	LSR
-	LSR
-	LSR
-	LSR
-	TAY
-	LDA hexa,Y
-	STA STATUS_BUFFER+3
+;; 	LDA ticks
+;; 	AND #$F0
+;; 	LSR
+;; 	LSR
+;; 	LSR
+;; 	LSR
+;; 	TAY
+;; 	LDA hexa,Y
+;; 	STA STATUS_BUFFER+3
 
-	LDA ticks+1
-	AND #$F
-	TAY
-	LDA hexa,Y
-	STA STATUS_BUFFER+2
+;; 	LDA ticks+1
+;; 	AND #$F
+;; 	TAY
+;; 	LDA hexa,Y
+;; 	STA STATUS_BUFFER+2
 
-	LDA ticks+1
-	AND #$F0
-	LSR
-	LSR
-	LSR
-	LSR
-	TAY
-	LDA hexa,Y
-	STA STATUS_BUFFER+1
+;; 	LDA ticks+1
+;; 	AND #$F0
+;; 	LSR
+;; 	LSR
+;; 	LSR
+;; 	LSR
+;; 	TAY
+;; 	LDA hexa,Y
+;; 	STA STATUS_BUFFER+1
 
-	RTS
+;; 	RTS

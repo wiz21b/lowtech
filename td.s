@@ -4,17 +4,26 @@
 
 ;;; Part of this code (see below) is copied from the PT3 player by Vince "Deater" Weaver and is licensed accordingly
 
-	.import init_track_read2
+	.import init_file_load
 	.import first_page
 	.import read_in_pogress
 	.import file_being_loaded
+	.import read_sector_in_track
+	.import useless_sector
 
 	.include "defs.s"
 
-DEBUG = 0
-ONE_PAGE = 0
+MOCK_6522_T1CL	=	$C404	; 6522 #1 t1 low order latches
+MOCK_6522_T1CH	=	$C405	; 6522 #1 t1 high order counter
+
+	DEBUG = 0
+	ONE_PAGE = 0
+	GR_ONLY = 0
 
 x_shift = $84
+
+	debug_ptr = $86
+	debug_ptr2 = $88
 
 tile_ptr2a	= 212
 
@@ -51,10 +60,18 @@ BYTES_PER_LINE	= 6
 
 
 	STA next_file_to_load
-	;JSR init_disk_read	; Must be done before any read sector !
+				;JSR init_disk_read	; Must be done before any read sector
 	lda #$ff
 	jsr clear_hgr
 
+	.if GR_ONLY = 1
+	LDA $C051		; text
+	LDA $C052		; all text, no mix
+	LDA $C054		; primary page
+	.endif
+
+				;JSR check_timer
+	.if GR_ONLY = 0
 
 	.if DEBUG
 	LDA $C053
@@ -66,6 +83,8 @@ BYTES_PER_LINE	= 6
 	;; LDA $C055		;Page 2
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
+
+	.endif
 
 	;; .ifdef MUSIC
 	;; JSR start_player
@@ -97,7 +116,7 @@ demo3:
 
 	;; jsr clear_hgr
 	.if DEBUG
-	store_16 ticks, 0
+	;store_16 ticks, 0
 	.endif
 
 
@@ -110,9 +129,13 @@ demo3:
 
 ;;; ;;;;;;;; ONE PAGE ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+	.if GR_ONLY = 0
 	LDA $C054		; Show page 2
 	LDA $C057
 	LDA $C050
+	.endif
+
 	jsr draw_to_page2
 
 all_lines:
@@ -126,6 +149,9 @@ all_lines:
 	STA color
 	JSR draw_or_erase_multiple_lines
 
+	copy_16 line_data_ptr, line_data_ptr1
+	jsr skip_a_frame
+
 	copy_16 line_data_ptr1, line_data_ptr
 
 
@@ -135,11 +161,6 @@ all_lines:
 	;; Page flipping mode
 
 all_lines:
-	;; NOP
-	;JSR read_any_sector
-	;JSR read_any_sector
-	;; NOP
-
 	jsr draw_to_page4
 
 	copy_16 line_data_ptr, line_data_ptr1
@@ -155,9 +176,11 @@ all_lines:
 	JSR draw_or_erase_multiple_lines
 	BCS all_done
 
+	.if GR_ONLY = 0
 	LDA $C055	; Show page 4
 	LDA $C057
 	LDA $C050 	; display graphics; last for cleaner mode change
+	.endif
 
 	;; -----------------------------------------------
 freeze:
@@ -177,49 +200,37 @@ freeze:
 	JSR draw_or_erase_multiple_lines
 	BCS all_done
 
+	.if  GR_ONLY = 0
 	LDA $C054		; Show page 2
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change
-
 	.endif
 
-	.ifndef MUSIC
-	;JSR read_any_sector
-	.endif
+	.endif 			; TWO PAGES
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+	;; We pause a bit of time before
+	;; loading a new file. Ths is to ensure
+	;; that both line data pointers are one
+	;; the same page. The wait is triggered
+	;; by setting "end of block" to a counter.
+	;; When it's 255, it means we're not waiting
+	;; anything.
 
-	;jsr $FD0C		; wait key hit
-	;jmp freeze
-
-				;jsr  pause
-	.if DEBUG
-	add_const_to_16 ticks, 2
-	;jsr draw_status
-	.endif
-
-
+disk_stuff:
 	LDA end_of_block
-	CMP #255
+	CMP #255		; we're not waiting anything
 	BEQ no_track_load
-	CMP #0
-	BEQ wait_track_load
-	DEC end_of_block
+	CMP #0			; we reached the end of the counter
+	BEQ wait_track_load	; so we can start to load the next file
+	DEC end_of_block	; we still have to wait some more
 	JMP no_track_load
 wait_track_load:
-	LDA #255
+	LDA #255		; We're done waiting
 	STA end_of_block
-
-;; wait_track_load2:
-;; 	LDA read_in_pogress
-;; 	CMP #0
-;; 	BNE wait_track_load2
-
 	LDA next_file_to_load
-	;; CMP #19
-	;; BEQ all_done
-	JSR init_track_read2
+	JSR init_file_load
 	INC next_file_to_load
-
 no_track_load:
 
 	JMP all_lines
@@ -230,6 +241,8 @@ all_done:
 
 	jmp demo3
 
+lazy2:
+	.byte 0
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -283,14 +296,9 @@ one_more_line:
 	;; difficult to know when to start loading new data)
 	;; FIXME Although it works, I'm sure this wastes some time.
 
-	LDA #3
+	LDA #2
 	STA end_of_block
 
-
-;; wait_read2:
-;; 	LDA read_in_pogress
-;; 	CMP #0
-;; 	BNE wait_read2
 
 load_already_initiated:
 dont_init_load:
@@ -322,6 +330,185 @@ end_of_block:	.byte 255
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+	.proc wait_disk_read
+wait_read2:
+	inc $2000
+	;; JSR read_sector_in_track
+
+	LDA read_in_pogress
+	CMP #0
+	BNE wait_read2
+	rts
+	.endproc
+
+
+	.import txt_ofs
+	.import sect, old_sect, ace_jump, base_jump_pause, ticks
+	.import distance_to_next_sector, sector_status
+
+;; ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; 	.proc instru_read_sector_in_track
+
+;; 	LDA stop_count
+;; 	BNE dont_stop
+;; full_freeze:
+;; 	;JMP full_freeze
+
+;; dont_stop:
+;; 	LDA read_in_pogress
+;; 	BNE do_read
+;; 	RTS
+;; do_read:
+
+;; 	LDA ace_jump
+;; 	BEQ no_ace_jump
+;; 	STA $7D0+38
+;; 	RTS
+
+;; no_ace_jump:
+
+;; 	LDA base_jump_pause
+;; 	BEQ no_jump_pause
+
+;; 	LDA ticks
+;; wait:
+;; 	CMP ticks
+;; 	BEQ wait
+;; 	DEC base_jump_pause
+;; 	RTS
+
+;; no_jump_pause:
+;; 	JSR read_sector_in_track
+
+;; 	.if  ::DEBUG = 1
+
+;; 	LDA useless_sector
+;; 	BNE failed_a_sector
+
+;; 	LDX sect
+;; 	LDA #'!'+$80
+;; 	STA $7d0 + 20,X
+;; 	RTS
+
+;; failed_a_sector:
+;; 	DEC stop_count
+
+;; 	.import current_track
+;; 	LDX current_track
+;; 	LDA hexa,X
+;; 	CLC
+;; 	STA $7d0+17
+
+;; 	LDX #15
+;; copy_status:
+;; 	LDA #'.'+$80
+;; 	STA $7D0,X
+;; 	STA $7D0+20,X
+
+;; 	LDA sector_status,X
+;; 	BEQ empty_status
+;; not_empty_status:
+;; 	LDA #'-'
+;; 	BNE draw_status
+;; empty_status:
+;; 	LDA #'.'
+;; draw_status:
+;; 	CLC
+;; 	ADC #$80
+;; 	STA $7D0,X
+;; 	DEX
+;; 	BPL copy_status
+
+;; mark_sector:
+;; 	LDX #23*2
+;; 	LDA txt_ofs+1,X
+;; 	STA debug_ptr + 1
+;; 	LDA txt_ofs,X
+;; 	STA debug_ptr
+
+;; 	LDA useless_sector
+;; 	ASL
+;; 	ASL
+;; 	ASL
+;; 	ASL
+;; 	ASL
+;; 	ASL
+;; 	STA smc1 + 1
+
+;; 	LDY sect
+;; 	CPY #15
+;; 	BMI good_sect
+;; 	LDY #20
+;; 	LDA #'?'+$80
+;; 	BNE show_sect
+;; good_sect:
+;; 	LDA hexa,Y
+;; show_sect:
+;; 	CLC
+;; smc1:
+;; 	ADC #0
+
+;; 	STA $7D0,Y
+
+;; 	;; LDY old_sect
+;; 	;; LDA #'X'
+;; 	;; STA $7D0,Y
+
+
+;; 	JSR distance_to_next_sector
+
+;; 	.import ace_jump_target
+;; 	.import CLOCK_SPEED
+
+;; 	PHA
+;; 	lda	#<CLOCK_SPEED	; 40
+;; 	sta	MOCK_6522_T1CL	; write into low-order latch
+;; 	lda	#>CLOCK_SPEED	; 9C
+;; 	sta	MOCK_6522_T1CH	; write into high-order latch,
+;; 	PLA
+
+;; 	STA ace_jump
+
+;; 	;; A = ticks to wait for ace jump
+;; 	CLC
+;; 	ROR
+;; 	TAX
+;; 	LDA hexa,X
+;; 	CLC
+;; 	ADC #$80
+;; 	STA $7d0 + 19
+
+;; 	TYA			; Y = distance
+;; 	TAX
+;; 	LDA hexa,X
+;; 	CLC
+;; 	ADC #$80
+;; 	STA $7d0 + 18
+;; 	TYA
+
+;; 	CLC
+;; 	ADC sect
+;; 	AND #15
+;; 	STA ace_jump_target
+;; 	TAX
+;; 	LDA $7D0,X
+;; 	SEC
+;; 	SBC #$80
+;; 	STA $7D0,X
+
+;; 	.endif 				; debug
+
+;; 	RTS
+
+;; useless_sectors:	.byte 0
+;; stop_count:	.byte 23
+
+;; 	.endproc
+
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 	.proc skip_a_frame
 
 one_more_line:
@@ -339,7 +526,10 @@ one_more_line:
 	CMP #4
 	BEQ end_of_all_frames
 
+	; A = 5 : end of memory block
 end_of_memblock:
+	jsr wait_disk_read
+
 	;; A = 5 end of block
 	LDA line_data_ptr + 1
 	AND #$F0
@@ -696,6 +886,11 @@ div7:
 	.include "build/htiles.s"
 	.include "build/tiles.s"
 	.include "build/tiles_lr.s"
+
+
+
+
+
 
 	;; /////////////////////////////////////////////////////////
 	;; D000 SEGMENT

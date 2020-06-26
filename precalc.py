@@ -190,7 +190,7 @@ if SHAPE == "Cube2":
     ATTENUATION = math.pi
     ZOOM=250
     HIDDEN_FACES = True
-    NB_FRAMES = 400
+    NB_FRAMES = 500
 
     axis = [3,2,0.5]
 

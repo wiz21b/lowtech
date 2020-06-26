@@ -3,7 +3,7 @@
 pt3_irq_handler:
 
 pt3_irq_smc1:
-	bit	MOCK_6522_T1CL	; clear 6522 interrupt by reading T1C-L	; 4
+	;bit	MOCK_6522_T1CL	; clear 6522 interrupt by reading T1C-L	; 4
 
 	lda	DONE_PLAYING						; 3
 	beq	pt3_play_music	; if song done, don't play music	; 3/2nt

@@ -4,6 +4,7 @@
 
 	.segment "CODE_6000"
 
+	.import ticks
 
 	.include "defs.s"
 	.include "precalc_def.s"

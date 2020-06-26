@@ -126,4 +126,26 @@ j:
 	clc
 	rol target	; low byte
 	rol target + 1	; hi byte
-.endmacro
+	.endmacro
+
+
+	.macro set_timer_const value
+	lda	#>(value)	; 9C
+	CLC
+	ADC time_expand
+	sta	MOCK_6522_T1CH	; write into high-order latch,
+	lda	#<(value)
+	sta	MOCK_6522_T1CL	; write into low-order latch
+	.endmacro
+
+
+	.macro set_irq_vector target
+	lda	#<target
+	sta	$fffe
+	lda	#>target
+	sta	$ffff
+	lda	#<target
+	sta	$03fe
+	lda	#>target
+	sta	$03ff
+	.endmacro

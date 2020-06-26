@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 """
 White-white
 White-blue
@@ -51,14 +53,14 @@ with open("data/alphabet2.s","w") as fout:
 
 #new_blocs = font_split("data/Alphabeta 7 pixels font.png")
 
-LITTLE_CONQUEST_ALPHABET= "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789,"
+LITTLE_CONQUEST_ALPHABET= "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789,.!"
 new_blocs = make_bitmap_font("data/Little Conquest.ttf", LITTLE_CONQUEST_ALPHABET)
 MESSAGE = ["This demo was",
            "written by Wiz of",
            "Imphobia in 2020",
            "",
            "Keeping the spirit",
-           "alive",
+           "alive !",
            "",
            "Greetings go to",
            "",
@@ -66,6 +68,7 @@ MESSAGE = ["This demo was",
            "   Peter Ferrie",
            "   Deater",
            "   Fennarinarsa",
+           "   Marc Golombeck"
            "",
            "",
            "Additional Credits",
@@ -74,7 +77,8 @@ MESSAGE = ["This demo was",
            "",
            "   Vince Weaver",
            "",
-           "RWTS, boot sector",
+           "RWTS, boot sector,",
+           "LZSA decruncher",
            "",
            "   Peter Ferrie",
            "",
@@ -316,8 +320,6 @@ memory_map()
 
 
 make_all( BUILD_DIR, "bigscroll/data")
-run(f"{CA65} -I . -o {BUILD_DIR}/big_scroll.o -t apple2 {additional_options} bigscroll/scroll.s")
-run(f"{LD65} -o {BUILD_DIR}/BSCROLL {BUILD_DIR}/big_scroll.o -C bigscroll/link.cfg --mapfile {BUILD_DIR}/map.out")
 
 
 
@@ -365,9 +367,12 @@ disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
 # Creating the boot sector and boot loader
 
 TUNE = f"{DATA_DIR}/2UNLIM.lzsa"
-TUNE_ORIGINAL = f"{DATA_DIR}/2UNLIM.pt3"
+
+TUNE_ORIGINAL = f"{DATA_DIR}/2UNLIM2.pt3"
 # lzsa -r -f2 data\2UNLIM.pt3 data\2UNLIM.lzsa
 TUNE_ADDRESS = 0xC000 - (((os.path.getsize(TUNE_ORIGINAL) + 255 + 256) >> 8) << 8)
+
+TUNE = TUNE_ORIGINAL
 
 td_files = []
 import glob
@@ -391,9 +396,11 @@ td_files.append( (f"{BUILD_DIR}/td_dummy", 0x08, "dummy") )
 
 file_list = [
     (f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
-    (TUNE,  0x60, "pt3"),
-    (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
-    (f"{BUILD_DIR}/BSCROLL",0x60,"big_scroll"),
+    # (TUNE,  0x60, "pt3"),
+    (TUNE,  0xB8, "pt3"),
+    (f"{BUILD_DIR}/CHKDSK",0x60,"check_disk"),
+    # (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
+    # (f"{BUILD_DIR}/BSCROLL",0x60,"big_scroll"),
     (f"{BUILD_DIR}/THREED",0x60,"threed") ] + td_files + \
     [ (f"{DATA_DIR}/TITLEPIC.BIN", 0x20, "picture"),
       (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")]
@@ -418,20 +425,28 @@ run(f"{CA65} -o {BUILD_DIR}/loader.o -DPT3_LOC={TUNE_ADDRESS} -t apple2 --listin
 run(f"{LD65} {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
 
+loader_page_base = (0x2000 - os.path.getsize(f"{BUILD_DIR}/LOADER")) >> 8
+print(f"loader_page_base = {loader_page_base:02X}")
+#assert loader_page_base > 0x08, f"Loader space will conflict (start page {loader_page_base}) with FSTBT ROM calls to $801"
+assert loader_page_base == 0x9, "You must update the link.cfg file"
+
+
 # Now that the loader is built (with incomplete data but correct
 # size), we can build other modules which depends on its routines.
+
+run(f"{CA65} -I . -o {BUILD_DIR}/big_scroll.o -t apple2 {additional_options} bigscroll/scroll.s")
+run(f"{LD65} -o {BUILD_DIR}/BSCROLL {BUILD_DIR}/big_scroll.o {BUILD_DIR}/loader.o -C bigscroll/link.cfg --mapfile {BUILD_DIR}/map.out")
+
 
 run(f"{CA65} -o {BUILD_DIR}/td.o -t apple2 --listing {BUILD_DIR}/td.txt {additional_options} td.s")
 run(f"{LD65} -o {BUILD_DIR}/THREED {BUILD_DIR}/td.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 shutil.copyfile(f"{BUILD_DIR}/datad000.o",f"{BUILD_DIR}/threed_data")
 
 
-loader_page_base = 0x0A # Just below HGR1
-loader_page_base = (0x2000 - os.path.getsize(f"{BUILD_DIR}/LOADER")) >> 8
-print(f"loader_page_base = {loader_page_base:02X}")
-assert loader_page_base > 0x08, f"Loader space will conflict (start page {loader_page_base}) with FSTBT ROM calls to $801"
+run(f"{CA65} -o {BUILD_DIR}/checkdisk.o -t apple2 --listing {BUILD_DIR}/chkdsk.txt {additional_options} checkdisk.s")
+run(f"{LD65} -o {BUILD_DIR}/CHKDSK {BUILD_DIR}/checkdisk.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
-assert loader_page_base == 0x9, "You must update the link.cfg file"
+
 
 file_list[0] = (f"{BUILD_DIR}/LOADER", loader_page_base, "loader")
 
@@ -567,7 +582,7 @@ print("Running emulator")
 if args.mame:
     # -resolution 1200x900
     # -sound none
-    run(f"{MAME} apple2e -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.DSK")
+    run(f"{MAME} apple2e -volume -12 -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.DSK")
 else:
     dsk = os.path.join( BUILD_DIR_ABSOLUTE, "NEW.DSK")
     if platform.system() == "Linux":

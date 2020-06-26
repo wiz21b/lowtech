@@ -56,7 +56,8 @@ MOCK_AY_LATCH_ADDR	=	$7	;	1	1	1
 	; Mockingboard Init
 	;========================
 	; Initialize the 6522s
-	; set the data direction for all pins of PortA/PortB to be output
+	; set the data direction for all peripheral pins of
+	; PortA/PortB to be output
 
 mockingboard_init:
 	lda	#$ff		; all output (1)
@@ -237,6 +238,9 @@ done_apple_detect:
 
 	lda	#$40		; Continuous interrupts, don't touch PB7
 setup_irq_smc1:
+	;; MOCK_6522_ACR = C40B
+	;; bits 7 and 6 controls the timer1 operating mode
+	;; $40 = Generate continuous interrupts, PB7 is disabled.
 	sta	MOCK_6522_ACR	; ACR register
 	lda	#$7F		; clear all interrupt flags
 setup_irq_smc2:
@@ -248,9 +252,10 @@ setup_irq_smc3:
 setup_irq_smc4:
 	sta	MOCK_6522_IER	; IER: 1100, enable timer one interrupt
 
-	CLOCK_SPEED = 1022727 / 38
+	CLOCK_SPEED = 1022727 / 50
+	.export CLOCK_SPEED
 
-	lda	#<CLOCK_SPEED	; 40
+	lda	#<CLOCK_SPEED	; 50
 setup_irq_smc5:
 	sta	MOCK_6522_T1CL	; write into low-order latch
 	lda	#>CLOCK_SPEED	; 9C

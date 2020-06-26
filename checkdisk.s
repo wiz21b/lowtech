@@ -4,9 +4,8 @@
 
 ;;; Part of this code (see below) is copied from the PT3 player by Vince "Deater" Weaver and is licensed accordingly
 
-	.import sect
-	.import rdadr16, read16, buf
-	.import seek, current_track
+	.import rdadr16, read16, buf, curtrk, seek, sect
+	.import current_track, init_file_load, read_sector_in_track, read_in_pogress, read_sector_status
 
 	.include "defs.s"
 
@@ -45,12 +44,6 @@ dummy_pointer	= $8E
 	.endmacro
 
 
-	.macro set_timer_const value
-	lda	#>(value)	; 9C
-	sta	MOCK_6522_T1CH	; write into high-order latch,
-	lda	#<(value)
-	sta	MOCK_6522_T1CL	; write into low-order latch
-	.endmacro
 
 
 	.macro print_timer source
@@ -65,26 +58,44 @@ dummy_pointer	= $8E
 	INC debug_ptr
 	.endmacro
 
-	.macro set_irq_vector target
-	lda	#<target
-	sta	$fffe
-	lda	#>target
-	sta	$ffff
-	lda	#<target
-	sta	$03fe
-	lda	#>target
-	sta	$03ff
-	.endmacro
 ;;; ==================================================================
 
 	.segment "CODE"
 
-
-	;JSR check_diskii
+	;; JSR check_diskii
 	JSR check_diskii_with_irq
-freeze:
+
+
+
+files_loop:
+	LDA file_being_loaded			; threeD data => page $d000, won't overwrite us !
+	INC file_being_loaded
+	JSR init_file_load
+
+	LDA #'*'+$80
+	STA $750+36
+
+wait_file:
 	JSR scroll_text
-	JMP freeze
+	LDA read_in_pogress
+	BNE wait_file
+
+
+pause:
+	LDA #'P'+$80
+	STA $750+35
+	JSR scroll_text
+	INC loop_count2
+	LDA loop_count2
+	AND #127
+	BNE pause
+
+	JMP files_loop
+
+
+loop_count:	.byte 0
+loop_count2:	.byte 0
+file_being_loaded:	.byte 3
 
 ;;; ==================================================================
 
@@ -323,24 +334,24 @@ move_line:
 	LDA line_count
 	CLC
 	ADC #1
-	CMP #22
+	CMP #23
 	BNE line_loop
 
 
-	LDA #23
-	ASL
-	TAX
-	LDA txt_ofs+1,X
-	STA debug_ptr + 1
-	LDA txt_ofs,X
-	STA debug_ptr
+;; 	LDA #23
+;; 	ASL
+;; 	TAX
+;; 	LDA txt_ofs+1,X
+;; 	STA debug_ptr + 1
+;; 	LDA txt_ofs,X
+;; 	STA debug_ptr
 
-	LDY #39
-	LDA #' '+$80
-clear_line:
-	STA (debug_ptr),Y
-	DEY
-	BNE clear_line
+;; 	LDY #39
+;; 	LDA #' '+$80
+;; clear_line:
+;; 	STA (debug_ptr),Y
+;; 	DEY
+;; 	BNE clear_line
 
 	rts
 line_count:	.byte 0
@@ -414,30 +425,41 @@ txt_ofs:
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-interrupt_handler:
-interrupt_handler_music:
+	.macro regular_sector_read_test
+	INC loop_count
+	LDA loop_count
+	AND #63
+	BNE just_sector
 
-	php
-	pha
-	txa
-	pha			; save X
-	tya
-	pha			; save Y
+	LDA curtrk
+	CLC
+	ADC #2
+        ldx #SLOT_SELECT
+	JSR seek
 
-	LDA	$C404
+	;; In the test, this seems to be NOT necessary
+	LDA #0
+	STA sector_shift
 
-;; 	INC time_skip_count
-;; 	LDA time_skip_count
-;; 	CMP #2
-;; 	BNE no_skip
-;; 	LDA #0
-;; 	STA time_skip_count
+	LDA curtrk
+	CLC
+	ROR
+	TAX
+	LDA hexa_apple,X
+	STA $7d0+38
 
-;; 	FULL_SECTOR_SKIP = 2*$3179
-;; 	set_timer_const FULL_SECTOR_SKIP
-;; 	JMP pt3_interrupt_hook
 
-;; no_skip:
+just_sector:
+	LDA loop_count
+	AND #%11110000
+	CLC
+	ROR
+	ROR
+	ROR
+	ROR
+	TAX
+	LDA hexa_apple,x
+	STA $7d0+39
 
         ldx #SLOT_SELECT
 	JSR rdadr16
@@ -448,110 +470,103 @@ interrupt_handler_music:
 	sta buf
 	ldx #SLOT_SELECT
 	jsr read16
-	;jmp exit_interrupt
+	.endmacro
 
-	LDX sect
-	LDA sector_shift
-	BNE no_clear
-	LDX #15
-	LDA #'.'+$80
-clear_line:
-	STA $750,X
-	DEX
-	BPL clear_line
-no_clear:
-	INC sector_shift
-
-	LDX sector_shift
-	LDA hexa_apple,X
-	CLC
-	ADC #$80
-	LDX sect
-	STA $750,X
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-	LDX sector_shift
-	CPX #8
-	BEQ shift_a_sector
-	CPX #17
-	BEQ back_to_zero
 
-	REGULAR_SKIP = ($3179 * 3) / 4
-	SHIFTER_SKIP = $3179 + REGULAR_SKIP
+	.macro sector_read_code
+	;; regular_sector_read_test
 
-regular_sector_progress:
-	set_timer_const REGULAR_SKIP
-	jmp go_on
-back_to_zero:
+	LATCH_ADVANCED_STATUS = 1
+	SECTOR_READ = 2
+	SECTOR_SEEK = 4
+	SECTOR_RDADR = 8
+
+	LDA #0
+	STA time_expand
+
+	LDA read_in_pogress
+	BEQ no_read
+
+	JSR read_sector_in_track
+
+	LDA read_sector_status
+	AND #SECTOR_READ
+	BNE skip_pause
+
+	LDA read_sector_status
+	AND #SECTOR_RDADR
+	BNE data_read
+
+	LDA read_sector_status
+	AND #SECTOR_SEEK
+	BNE latch_advance
+	BEQ skip_pause
+
+latch_advance:
 	LDA #0
 	STA sector_shift
-shift_a_sector:
-	set_timer_const SHIFTER_SKIP
-	jmp go_on
-go_on:
-	;set_timer_const $3179 + $3179
-	;jmp exit_interrupt
+	jmp skip_pause
+no_read:
+        ldx #SLOT_SELECT
+	JSR rdadr16
+data_read:
+	lda #$40
+	sta buf + 1
+	lda #0
+	sta buf
+	ldx #SLOT_SELECT
+	jsr read16
 
-pt3_interrupt_hook:
-	.include "pt3_lib/pt3_lib_irq_handler.s"
-	jmp exit_interrupt
+no_latch_advance:
+skip_pause:
+	LDA curtrk
+	CLC
+	ROR
+	TAX
+	LDA hexa_apple,X
+	STA $7d0+38
+	.endmacro
 
-quiet_exit:
-	stx	DONE_PLAYING
-	jsr	clear_ay_both
 
-	ldx	#$ff		; also mute the channel
-	stx	AY_REGISTERS+7	; just in case
-
-exit_interrupt:
-
-	pla
-	tay			; restore Y
-	pla
-	tax			; restore X
-	pla			; restore a
-interrupt_smc:
-	lda $45
-	plp
-	RTI
-
-sector_shift:
-	.byte 0
-time_skip_count:
-	.byte 0
+	.include "irq.s"
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	.proc check_diskii_with_irq
 
 	JSR start_player
-
-wait_sector_zero:
-        ldx #SLOT_SELECT
-	JSR rdadr16		; stabilize
-	LDA sect
-	BNE wait_sector_zero
-
-	SEI
 	set_irq_vector interrupt_handler_music
+	JSR start_interrupts
 
-	;; MOCK_6522_ACR = C40B
-	;; bits 7 and 6 controls the timer1 operating mode
-	;; $40 = Generate continuous interrupts, PB7 is disabled.
-	lda	#%01000000
-	sta	MOCK_6522_ACR	; ACR register
+;; wait_sector_zero:
+;;         ldx #SLOT_SELECT
+;; 	JSR rdadr16		; stabilize
+;; 	LDA sect
+;; 	BNE wait_sector_zero
 
-	lda	#%01111111	; clear all interrupt "enables"
-	sta	MOCK_6522_IER	; IER register (interrupt enable)
+;; 	SEI
+;; 	set_irq_vector interrupt_handler_music
 
-	lda	#%11000000	; set timer1 IRQ enable
-	sta	MOCK_6522_IER	; IER register (interrupt enable)
+;; 	;; MOCK_6522_ACR = C40B
+;; 	;; bits 7 and 6 controls the timer1 operating mode
+;; 	;; $40 = Generate continuous interrupts, PB7 is disabled.
+;; 	lda	#%01000000
+;; 	sta	MOCK_6522_ACR	; ACR register
+
+;; 	lda	#%01111111	; clear all interrupt "enables"
+;; 	sta	MOCK_6522_IER	; IER register (interrupt enable)
+
+;; 	lda	#%11000000	; set timer1 IRQ enable
+;; 	sta	MOCK_6522_IER	; IER register (interrupt enable)
 
 
 
-	lda	#$7F		; clear all interrupt flags
-	set_timer_const $FFFE
-	CLI
+;; 	lda	#$7F		; clear all interrupt flags
+;; 	set_timer_const $FFFE
+;; 	CLI
 
 	RTS
 	.endproc
