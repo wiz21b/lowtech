@@ -10,6 +10,7 @@
 	.import file_being_loaded
 	.import read_sector_in_track
 	.import useless_sector
+	.import sector_status
 
 	.include "defs.s"
 
@@ -209,6 +210,12 @@ freeze:
 	.endif 			; TWO PAGES
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+	LDX #15
+show_sectors:
+	lda sector_status,X
+	sta $6d0,X
+	DEX
+	BPL show_sectors
 	;; We pause a bit of time before
 	;; loading a new file. Ths is to ensure
 	;; that both line data pointers are one

@@ -10,6 +10,13 @@ interrupt_handler_music:
 
 	;LDA	$C404
 
+	LDA #0
+	CMP read_sector_simulation
+	BEQ regular_operation
+	STA read_sector_simulation
+	JMP sector_was_read
+
+regular_operation:
 	INC time_skip_count
 	LDA time_skip_count
 	CMP #2
@@ -31,6 +38,7 @@ no_skip:
 
 	sector_read_code
 
+sector_was_read:
 	STATUS_LINE = $7d0 ;$650
 	LDA sector_shift
 	BNE no_clear
@@ -118,7 +126,7 @@ sector_shift:
 	.byte 0
 time_skip_count:
 	.byte 0
-
+read_sector_simulation:	.byte 0
 time_expand:	.byte 0
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

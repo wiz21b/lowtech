@@ -155,13 +155,13 @@ run:
 
 	LDA #FILE_THREED
 	JSR load_file_no_irq
+	LDA #FILE_DATA_3D_0
+	JSR load_file_no_irq
+	LDA #FILE_DATA_3D_1
+	JSR load_file_no_irq
 
 	JSR start_interrupts
 
-	LDA #FILE_DATA_3D_0
-	JSR load_file;_no_irq
-	LDA #FILE_DATA_3D_1
-	JSR load_file;_no_irq
 
 
 	LDA #FILE_DATA_3D_2
@@ -395,15 +395,23 @@ ticks:	.word 0
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	.macro sector_read_code
+
 	LDA #0
 	STA time_expand
 
 	LDA read_in_pogress
-	BEQ no_read
+	BEQ read_sector_sim
+
+	.ifdef DEBUG
+	LDA #$0
+	STA $2010
+	.endif
 
 	JSR read_sector_in_track
 
 	LDA read_sector_status
+	BEQ read_sector_sim
+
 	AND #SECTOR_READ
 	BNE skip_pause
 
@@ -415,6 +423,16 @@ ticks:	.word 0
 	AND #SECTOR_SEEK
 	BNE latch_advance
 	BEQ skip_pause
+read_sector_sim:
+	.ifdef DEBUG
+	LDA #$FF
+	STA $2010
+	.endif
+	set_timer_const $3179
+	LDA #1
+	STA read_sector_simulation
+
+	JMP exit_interrupt
 
 latch_advance:
 	LDA #0

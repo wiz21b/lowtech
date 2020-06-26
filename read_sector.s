@@ -29,7 +29,7 @@ phaseoff         =        $c080                     ;stepper phase off.
 unitnum          =        $43
 
 
-	.export distance_to_next_sector, read_sector_status
+	.export distance_to_next_sector, read_sector_status, sector_status
 	.export rdadr16, seek, current_track, read16, buf, curtrk
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -321,7 +321,7 @@ work_to_do:
 	INX
 	INX
 	LDA #'*'+$80
-	STA $7d0,X
+	STA $750,X
 
 	LDA current_track
 	ASL
