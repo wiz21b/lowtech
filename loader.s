@@ -94,12 +94,12 @@ run:
 
 	.endif
 
-	;; LDA #FILE_EARTH
-	;; JSR load_file_no_irq
-	;; LDA #FILE_BIG_SCROLL
-	;; JSR load_file_no_irq
+	LDA #FILE_EARTH
+	JSR load_file_no_irq
+	LDA #FILE_BIG_SCROLL
+	JSR load_file_no_irq
+	JSR $6000
 
-	;JSR calibration_procedure
 
 	.ifdef MUSIC
 	JSR start_player

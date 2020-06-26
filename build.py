@@ -398,9 +398,9 @@ file_list = [
     (f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
     # (TUNE,  0x60, "pt3"),
     (TUNE,  0xB8, "pt3"),
+    (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
+    (f"{BUILD_DIR}/BSCROLL",0x60,"big_scroll"),
     (f"{BUILD_DIR}/CHKDSK",0x60,"check_disk"),
-    # (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
-    # (f"{BUILD_DIR}/BSCROLL",0x60,"big_scroll"),
     (f"{BUILD_DIR}/THREED",0x60,"threed") ] + td_files + \
     [ (f"{DATA_DIR}/TITLEPIC.BIN", 0x20, "picture"),
       (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")]
