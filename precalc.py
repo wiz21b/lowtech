@@ -24,10 +24,10 @@ import numpy as np
 from utils import *
 
 
-SHAPE = "Ogon"
+#SHAPE = "Ogon"
 #SHAPE = "Tetrahedron"
 #SHAPE = "Cube"
-#SHAPE = "Cube2"
+SHAPE = "Cube2"
 #SHAPE="Grid"
 DEBUG = False
 TILE_SIZE = APPLE_HGR_PIXELS_PER_BYTE
@@ -187,10 +187,10 @@ if SHAPE == "Cube":
 
 
 if SHAPE == "Cube2":
-    ATTENUATION = math.pi
+    ATTENUATION = math.pi * 1.7
     ZOOM=250
     HIDDEN_FACES = True
-    NB_FRAMES = 500
+    NB_FRAMES = 450
 
     axis = [3,2,0.5]
 

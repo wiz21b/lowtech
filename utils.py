@@ -128,6 +128,10 @@ class AppleDisk:
                 self._sector = 0
                 self._track += 1
 
+                if self._track >= TRACKS_PER_DISK:
+                    print("!!!!! ERROR !!!!! Disk full")
+                    return False
+
         # self.toc.append( (first_sector[0],first_sector[1],
         #                   last_sector[0],last_sector[1],
         #                   load_page, label) )

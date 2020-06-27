@@ -31,12 +31,7 @@ dummy_pointer = 254
 	.include "read_sector.s"
 
 disk_toc: .include "build/loader_toc.s"
-	.export txt_ofs
 
-txt_ofs:
-	.word $400,$480,$500,$580,$600,$680,$700,$780
-	.word $428,$4A8,$528,$5A8,$628,$6A8,$728,$7A8
-	.word $450,$4D0,$550,$5D0,$650,$6D0,$750,$7D0
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -66,20 +61,20 @@ run:
 	JSR load_file_no_irq
 
 	;; ;; B800
-	;; TUNE_PACKED = $6000
-	;; TUNE_ADDRESS = $B800
+	TUNE_PACKED = $6000
+	TUNE_ADDRESS = $B800
 
-	;; LDA #<TUNE_PACKED
-	;; STA LZSA_SRC_LO
-	;; LDA #>TUNE_PACKED
-	;; STA LZSA_SRC_HI
+	LDA #<TUNE_PACKED
+	STA LZSA_SRC_LO
+	LDA #>TUNE_PACKED
+	STA LZSA_SRC_HI
 
-	;; LDA #<TUNE_ADDRESS
-	;; STA LZSA_DST_LO
-	;; LDA #>TUNE_ADDRESS
-	;; STA LZSA_DST_HI
+	LDA #<TUNE_ADDRESS
+	STA LZSA_DST_LO
+	LDA #>TUNE_ADDRESS
+	STA LZSA_DST_HI
 
-	;; JSR DECOMPRESS_LZSA2_FAST
+	JSR DECOMPRESS_LZSA2_FAST
 
 
 
@@ -155,6 +150,24 @@ run:
 
 	LDA #FILE_THREED
 	JSR load_file_no_irq
+
+	THREED_PACKED = $9B00
+	THREED_ADDRESS = $6000
+
+	LDA #<THREED_PACKED
+	STA LZSA_SRC_LO
+	LDA #>THREED_PACKED
+	STA LZSA_SRC_HI
+
+	LDA #<THREED_ADDRESS
+	STA LZSA_DST_LO
+	LDA #>THREED_ADDRESS
+	STA LZSA_DST_HI
+
+	JSR DECOMPRESS_LZSA2_FAST
+
+
+
 	LDA #FILE_DATA_3D_0
 	JSR load_file_no_irq
 	LDA #FILE_DATA_3D_1
@@ -182,13 +195,17 @@ run:
 
 	JSR init_file_load
 read_more:
+	.ifdef DEBUG
 	jsr debug_disk
+	.endif
 	LDA read_in_pogress
 	CMP #1
 	BEQ read_more
 	;BCS read_more
 
+	.ifdef DEBUG
 	jsr debug_disk
+	.endif
 
 	RTS
 	.endproc
@@ -272,62 +289,70 @@ file_being_loaded:	.byte $FF
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+	.ifdef DEBUG
+
 	.proc debug_disk
-	rts
 
-;; 	LDA current_track
-;; 	AND #%00001111
-;; 	TAX
-;; 	LDA hexa_apple,X
-;; 	STA $05D0,X
+	LDA current_track
+	AND #%00001111
+	TAX
+	LDA hexa_apple,X
+	STA $05D0,X
 
-;; 	;SEI
-;; 	LDY #0
-;; draw_status:
-;; 	TYA
+	;SEI
+	LDY #0
+draw_status:
+	TYA
 
-;; 	CLC
-;; 	ADC #2
+	CLC
+	ADC #2
 
-;; 	;; sector is translated to line
+	;; sector is translated to line
 
-;; 	ASL
-;; 	TAX
-;; 	LDA txt_ofs+1,X
-;; 	STA smc + 2
-;; 	LDA txt_ofs,X
-;; 	STA smc + 1
+	ASL
+	TAX
+	LDA txt_ofs+1,X
+	STA smc + 2
+	LDA txt_ofs,X
+	STA smc + 1
 
-;; 	TYA
-;; 	TAX
-;; 	LDA sector_status,X
+	TYA
+	TAX
+	LDA sector_status,X
 
-;; 	;BEQ noz
+	;BEQ noz
 
-;; 	BNE not_draw_blank
-;; 	LDA #'.'+$80
-;; not_draw_blank:
+	BNE not_draw_blank
+	LDA #'.'+$80
+not_draw_blank:
 
-;; 	;; pha
-;; 	;; tya
-;; 	;; tax
-;; 	;; pla
+	;; pha
+	;; tya
+	;; tax
+	;; pla
 
-;; 	LDX current_track
-;; 	;LDX #10
-;; 	;; CPX #10
-;; 	;; BPL noz
-;; smc:
-;; 	STA $0400,X
-;; noz:
+	LDX current_track
+	;LDX #10
+	;; CPX #10
+	;; BPL noz
+smc:
+	STA $0400,X
+noz:
 
-;; 	INY
-;; 	CPY #16
-;; 	BNE draw_status
-;; 	;CLI
-;; 	RTS
+	INY
+	CPY #16
+	BNE draw_status
+	;CLI
+	RTS
+
+txt_ofs:
+	.word $400,$480,$500,$580,$600,$680,$700,$780
+	.word $428,$4A8,$528,$5A8,$628,$6A8,$728,$7A8
+	.word $450,$4D0,$550,$5D0,$650,$6D0,$750,$7D0
+
 	.endproc
 
+	.endif
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -360,27 +385,6 @@ mocking_not_found:
 
 	rts
 
-;; start_player2:
-;; 	;; This will enable RAM read/write on Language Card
-;; 	jsr	mockingboard_setup_interrupt
-
-;; 	;============================
-;; 	; Init the Mockingboard
-;; 	;============================
-
-
-;; 	;==================
-;; 	; init song
-;; 	;==================
-
-;; 	;jsr	pt3_init_song
-
-;; 	;============================
-;; 	; Enable 6502 interrupts
-;; 	;============================
-;; 	cli ; clear interrupt mask
-
-;; 	RTS
 
 	; some firmware locations
 	.include "pt3_lib/hardware.inc"
@@ -465,261 +469,4 @@ skip_pause:
 	; if you're self patching, detect has to be after
 	; interrupt_handler.s
 	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
-
-
-;; read_any_sector:
-;; 	RTS
-
-;; irq_count:	.byte 0
-
-;; 	.proc pause_2_irq
-;; not_done:
-;; 	LDA irq_count
-;; 	CMP #2
-;; 	;BMI not_done
-;; done:
-;; 	LDA #0
-;; 	STA irq_count
-;; 	JSR VBLANK_GSE
-;; 	rts
-
-;; 	VERTBLANK = $C019
-;; 	bMachine         = $0A
-
-;; VBLANK_GSE:
-;;         LDA bMachine
-;; LVBL1:
-;;         CMP VERTBLANK
-;;         BPL LVBL1                         ; attend fin vbl
-
-;;         LDA bMachine
-;; LVBL2:
-;;         CMP VERTBLANK
-;;         BMI LVBL2                         ; attend fin display
-;;         RTS
-;; 	.endproc
-
-	; .include "decompress_fast_v2.s"
-
-	;; debug_ptr = $86
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; 	.proc calibration_procedure
-
-;; 	sei
-;; 	lda %01000000		; Clear interrupt enable bit for timer 1
-;; 	sta MOCK_6522_IER
-
-;; 	lda #$0		; One-shot mode, no PB7
-;; 	sta MOCK_6522_ACR
-
-;; 	;; bring the read head upon a sector
-
-;; 	ldx #SLOT_SELECT
-;; 	jsr rdadr16
-;; 	ldx #SLOT_SELECT
-;; 	jsr read16
-
-;; one_more:
-
-;; 	;; set 6522 T1 counter to FFFF
-;; 	lda #$FF
-;; 	sta MOCK_6522_T1CL	; write into low-order latch
-;; 	lda #$FF
-;; 	sta MOCK_6522_T1CH	; write into high-order latch,
-
-;; not_yet:
-;; 	ldx #SLOT_SELECT
-;; 	jsr rdadr16
-;; 	;bcs not_yet
-;; 	;; ldx #SLOT_SELECT
-;; 	;; jsr read16
-
-
-;; 	lda sect
-;; 	asl
-;; 	tax
-;; 	lda txt_ofs,X
-;; 	sta debug_ptr
-;; 	lda txt_ofs+1,X
-;; 	sta debug_ptr+1
-
-;; 	;store_16 debug_ptr,$7D0
-;; 	lda sect
-;; 	jsr byte_to_text
-
-;; 	;; clc
-;; 	;; lda debug_ptr
-;; 	;; adc #2
-;; 	;; sta debug_ptr
-
-;; 	clc
-;; 	lda debug_ptr
-;; 	adc #3
-;; 	sta debug_ptr
-;; 	lda #$FF
-;; 	sec
-;; 	sbc MOCK_6522_T1CH	; write into high-order latch,
-;; 	jsr byte_to_text
-
-;; 	jmp one_more
-
-;; 	NOP
-;; 	NOP
-;; 	JSR start_player
-;; 	JSR start_player2
-
-;; 	;; Without that, mame messes up things. I'm under
-;; 	;; the impression that if I don't do it, it fails
-;; 	;; to send the IRQ properly (at the right speed).
-;; 	;; FIXME not sure
-
-;; 	;; LDA  #%01000000
-;;         ;; STA  $C50E
-
-;; calibration0:
-
-;; calibration:
-
-;; 	;jmp calibration
-
-;; 	;;  Tell the 6522 to not send IRQ anymore
-
-;; 	;; LDA  #%01000000
-;;         ;; STA  $C40E
-
-;; 	;; jsr	pt3_init_song
-;; 	;; jsr	reset_ay_both
-;; 	;; jsr	clear_ay_both
-
-;; 	;JSR align_sector_zero
-
-
-;; 	LDA #0
-;; 	STA ticks
-;; wait_ticks:
-;; 	LDA ticks
-;; 	CMP calibration_step
-;; 	BMI wait_ticks
-
-;; 	;SEI
-;; wait_sector_n:
-;; 	ldx #SLOT_SELECT
-;; 	jsr rdadr16
-;; 	CLI
-;; 	bcs wait_sector_n
-
-;; 	ldx sect
-;; 	lda hexa,x
-;; 	clc
-;; 	adc #$80
-;; 	LDX calibration_step
-;; 	INC calibration_step
-
-;; 	;; After x ticks, I'm at sector N
-;; 	;; 16 sector at 5 rps => 80 sectors per seconds
-;; 	;; 1 sector = 0.0125 sec
-;; 	;; scan tick speed = 0.01
-
-;; 	;; 0.01 - 0.0125
-;; 	;; 0.02 - 0.0125
-;; 	;; 0.03 - 0.0250
-;; 	;; 0.04 - 0.0375
-;; 	;; 0.05 - 0.05
-;; 	;; 0.07 - 0.0625
-
-;; calib_smc:
-;; 	STA $400,X
-
-;; 	;; 200/sec => un appel tous les 0.005 sec
-;; 	;; une track : 1/5 seconde = 0.2
-;; 	;; => il faut 40 ticks pour faire une track
-
-;; 	CPX #39
-;; 	BNE calibration
-
-;; stop:
-;; 	LDA #0
-;; 	sta calibration_step
-
-
-;; 	lda calibration_run
-;; 	clc
-;; 	adc #1
-;; 	and #15
-;; 	sta calibration_run
-;; 	asl
-;; 	TAX
-;; 	lda txt_ofs,X
-;; 	sta calib_smc + 1
-;; 	lda txt_ofs+1,X
-;; 	sta calib_smc + 2
-
-;; 	JMP calibration
-
-;; 	.endproc
-
-;; 	.proc align_sector_zero
-
-;; 	SEI
-;; wait_sector_zero:
-;; 	ldx #SLOT_SELECT
-;; 	jsr rdadr16
-;; 	bcs wait_sector_zero
-
-;; 	lda sect
-;; 	cmp #0
-;; 	bne wait_sector_zero
-
-;; 	;; Restart the clock so we know when it starts exactly
-;; 	;; (else a counter may still be running somewhere)
-;; 	;; This way, the next IRQ is exactly "CLOCK_SPEED" away.
-
-;; 	;; MOCK_6522_T1CL=$C404	; 6522 #1 t1 low order latches
-;; 	;; MOCK_6522_T1CH=$C405	; 6522 #1 t1 high order counter
-
-;; 	lda	#<CLOCK_SPEED	; 40
-;; 	sta	MOCK_6522_T1CL	; write into low-order latch
-;; 	lda	#>CLOCK_SPEED	; 9C
-;; 	sta	MOCK_6522_T1CH	; write into high-order latch,
-
-;; 	LDA #0
-;; 	STA ticks
-;; 	CLI
-
-	;; RTS
-	;; .endproc
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-	;; .proc byte_to_text
-	;; ;; A = byte
-	;; ;; debug_ptr = pointer to where to write
-	;; PHA
-	;; CLC
-	;; ROR
-	;; CLC
-	;; ROR
-	;; CLC
-	;; ROR
-	;; CLC
-	;; ROR
-	;; TAX
-	;; LDA hexa_apple,X
-	;; CLC
-	;; ADC #$80
-	;; ldy #0
-	;; sta (debug_ptr),Y
-
-	;; PLA
-	;; INY
-	;; AND #15			; 4 lo bits of timer
-	;; TAX
-	;; LDA hexa_apple,X
-	;; CLC
-	;; ADC #$80
-	;; sta (debug_ptr),Y
-
-	;; rts
-	;; .endproc
+	.include "decompress_fast_v2.s"

@@ -273,9 +273,13 @@ elif platform.system() == "Linux":
     ACME = r"acme"
     APPLEWIN=r"/opt/wine-staging/bin/wine /home/stefan/AppleWin1.29.10.0/Applewin.exe"
     MAME = "mame"
+    LZSA = "lzsa/lzsa"
 else:
     raise Exception("Unsupported system : {}".format(platform.system()))
 
+
+def crunch( filepath):
+    return run( f"{LZSA} -r -f2 {filepath} {filepath}.lzsa")
 
 BUILD_DIR = "build"
 DATA_DIR = "data"
@@ -366,13 +370,13 @@ disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
 # ####################################################################
 # Creating the boot sector and boot loader
 
-TUNE = f"{DATA_DIR}/2UNLIM.lzsa"
-
 TUNE_ORIGINAL = f"{DATA_DIR}/2UNLIM2.pt3"
+crunch(TUNE_ORIGINAL)
+
 # lzsa -r -f2 data\2UNLIM.pt3 data\2UNLIM.lzsa
 TUNE_ADDRESS = 0xC000 - (((os.path.getsize(TUNE_ORIGINAL) + 255 + 256) >> 8) << 8)
 
-TUNE = TUNE_ORIGINAL
+# TUNE = TUNE_ORIGINAL
 
 td_files = []
 import glob
@@ -392,16 +396,16 @@ for i,fn in enumerate( sorted( glob.glob(f"{BUILD_DIR}/bin_lines*"))):
 with open(f"{BUILD_DIR}/td_dummy","wb") as fout:
     fout.write( bytes([4] * 256))
 
-td_files.append( (f"{BUILD_DIR}/td_dummy", 0x08, "dummy") )
+td_files.append( (f"{BUILD_DIR}/td_dummy", 0x02, "dummy") )
 
 file_list = [
     (f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
-    # (TUNE,  0x60, "pt3"),
-    (TUNE,  0xB8, "pt3"),
+    (f"{TUNE_ORIGINAL}.lzsa",  0x60, "pt3"),
+    # (TUNE,  0xB8, "pt3"),
     (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
     (f"{BUILD_DIR}/BSCROLL",0x60,"big_scroll"),
-    (f"{BUILD_DIR}/CHKDSK",0x60,"check_disk"),
-    (f"{BUILD_DIR}/THREED",0x60,"threed") ] + td_files + \
+    # (f"{BUILD_DIR}/CHKDSK",0x60,"check_disk"),
+    (f"{BUILD_DIR}/THREED.lzsa",0x9B,"threed") ] + td_files + \
     [ (f"{DATA_DIR}/TITLEPIC.BIN", 0x20, "picture"),
       (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")]
 
@@ -428,7 +432,7 @@ run(f"{LD65} {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 loader_page_base = (0x2000 - os.path.getsize(f"{BUILD_DIR}/LOADER")) >> 8
 print(f"loader_page_base = {loader_page_base:02X}")
 #assert loader_page_base > 0x08, f"Loader space will conflict (start page {loader_page_base}) with FSTBT ROM calls to $801"
-assert loader_page_base == 0x9, "You must update the link.cfg file"
+assert loader_page_base == 0x8, "You must update the link.cfg file"
 
 
 # Now that the loader is built (with incomplete data but correct
@@ -442,6 +446,13 @@ run(f"{CA65} -o {BUILD_DIR}/td.o -t apple2 --listing {BUILD_DIR}/td.txt {additio
 run(f"{LD65} -o {BUILD_DIR}/THREED {BUILD_DIR}/td.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 shutil.copyfile(f"{BUILD_DIR}/datad000.o",f"{BUILD_DIR}/threed_data")
 
+
+f = f"{BUILD_DIR}/THREED.lzsa"
+size = os.path.getsize(f)
+pages = (size + 255) // 256
+start = 0xB8 - pages
+print(f"Crunch {f}, {pages} pages, crunched data start on page {start:X}")
+crunch(f"{BUILD_DIR}/THREED")
 
 run(f"{CA65} -o {BUILD_DIR}/checkdisk.o -t apple2 --listing {BUILD_DIR}/chkdsk.txt {additional_options} checkdisk.s")
 run(f"{LD65} -o {BUILD_DIR}/CHKDSK {BUILD_DIR}/checkdisk.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
@@ -479,6 +490,10 @@ for i, entry in enumerate(file_list):
     with open( filepath,"rb") as fin:
         data = fin.read()
         t = disk.write_data( data, page_base)
+        if not t:
+            print(f"!!!! ERROR !!!!! Unable to add {filepath}  to disk")
+            break
+
         size = len(data)
         end = (page_base * 256 + size) & 0xFF00
         print(f"${page_base:02X}00 - ${end:4X}: {filepath}, {size} bytes")
