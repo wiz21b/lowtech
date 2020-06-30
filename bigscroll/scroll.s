@@ -2,14 +2,12 @@
 ;;; It is published under the terms of the
 ;;; GUN GPL License Version 3.
 
-	.segment "CODE_6000"
+	.segment "CODE"
 
 	.import ticks
 
 	.include "defs.s"
 	.include "precalc_def.s"
-
-	DEBUG = 0
 
 	text_pointer	= 240
 	x_pos	= 252
@@ -41,7 +39,7 @@
 	LDY #$20
 	jsr mem_copy
 
-	.if DEBUG
+	.ifdef DEBUG
 	LDA $C053
 	.else
 	LDA $C052	     ; mix text and gfx (c052 = full text/gfx)
@@ -51,10 +49,12 @@
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
 
+	.ifndef DEBUG
 	LDA #250
 	JSR pause
 	LDA #250
 	JSR pause
+	.endif
 
 freeze:
 	;; LDA #0
@@ -188,10 +188,6 @@ reset:
 	BEQ reset2
 	jmp loop2
 reset2:
-	.if DEBUG
-	jsr draw_status
-	.endif
-
 	store_16  ticks, 0
 
 	;jmp big_loop
@@ -295,8 +291,10 @@ copy_block:
 	STY message_ndx
 
 show_message_loop0:
+	.ifndef DEBUG
 	LDA #25
 	JSR pause
+	.endif
 
 	LDY message_ndx
 	LDA (text_pointer),Y
@@ -337,10 +335,12 @@ continue_loop0:
 
 end_text:
 end_of_line:
+	.ifndef DEBUG
 	LDA #250
 	JSR pause
 	LDA #250
 	JSR pause
+	.endif
 	RTS
 
 message_ndx:	.byte 0

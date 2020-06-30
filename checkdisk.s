@@ -484,8 +484,6 @@ just_sector:
 	SECTOR_SEEK = 4
 	SECTOR_RDADR = 8
 
-	LDA #0
-	STA time_expand
 
 	LDA read_in_pogress
 	BEQ no_read

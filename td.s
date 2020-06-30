@@ -17,7 +17,6 @@
 MOCK_6522_T1CL	=	$C404	; 6522 #1 t1 low order latches
 MOCK_6522_T1CH	=	$C405	; 6522 #1 t1 high order counter
 
-	DEBUG = 0
 	ONE_PAGE = 0
 	GR_ONLY = 0
 
@@ -59,11 +58,10 @@ BYTES_PER_LINE	= 6
 
 	.segment "CODE"
 
-
 	STA next_file_to_load
 				;JSR init_disk_read	; Must be done before any read sector
 	lda #$ff
-	jsr clear_hgr
+	JSR clear_hgr
 
 	.if GR_ONLY = 1
 	LDA $C051		; text
@@ -74,7 +72,7 @@ BYTES_PER_LINE	= 6
 				;JSR check_timer
 	.if GR_ONLY = 0
 
-	.if DEBUG
+	.ifdef DEBUG
 	LDA $C053
 	.else
 	LDA $C052	     ; mix text and gfx (c052 = full text/gfx)
@@ -114,17 +112,6 @@ loop_infinite:
 
 				; 	add_const_to_16 line_data_ptr2, LINES_TO_DO * BYTES_PER_LINE +1
 demo3:
-
-	;; jsr clear_hgr
-	.if DEBUG
-	;store_16 ticks, 0
-	.endif
-
-
-
-	;; 1.04 pour 27 images => 25 fps
-
-
 
 	.if ONE_PAGE		; ------------------------------------
 

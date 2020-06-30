@@ -1,3 +1,25 @@
+	STATUS_LINE = $7d0 ;$650
+
+	.macro draw_debug_info
+
+ 	LDA sector_shift
+ 	BNE no_clear
+	LDX #15
+	LDA #'''+$80
+clear_line:
+	STA STATUS_LINE,X
+	DEX
+ 	BPL clear_line
+no_clear:
+	LDX sector_shift
+	LDA hexa_apple,X
+	CLC
+	ADC #$80
+	LDX sect
+	STA STATUS_LINE,X
+
+	.endmacro
+
 interrupt_handler:
 interrupt_handler_music:
 
@@ -8,7 +30,17 @@ interrupt_handler_music:
 	tya
 	pha			; save Y
 
-	;LDA	$C404
+	;; FIXME this must be SMC'ed to handle MockingBoard
+	;; on another port.
+	LDA	$C404		; Allow the next IRQ from the 6522
+
+	;; When in "simulation mode", it means that the timer
+	;; has been set to wait for the time it takes to read
+	;; a sector. So we spend times just like if a secot
+	;; was read. We do that to maintain sector synchronisation
+	;; with the disk while making sure the 6502 can do useful
+	;; things during that time. The simulation mode is used
+	;; when the read_sector macro does nothing useful.
 
 	LDA #0
 	CMP read_sector_simulation
@@ -17,47 +49,61 @@ interrupt_handler_music:
 	JMP sector_was_read
 
 regular_operation:
+	;; We'll read 40/2=20 sectors per seconds while maintainng
+	;; a 40Hz interrupt frequency (for PT3 play).
+
 	INC time_skip_count
 	LDA time_skip_count
-	CMP #2
+	CMP #2			; FIXME use SBC to hae A=0 afterwards
 	BNE no_skip
 	LDA #0
 	STA time_skip_count
 
-	FULL_SECTOR_SKIP = 2*$3179 ; 2* 1/80th of sec => 1/40th
+	;; A full sector skip is actually make of two things
+	;; - the time it takes to read the data of the sector
+	;; - the (maximum) time it takes to reach the address
+	;;   nibbles preceding those sector data (we count that
+	;;   time as a mximum because we make the hypothesis
+	;;   that when we start to want to read a sector, the
+	;;   read head is somewhere in the sector proceding that
+	;;   sector; so we must wait to reach the address nibbles)
+
+	;; Rememeber, 16 sectors per track, 5 round pers econd => 80 sectors per second.
+	FULL_SECTOR_SKIP = 2*$3179 ; 2* 1/80th of sec => 1/40th of sec.
+
+	;; We set our timer interrupt at the same frequency
+	;; of a full "sector" that is, one sector out of two.
+	;; That frequency is chosen for two reasons. First
+	;; reason is that if we wanted to read all sectors,
+	;; we would never leave the interrupt (we'd spend all
+	;; our time readin). The second reason is that the frequency
+	;; of one every two sectors is 2*1/80th = 40Hz. That frequency
+	;; is close to the 50Hz frequency of a PT3 player.
+
 	set_timer_const FULL_SECTOR_SKIP
 	JMP pt3_interrupt_hook
 
 no_skip:
 
-	;; The code in this macro must ABSOLUTELY
-	;; load one sector and one sector only.
-	;; (so it must be rdadr16 immeditately followed by read16)
-	;; It must be that way, because we expect it
-	;; to run for the time of a sector read.
-
 	sector_read_code
 
 sector_was_read:
-	STATUS_LINE = $7d0 ;$650
-	LDA sector_shift
-	BNE no_clear
-	LDX #15
-	LDA #'''+$80
-clear_line:
-	STA STATUS_LINE,X
-	DEX
-	BPL clear_line
-no_clear:
-	LDX sector_shift
-	LDA hexa_apple,X
-	CLC
-	ADC #$80
-	LDX sect
-	STA STATUS_LINE,X
 
+	;draw_debug_info
 
-	INC sector_shift
+	;;  Given the fact that we have a 40Hz frequency,
+	;; x2 because we skip one every other IRQ , we end
+	;; up reading a sector out of four. But, as a track is
+	;; 16 sectors, doing so leads to reading always the
+	;; same 4 sectors : 0,4,8,12,0,4,8,12,... To avoid that
+	;; we shift one sector each time the disk has completed a
+	;; revolution to have a pattern
+	;; such as : 0,4,8,12,1,5,9,13,2,6,10,14... This way
+	;; we make sure we read each sector once and we also make sure
+	;; we read it ath mose appropriate time (that is, we don't
+	;; have to wait for it).
+
+	INC sector_shift	; FIXME this can pobably be optimized a bit
 	LDX sector_shift
 
 	CPX #4
@@ -79,7 +125,7 @@ no_clear:
 
 regular_sector_progress:
 	set_timer_const REGULAR_SKIP
-	jmp go_on
+	jmp go_on		; FIXME Use shorter jumps
 back_to_zero:
 	LDA #0
 	STA sector_shift
@@ -102,7 +148,6 @@ quiet_exit:
 	stx	AY_REGISTERS+7	; just in case
 
 exit_interrupt:
-	LDA	$C404
 
 	pla
 	tay			; restore Y
@@ -134,17 +179,25 @@ time_expand:	.byte 0
 	.proc start_interrupts
 
 wait_sector_zero:
+	;; Wait for sector zero before starting interrupts.
+	;; This is not 100% necessary, but it helps to have
+	;; more predictable execution and that's useful
+	;; when debugging. We assume no interrupts occur
+	;; while doing this (else the timing will be wrong)
+	;; FIXME Use this to measure the time it takes to read
+	;; a sector.
+
+
         ldx #SLOT_SELECT
-	JSR rdadr16		; stabilize
-	LDA sect
+	JSR rdadr16
+	LDA sect		; Wait for sector 0
 	BNE wait_sector_zero
 
-	SEI
 
+	SEI
 	;; MOCK_6522_ACR = C40B
 	;; bits 7 and 6 controls the timer1 operating mode
-	;; $40 = Generate continuous interrupts, PB7 is disabled.
-	lda	#%01000000
+	lda	#%01000000 	; Generate continuous interrupts, PB7 is disabled.
 	sta	MOCK_6522_ACR	; ACR register
 
 	lda	#%01111111	; clear all interrupt "enables"
@@ -154,8 +207,7 @@ wait_sector_zero:
 	sta	MOCK_6522_IER	; IER register (interrupt enable)
 
 
-
-	lda	#$7F		; clear all interrupt flags
+	;lda	#$7F		; clear all interrupt flags
 	set_timer_const $FFFE
 	CLI
 

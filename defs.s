@@ -131,8 +131,8 @@ j:
 
 	.macro set_timer_const value
 	lda	#>(value)	; 9C
-	CLC
-	ADC time_expand
+	;CLC
+	;; ADC time_expand
 	sta	MOCK_6522_T1CH	; write into high-order latch,
 	lda	#<(value)
 	sta	MOCK_6522_T1CL	; write into low-order latch

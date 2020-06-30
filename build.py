@@ -59,8 +59,10 @@ MESSAGE = ["This demo was",
            "written by Wiz of",
            "Imphobia in 2020",
            "",
+           "",
            "Keeping the spirit",
            "alive !",
+           "",
            "",
            "Greetings go to",
            "",
@@ -68,7 +70,8 @@ MESSAGE = ["This demo was",
            "   Peter Ferrie",
            "   Deater",
            "   Fennarinarsa",
-           "   Marc Golombeck"
+           "   French Touch",
+           "   Marc Golombeck",
            "",
            "",
            "Additional Credits",
@@ -94,6 +97,16 @@ MESSAGE = ["This demo was",
            "",
            "   iStock free",
            "",
+           "",
+           "",
+           "",
+           "",
+           "Except code of",
+           "others, this is",
+           "copyright Stephane",
+           "Champailler and is",
+           "distributed under",
+           "the GPLv3 license.",
            "",
            "",
            "",
@@ -265,6 +278,7 @@ if platform.system() == "Windows":
     ACME = r"\PORT-STC\opt\acme\acme"
     APPLEWIN=r"\PORT-STC\opt\applewin\Applewin.exe"
     MAME = r"c:\port-stc\opt\mame\mame64"
+    LZSA = "lzsa.exe"
 
 elif platform.system() == "Linux":
     CA65 = r"ca65"
@@ -425,8 +439,8 @@ with open(f"{BUILD_DIR}/loader_toc.s","w") as fout:
         fout.write(f"FILE_{uplbl} = {i}\n")
         fout.write("\t.byte 0,0,0,0,0\n")
 
-run(f"{CA65} -o {BUILD_DIR}/loader.o -DPT3_LOC={TUNE_ADDRESS} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
-run(f"{LD65} {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
+run(f"{CA65} -o {BUILD_DIR}/loader.o -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
+run(f"{LD65} {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_loader.out")
 
 
 loader_page_base = (0x2000 - os.path.getsize(f"{BUILD_DIR}/LOADER")) >> 8
@@ -438,8 +452,8 @@ assert loader_page_base == 0x8, "You must update the link.cfg file"
 # Now that the loader is built (with incomplete data but correct
 # size), we can build other modules which depends on its routines.
 
-run(f"{CA65} -I . -o {BUILD_DIR}/big_scroll.o -t apple2 {additional_options} bigscroll/scroll.s")
-run(f"{LD65} -o {BUILD_DIR}/BSCROLL {BUILD_DIR}/big_scroll.o {BUILD_DIR}/loader.o -C bigscroll/link.cfg --mapfile {BUILD_DIR}/map.out")
+run(f"{CA65} -I . -o {BUILD_DIR}/big_scroll.o --listing {BUILD_DIR}/bscroll.txt -t apple2 {additional_options} bigscroll/scroll.s")
+run(f"{LD65} -o {BUILD_DIR}/BSCROLL {BUILD_DIR}/big_scroll.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_bscroll.out")
 
 
 run(f"{CA65} -o {BUILD_DIR}/td.o -t apple2 --listing {BUILD_DIR}/td.txt {additional_options} td.s")
@@ -510,8 +524,8 @@ with open(f"{BUILD_DIR}/loader_toc.s","w") as fout:
     fout.write("\n".join( toc))
 
 # Now we have the correct TOC, we rebuild the loader with it.
-run(f"{CA65} -o {BUILD_DIR}/loader.o  -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
-run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
+run(f"{CA65} -o {BUILD_DIR}/loader.o  -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader_final.txt {additional_options} loader.s")
+run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_loader_final.out")
 
 # And overwrite it on the disk
 disk.set_track_sector( 0, 1)

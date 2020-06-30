@@ -76,7 +76,7 @@ mb_timer_check_done:
 ; this is the brute force version, we have to patch 39 locations
 ; see further below if you want to try a smaller, more dangerous, patch
 
-.if 0
+.if 1
 mockingboard_patch:
 
 	lda	MB_ADDR_H
@@ -151,6 +151,7 @@ mockingboard_patch:
 ;	only do this if 2 bytes after a LDA/STA/LDX/STX
 ;	count total and if not 39 then print error message
 
+.if 0
 mockingboard_patch:
 	; from mockingboard_init 	$1BBF
 	;   to done_pt3_irq_handler	$1D85
@@ -187,6 +188,7 @@ mb_patch_oflo:
 
 mb_patch_done:
 	rts
+	.endif
 
 .if 0
 

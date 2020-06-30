@@ -36,6 +36,9 @@ smc:
 	lda #$20
 	cmp dummy_pointer + 1
 	bne clear_hgr_loop
+
+	INC $650+36
+
 	lda #0
 	cmp dummy_pointer
 	bne clear_hgr_loop

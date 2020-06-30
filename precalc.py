@@ -190,7 +190,7 @@ if SHAPE == "Cube2":
     ATTENUATION = math.pi * 1.7
     ZOOM=250
     HIDDEN_FACES = True
-    NB_FRAMES = 450
+    NB_FRAMES = 540
 
     axis = [3,2,0.5]
 
@@ -1140,7 +1140,8 @@ def gen_data_line( fo, a, b):
         # we can handle is 32*7 = 224 pixels (out of 270)
         if slope >= 0:
             d = [ 0 + (right_mask << 5),
-                  int(a.x), int(a.y),
+                  int(a.x),
+                  int(a.y),
                   (dx_int << 2) + (left_mask >> 1),
                   int_to_16( slope)]
         else:
@@ -1171,7 +1172,8 @@ def gen_data_line( fo, a, b):
         assert int( abs( TILE_SIZE*dx/dy)) <= TILE_SIZE - 1
 
         d = [ 1,
-              int(a.x), int(a.y),
+              int(a.x),
+              int(a.y),
               max(1, int(dy )), #  // TILE_SIZE
               int_to_16( TILE_SIZE*dx/dy)]
 

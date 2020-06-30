@@ -93,12 +93,9 @@ run:
 	JSR load_file_no_irq
 	LDA #FILE_BIG_SCROLL
 	JSR load_file_no_irq
+
 	JSR $6000
 
-
-	.ifdef MUSIC
-	JSR start_player
-	.endif
 
 	;; Setting those up before activating language card RAM bank
 	;; seems important. Without that, things go totally wrong
@@ -114,6 +111,9 @@ run:
 	;; lda	#>interrupt_handler
 	;; sta	$03ff
 
+	.ifdef MUSIC
+	JSR start_player
+	.endif
 	set_irq_vector interrupt_handler
 
 	LDA LC_RAM_SELECT
@@ -166,16 +166,12 @@ run:
 
 	JSR DECOMPRESS_LZSA2_FAST
 
-
-
 	LDA #FILE_DATA_3D_0
 	JSR load_file_no_irq
 	LDA #FILE_DATA_3D_1
 	JSR load_file_no_irq
 
 	JSR start_interrupts
-
-
 
 	LDA #FILE_DATA_3D_2
 	JSR $6000
@@ -399,9 +395,6 @@ ticks:	.word 0
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	.macro sector_read_code
-
-	LDA #0
-	STA time_expand
 
 	LDA read_in_pogress
 	BEQ read_sector_sim
