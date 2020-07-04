@@ -67,18 +67,18 @@ class AppleDisk:
     def __init__( self, filename = None):
         self.filename = filename
 
+        self.sector_map = [ [None] * SECTORS_PER_TRACK for i in range(TRACKS_PER_DISK)]
+        self.reset_data_tracking()
         self.set_track_sector( 0,0)
-
-        self.toc = 0
-
-        self.sector_map = [   [0] * SECTORS_PER_TRACK for i in range(TRACKS_PER_DISK)]
-        self.nb_writes = 0
 
         if not filename:
             self._disk = bytearray( DISK_SIZE)
         else:
             with open(filename,"rb") as fin:
                 self._disk = bytearray(fin.read( DISK_SIZE))
+
+    def reset_data_tracking(self):
+        self.nb_writes = 0
 
     def set_sector(self, track : int, logical_sector : int, data : bytearray):
         assert len(data) == 256
@@ -95,7 +95,7 @@ class AppleDisk:
     def set_track_sector( self, track, sector):
         self._track, self._sector = track, sector
 
-    def write_data( self, data, load_page):
+    def write_data( self, data, load_page, ident=None):
         assert data
 
 
@@ -119,7 +119,7 @@ class AppleDisk:
             self.set_sector( self._track, self._sector, bytearray(s))
             sectors_written += 1
 
-            self.sector_map[self._track][self._sector] = 1 + self.nb_writes
+            self.sector_map[self._track][self._sector] = ident
 
             #if len(data) - offset > 256:
             if self._sector < 15:
@@ -150,10 +150,113 @@ class AppleDisk:
         with open( self.filename,"wb") as fout:
             fout.write( self._disk)
 
-        for s in range( SECTORS_PER_TRACK):
-            all_sect = [self.sector_map[t][s] for t in range(TRACKS_PER_DISK)]
-            print("".join([ ".0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"[s] for s in all_sect  ]))
 
+
+
+class LoaderTOC:
+    def __init__( self, disk_path):
+        # The first sector is the boot sector
+        self._file_list = []
+        self._disk = AppleDisk( disk_path)
+
+    def add_file( self, path, start_page, nickname):
+        assert path and start_page and nickname
+        self._file_list.append( (path, start_page, nickname) )
+
+    def add_files( self, d):
+        for line in d:
+            self.add_file( *line)
+
+    def generate_unconfigured_toc( self, path):
+        with open( path, "w") as fout:
+            # The first file is expected to be the loader
+            for i, entry in enumerate( self._file_list[1:]):
+                filepath, page_base, label = entry
+                uplbl = label.upper()
+                fout.write( f"FILE_{uplbl} = {i}\n")
+                fout.write( f"FILE_{uplbl}_LOAD_ADDR = ${page_base:X}00\n")
+                fout.write( "\t.byte 0,0,0,0,0\n")
+
+    def update_file( self, path, start_page, nickname):
+        success = False
+        for i, entry in enumerate( self._file_list):
+            filepath, page_base, label = entry
+            if label == nickname:
+                self._file_list[i] = (path, start_page, nickname)
+                success =True
+                break
+
+        assert success, f"The file with nickname {nickname} it not in the TOC"
+
+    def set_boot_sector( self, path):
+        self._disk.set_track_sector( 0, 0)
+        with open( path, "rb") as fin:
+            self._disk.write_data( fin.read(), 0x08)
+
+
+    def generate_disk( self, tocfile):
+        # We write the loader once (it will be rewritten
+        # when the TOC will be fully known). This is just to
+        # position the other file (ie not the loader) correctly
+        # on the disk.
+
+        self._disk.reset_data_tracking()
+        self._disk.set_track_sector( 0, 1)
+
+        toc = []
+        entry_ndx = 0
+        for i, entry in enumerate(self._file_list):
+            filepath, page_base, label = entry
+
+            with open( filepath,"rb") as fin:
+                data = fin.read()
+                ident = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"[i]
+                t = self._disk.write_data( data, page_base, ident)
+                if not t:
+                    print(f"!!!! ERROR !!!!! Unable to add {filepath}  to disk")
+                    break
+
+                size = len(data)
+                end = ((page_base * 256 + size) & 0xFF00) + 0xFF
+                print(f"[{ident}] ${page_base:02X}00 - ${end:04X}: {filepath}, {size} bytes")
+
+                if i > 0:
+                    # Skip the loader, cos it won't load itself :-)
+                    uplbl = label.upper()
+                    toc.append( f"FILE_{uplbl} = {entry_ndx}")
+                    toc.append( f"FILE_{uplbl}_LOAD_ADDR = ${page_base:X}00\n")
+                    s = ".byte {},{},{},{},${:X}\t; {}".format(*t, label)
+                    toc.append( s)
+                    entry_ndx += 1
+
+        with open( tocfile,"w") as fout:
+            fout.write("\n".join( toc))
+
+
+    def save( self):
+
+        free_sectors = 0
+        self._disk.save()
+
+        print("-"*45)
+        sector_map = self._disk.sector_map
+        for sector in range( SECTORS_PER_TRACK):
+            all_sect = [sector_map[t][sector] for t in range(TRACKS_PER_DISK)]
+            t = ""
+            for i,s in enumerate( all_sect):
+                if s is not None:
+                    t += s
+                elif i == sector == 0 :
+                    t += '*'
+                else:
+                    t += '.'
+                    free_sectors +=1
+
+            print(f"{sector:X} {t}")
+
+        print()
+        print("{} free sectors = {} bytes".format(free_sectors, free_sectors*256))
+        print("-"*45)
 
 
 class FixedPoint:
@@ -219,6 +322,16 @@ class Vertex:
         r = lambda n: int( round( n))
         return Vertex( r(v.x), r(v.y), v.z)
 
+    def translate( self, v):
+        self._vec[0] += v.x
+        self._vec[1] += v.y
+        self._vec[2] += v.z
+
+    def scale( self, v):
+        self._vec[0] *= v
+        self._vec[1] *= v
+        self._vec[2] *= v
+
     def __mul__(self,other):
         if type(other) == Vertex:
             return np.dot( self._vec, other._vec)
@@ -237,10 +350,33 @@ class Vertex:
     def __str__(self):
         return "{:.1f},{:.1f},{:.1f}".format(self.x, self.y, self.z)
 
+    def __format__( self, format_spec):
+        return "{:.1f},{:.1f},{:.1f}".format(self.x, self.y, self.z)
+
+
+def bounding_box( points):
+    assert points
+
+    tl_x, tl_y = points[0].x, points[0].y
+    br_x, br_y = points[0].x, points[0].y
+
+    for p in points[1:]:
+        #print(p)
+
+        tl_x = min( tl_x, p.x)
+        tl_y = max( tl_y, p.y)
+        br_x = max( br_x, p.x)
+        br_y = min( br_y, p.y)
+
+    return Vertex(tl_x,tl_y), Vertex( br_x, br_y)
+
+
 class Edge:
     def __init__( self, v1, v2):
         self.v1, self.v2 = v1, v2
 
+    def points( self):
+        return [self.v1, self.v2]
 
 def special_points( v):
     top = v[0]
@@ -1104,9 +1240,9 @@ def array_to_asm( fo, a, line_prefix, label = ""):
     if type(a[0]) == str:
         fmt = "{}"
     elif line_prefix in ('!word','.word'):
-        fmt = "${:04x}"
+        fmt = "${:04X}"
     elif line_prefix in ('!byte','.byte'):
-        fmt = "${:02x}"
+        fmt = "${:02X}"
     else:
         raise Exception("Unknown format {}".format( line_prefix))
 

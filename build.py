@@ -26,8 +26,6 @@ from utils import *
 
 from bigscroll.make_logo import make_all
 
-
-
 PUSAB_ALPHABET="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-,.!"
 new_blocs = make_bitmap_font("data/8-bit-pusab.ttf", PUSAB_ALPHABET, 7)
 
@@ -293,7 +291,9 @@ else:
 
 
 def crunch( filepath):
-    return run( f"{LZSA} -r -f2 {filepath} {filepath}.lzsa")
+    fname = f"{filepath}.lzsa"
+    run( f"{LZSA} -r -f2 {filepath} {fname}")
+    return fname
 
 BUILD_DIR = "build"
 DATA_DIR = "data"
@@ -346,38 +346,38 @@ print("Builing loader")
 
 
 
-with open(f"{BUILD_DIR}/file_size.s","w") as fout:
+# with open(f"{BUILD_DIR}/file_size.s","w") as fout:
 
-    size = os.path.getsize(f"{BUILD_DIR}/THREED")
-    print(f"Demo : {size} bytes")
-    fout.write(f"THREED_SIZE = {size}\n")
+#     size = os.path.getsize(f"{BUILD_DIR}/THREED")
+#     print(f"Demo : {size} bytes")
+#     fout.write(f"THREED_SIZE = {size}\n")
 
-    size = os.path.getsize(f"{BUILD_DIR}/datad000.o")
-    print(f"Data : {size} bytes")
-    fout.write(f"DATAD000_SIZE = {size}\n")
+#     size = os.path.getsize(f"{BUILD_DIR}/datad000.o")
+#     print(f"Data : {size} bytes")
+#     fout.write(f"DATAD000_SIZE = {size}\n")
 
-    size = os.path.getsize(TUNE)
-    print(f"Music : {size} bytes")
-    fout.write(f"MUSIC_SIZE = {size}\n")
+#     size = os.path.getsize(TUNE)
+#     print(f"Music : {size} bytes")
+#     fout.write(f"MUSIC_SIZE = {size}\n")
 
-    size = os.path.getsize(f"{DATA_DIR}/TITLEPIC.BIN")
-    print(f"Pix : {size} bytes")
-    fout.write(f"ICEBERG_SIZE = {size}\n")
+#     size = os.path.getsize(f"{DATA_DIR}/TITLEPIC.BIN")
+#     print(f"Pix : {size} bytes")
+#     fout.write(f"ICEBERG_SIZE = {size}\n")
 
-    size = os.path.getsize(f"{BUILD_DIR}/VSCROLL")
-    print(f"Scroller : {size} bytes")
-    fout.write(f"VSCROLL_SIZE = {size}\n")
+#     size = os.path.getsize(f"{BUILD_DIR}/VSCROLL")
+#     print(f"Scroller : {size} bytes")
+#     fout.write(f"VSCROLL_SIZE = {size}\n")
 
-    size = os.path.getsize(f"{BUILD_DIR}/BSCROLL")
-    print(f"Big scroller : {size} bytes")
-    fout.write(f"BSCROLL_SIZE = {size}\n")
+#     size = os.path.getsize(f"{BUILD_DIR}/BSCROLL")
+#     print(f"Big scroller : {size} bytes")
+#     fout.write(f"BSCROLL_SIZE = {size}\n")
 
-    size = os.path.getsize(f"{BUILD_DIR}/earth.bin")
-    print(f"Earth : {size} bytes")
-    fout.write(f"EARTH_SIZE = {size}\n")
+#     size = os.path.getsize(f"{BUILD_DIR}/earth.bin")
+#     print(f"Earth : {size} bytes")
+#     fout.write(f"EARTH_SIZE = {size}\n")
 
 
-run(f"{ACME} -o {BUILD_DIR}/prorwts2.o PRORWTS2.S ")
+#run(f"{ACME} -o {BUILD_DIR}/prorwts2.o PRORWTS2.S ")
 
 disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
 
@@ -412,18 +412,30 @@ with open(f"{BUILD_DIR}/td_dummy","wb") as fout:
 
 td_files.append( (f"{BUILD_DIR}/td_dummy", 0x02, "dummy") )
 
-file_list = [
+
+# file_list = [
+#     (f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
+#     (f"{TUNE_ORIGINAL}.lzsa",  0x60, "pt3"),
+#     # (TUNE,  0xB8, "pt3"),
+#     # (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
+#     # (f"{BUILD_DIR}/BSCROLL",0x60,"big_scroll"),
+#     # (f"{BUILD_DIR}/CHKDSK",0x60,"check_disk"),
+#     (f"{BUILD_DIR}/THREED.lzsa",0x9B,"threed") ] + td_files + \
+#     [ (f"{DATA_DIR}/TITLEPIC.BIN", 0x20, "picture"),
+#       (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")]
+
+
+toc_disk = LoaderTOC( f"{BUILD_DIR}/NEW.DSK")
+toc_disk.add_files( [
     (f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
     (f"{TUNE_ORIGINAL}.lzsa",  0x60, "pt3"),
     # (TUNE,  0xB8, "pt3"),
-    (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
-    (f"{BUILD_DIR}/BSCROLL",0x60,"big_scroll"),
+    # (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
+    # (f"{BUILD_DIR}/BSCROLL",0x60,"big_scroll"),
     # (f"{BUILD_DIR}/CHKDSK",0x60,"check_disk"),
     (f"{BUILD_DIR}/THREED.lzsa",0x9B,"threed") ] + td_files + \
     [ (f"{DATA_DIR}/TITLEPIC.BIN", 0x20, "picture"),
-      (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")]
-
-
+      (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")] )
 
 # We compile the loader first, not knowing
 # the disk TOC content precisely. So we propose a TOC with dummies.
@@ -431,26 +443,25 @@ file_list = [
 # the loader final size !). The TOC is incomplete in the sense
 # that we miss track/sector locations of various files
 
-with open(f"{BUILD_DIR}/loader_toc.s","w") as fout:
-    # Skip the loader
-    for i, entry in enumerate(file_list[1:]):
-        filepath, page_base, label = entry
-        uplbl = label.upper()
-        fout.write(f"FILE_{uplbl} = {i}\n")
-        fout.write("\t.byte 0,0,0,0,0\n")
+toc_disk.generate_unconfigured_toc( f"{BUILD_DIR}/loader_toc.s")
+
 
 run(f"{CA65} -o {BUILD_DIR}/loader.o -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
 run(f"{LD65} {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_loader.out")
 
 
+# Use this to optimize for space (in case the loader is small enough)
 loader_page_base = (0x2000 - os.path.getsize(f"{BUILD_DIR}/LOADER")) >> 8
+loader_page_base = 0x08
+
 print(f"loader_page_base = {loader_page_base:02X}")
 #assert loader_page_base > 0x08, f"Loader space will conflict (start page {loader_page_base}) with FSTBT ROM calls to $801"
 assert loader_page_base == 0x8, "You must update the link.cfg file"
 
 
-# Now that the loader is built (with incomplete data but correct
+# Now that the loader is built (with incomplete TOC data but correct
 # size), we can build other modules which depends on its routines.
+# (the linker will be able to do its job)
 
 run(f"{CA65} -I . -o {BUILD_DIR}/big_scroll.o --listing {BUILD_DIR}/bscroll.txt -t apple2 {additional_options} bigscroll/scroll.s")
 run(f"{LD65} -o {BUILD_DIR}/BSCROLL {BUILD_DIR}/big_scroll.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_bscroll.out")
@@ -461,19 +472,19 @@ run(f"{LD65} -o {BUILD_DIR}/THREED {BUILD_DIR}/td.o {BUILD_DIR}/loader.o -C link
 shutil.copyfile(f"{BUILD_DIR}/datad000.o",f"{BUILD_DIR}/threed_data")
 
 
-f = f"{BUILD_DIR}/THREED.lzsa"
+orig_size = os.path.getsize( f"{BUILD_DIR}/THREED")
+f = crunch(f"{BUILD_DIR}/THREED")
 size = os.path.getsize(f)
 pages = (size + 255) // 256
-start = 0xB8 - pages
-print(f"Crunch {f}, {pages} pages, crunched data start on page {start:X}")
-crunch(f"{BUILD_DIR}/THREED")
+td_start_page = 0xBA - pages # BA is the best I can do
+print(f"Crunch {f} ({orig_size}), {pages} pages, crunched data start on page {td_start_page:X}")
+
+toc_disk.update_file( f"{BUILD_DIR}/THREED.lzsa", td_start_page, "threed")
+
 
 run(f"{CA65} -o {BUILD_DIR}/checkdisk.o -t apple2 --listing {BUILD_DIR}/chkdsk.txt {additional_options} checkdisk.s")
 run(f"{LD65} -o {BUILD_DIR}/CHKDSK {BUILD_DIR}/checkdisk.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
-
-
-file_list[0] = (f"{BUILD_DIR}/LOADER", loader_page_base, "loader")
 
 
 with open(f"{BUILD_DIR}/fstbt_pages.s","w") as fout:
@@ -485,53 +496,19 @@ with open(f"{BUILD_DIR}/fstbt_pages.s","w") as fout:
 # fastboot sector correctly.
 run(f"{ACME} -DJUMP_ADDRESS=${loader_page_base:02X}00 -o {BUILD_DIR}/fstbt.o fstbt.s")
 
-disk.set_track_sector( 0, 0)
-with open(f"{BUILD_DIR}/fstbt.o","rb") as fin:
-    disk.write_data( fin.read(), 0x08)
+toc_disk.set_boot_sector(f"{BUILD_DIR}/fstbt.o")
 
-# We write the loader once (it will be rewritten
-# when the TOC will be fully known). This is just to
-# position the other file (ie not the loader) correctly
-# on the disk.
-
-disk.set_track_sector( 0, 1)
-
-toc = []
-entry_ndx = 0
-for i, entry in enumerate(file_list):
-    filepath, page_base, label = entry
-
-    with open( filepath,"rb") as fin:
-        data = fin.read()
-        t = disk.write_data( data, page_base)
-        if not t:
-            print(f"!!!! ERROR !!!!! Unable to add {filepath}  to disk")
-            break
-
-        size = len(data)
-        end = (page_base * 256 + size) & 0xFF00
-        print(f"${page_base:02X}00 - ${end:4X}: {filepath}, {size} bytes")
-
-        if i > 0:
-            # Skip the loader, cos it won't load itself :-)
-            uplbl = label.upper()
-            toc.append( f"FILE_{uplbl} = {entry_ndx}")
-            s = ".byte {},{},{},{},${:X}\t; {}".format(*t, label)
-            toc.append( s)
-            entry_ndx += 1
-
-with open(f"{BUILD_DIR}/loader_toc.s","w") as fout:
-    fout.write("\n".join( toc))
+toc_disk.generate_disk(f"{BUILD_DIR}/loader_toc.s")
 
 # Now we have the correct TOC, we rebuild the loader with it.
 run(f"{CA65} -o {BUILD_DIR}/loader.o  -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader_final.txt {additional_options} loader.s")
 run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_loader_final.out")
 
-# And overwrite it on the disk
-disk.set_track_sector( 0, 1)
-with open(f"{BUILD_DIR}/LOADER","rb") as fin:
-    disk.write_data( fin.read(), loader_page_base)
+toc_disk.update_file( f"{BUILD_DIR}/LOADER", loader_page_base, "loader")
 
+toc_disk.generate_disk(f"{BUILD_DIR}/loader_toc.s")
+
+toc_disk.save()
 
 # ####################################################################
 
@@ -582,7 +559,8 @@ if False:
 
     run(f"{ACMDER} -l {BUILD_DIR}/NEW.DSK")
 else:
-    disk.save()
+    pass
+    #disk.save()
 
 
 print("Additional tasks")
