@@ -8,6 +8,9 @@
 
 # 617D draw hline full
 
+import glob
+import pickle
+import array
 import sys
 import os
 from collections import OrderedDict
@@ -19,9 +22,52 @@ random.seed(125)
 from PIL import Image
 import pygame
 import numpy as np
-#import xxhash
+import networkx as nx
+import portion
 
 from utils import *
+from parse_svg import parse_animals
+from gz3 import longest_paths_search
+
+# t = (portion.open(1,2) | portion.open(3,4) | portion.open(5,6)) | portion.open(1.5,3.5)
+# print( t)
+
+# for i in t:
+#     print(i)
+# print( len(t))
+
+# print("empty")
+# for t in portion.empty():
+#     print("***" + str(t))
+
+# a = portion.closed( 0,1)
+# print( ~a)
+# # --> (-inf,0) | (1,+inf) : correct !
+# special = ~a & portion.closed(0,1)
+# print( special)
+# # --> () : correct !
+# print( special.empty)
+# print( portion.to_data( special))
+# # --> [(False, inf, -inf, False)] : ???
+
+# #exit()
+
+# tri = Triangle( Vertex(-1,-1,0), Vertex(0,+1,0), Vertex(+1,-1,0) )
+# print( tri.intersect_segment( Edge( Vertex(0,0,-1), Vertex(0,0,+1 ) )))
+# tri = Triangle( Vertex(+1,-1,0), Vertex(0,+1,0), Vertex(-1,-1,0) )
+# print( tri.intersect_segment( Edge( Vertex(0,0,-1), Vertex(0,0,+1 ) )))
+
+# t = Triangle( Vertex(+1,-1,0), Vertex(0,+1,0), Vertex(-1,-1,0) )
+
+# t2 = Triangle( Vertex(+1,-1,-1), Vertex(0,+1,0), Vertex(-1,-1,+1) )
+
+# intersect_triangle( t, t2)
+
+# print("---")
+# t = Triangle( Vertex(0,0,-10), Vertex(-1,0,+10), Vertex(+1,0,+10) )
+# t2 = Triangle( Vertex(-10,-1,0), Vertex(0,+1,0), Vertex(+1,-1,0) )
+# intersect_triangle( t, t2)
+
 
 
 #SHAPE = "Ogon"
@@ -113,7 +159,6 @@ def draw_hline( npa, x1, y1, x2, y2, color):
 
 
 
-pygame.init()
 
 speed = [2, 2]
 black = 0, 0, 0
@@ -158,10 +203,8 @@ if SHAPE == "Cube":
     ZOOM=250
     HIDDEN_FACES = True
 
-    if HIDDEN_FACES:
-        NB_FRAMES = 220*6
-    else:
-        NB_FRAMES = 220*6
+    NB_FRAMES = 220*6
+    NB_FRAMES = 220
 
     axis = [3,2,0.5]
 
@@ -188,9 +231,9 @@ if SHAPE == "Cube":
 
 if SHAPE == "Cube2":
     ATTENUATION = math.pi * 1.7
-    ZOOM=250
+    ZOOM=350
     HIDDEN_FACES = True
-    NB_FRAMES = 540
+    NB_FRAMES = 300
 
     axis = [3,2,0.5]
 
@@ -204,16 +247,11 @@ if SHAPE == "Cube2":
 # Ogon ---------------------------------------------------------------
 
 if SHAPE == "Ogon":
-    ATTENUATION = 3*math.pi
+    ATTENUATION = 1*math.pi
     ZOOM = 250 # 170
     HIDDEN_FACES = True
 
-    if HIDDEN_FACES:
-        NB_FRAMES = 70
-    else:
-        NB_FRAMES = 40
-
-    NB_FRAMES = 600
+    NB_FRAMES = 300
 
     axis = [3,2,0.5]
     a = Vtx(-0.75,-0.75,-1)
@@ -278,98 +316,12 @@ if SHAPE == "Ogon":
 # axis = [0,0,1]
 
 # -----------------------------------------------------------
-
-
-# Animate
-
-def persp( v, zoom = 350):
-    # Z points away from us
-
-    d = (v.z + 5) / zoom
-    return Vtx( v.x / d + APPLE_XRES / 2,
-                v.y / d + APPLE_YRES / 2,
-                v.z*100) # see Vertex construtor and round operation
-
-recorded_lines = []
-theta = 0
-
-
-screen = pygame.display.set_mode( (APPLE_XRES*4, APPLE_YRES*4))
-zscreen = ZBuffer( APPLE_XRES, APPLE_YRES)
-
-RUNNING, PAUSE = 0, 1
-state = RUNNING
-
-
-for i,face in enumerate(faces):
-    face.number = (i+1)*8 # will be a color
-
-for frame_ndx in range(NB_FRAMES):
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            sys.exit()
-
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_p:
-                for event in pygame.event.get():
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_r:
-                            break
-
-
-    #screen.fill(black)
-
-    theta = math.sin(frame_ndx * 2*math.pi / NB_FRAMES) *ATTENUATION
-    rot = angle_axis_quat(theta, axis)
-
-    drawn_edges = set()
-
-    frame_lines = []
-
-    xv = dict()
-
-    t_y = -0
-    for face in faces:
-
-
-        vp = []
-        for v in face.vertices:
-            if v.vid not in xv:
-                xv[v.vid] = persp( Vtx( *rotate_quat( rot, [v.x,v.y,v.z])), ZOOM).grab_id(v)
-            vp.append( xv[v.vid])
-
-        # print(len(xv))
-        # print([v.vid for v in vp])
-
-        # vp = [ persp( Vtx( *rotate_quat( rot, [v.x,v.y,v.z])), ZOOM).grab_id(v)
-        #        for v in face.vertices ]
-        face.xformed_vertices = vp
-
-        if face.hidden:
-            v1 = vp[0] - vp[1]
-            v2 = vp[0] - vp[2]
-            if v1.cross(v2).z < 0:
-                #pass
-                continue
-
-        zscreen.draw_face( face)
-
-        for i in range( face.edges):
-            a,b = vp[i], vp[(i+1)%len(face.vertices)]
-
-            k = min( a.vid, b.vid), max( a.vid, b.vid)
-            if k not in drawn_edges:
-                drawn_edges.add( k)
-                # pygame.draw.line( screen, (255,255,255),
-                #                   (a.x,a.y + t_y),
-                #                   (b.x,b.y + t_y), 1)
-
-                # frame_lines.append( (a.x,a.y + t_y,
-                #                      b.x,b.y + t_y) )
+Z_CAMERA = 10
 
 
 
-    edge_cache = dict()
+def fusion_edges( faces):
+    edge_vertices = dict()
 
     for face in faces:
         for i in range( len(face.xformed_vertices)):
@@ -381,39 +333,282 @@ for frame_ndx in range(NB_FRAMES):
             else:
                 edge_id = (b.vid, a.vid)
 
-            if edge_id not in edge_cache:
-                edge_cache[edge_id] = set([face])
-            else:
-                edge_cache[edge_id].add( face)
+            if edge_id not in edge_vertices:
+                edge_vertices[edge_id] = Edge(a,b)
 
-    segments = []
-    for key, sup_faces in edge_cache.items():
-        assert len(sup_faces) == 2
-        #print([f.number for f in sup_faces])
-        segments.extend( zscreen.draw_line( xv[key[0]], xv[key[1]], 255, [f.number for f in sup_faces]))
+    return edge_vertices
 
 
-    zscreen.show_pygame( screen)
-    #print(segments)
-    for a,b in segments:
-        pygame.draw.line( screen, (0,0,255),
-                          (a.x,a.y),
-                          (b.x,b.y), 1)
+def export_faces( faces, rot):
 
-        print("{} - {}".format( str(a), str(b)))
-        frame_lines.append( (a.x,a.y,
-                             b.x,b.y) )
-    recorded_lines.append( frame_lines)
+    xv = dict()
+    for face in faces:
+        vp = []
+        for v in face.vertices:
+            # Avoid recomputing vertices
+            if v.vid not in xv:
+                xv[v.vid] = Vtx( *rotate_quat( rot, [v.x,v.y,v.z])).grab_id(v)
+            vp.append( xv[v.vid])
+        face.xformed_vertices = vp
+
+    atriangles = []
+    for face in faces:
+        fv = face.xformed_vertices
+        for i in range(len(fv) - 3 + 1):
+            atriangles.append( Triangle( fv[0], fv[i+1],fv[i+2]))
+
+    edges = fusion_edges( faces).values()
+
+    draw_edge = []
+    eye = Vertex( 0,0,-Z_CAMERA)
+
+    for edge in edges:
+
+        view_triangle = Triangle( eye, edge.v1, edge.v2)
+
+        # Compare the edge to all the triangles
+
+        all_ts = []
+        for triangle in atriangles:
+            t = intersect_triangle( view_triangle, triangle)
+            if t:
+                all_ts.append(t)
+
+        if all_ts:
+            # At least some portions of the possible t are
+            # hidden => some may be visible.
+
+            a = all_ts[0]
+            for i in range(1, len(all_ts)):
+                a = a | all_ts[i]
+
+            # Because we use closed intervals, it may be possible
+            # we end up with one-point wide intervals here !
+            to_draw = ~a & portion.closed(0,1)
+
+            if not to_draw.empty:
+                for i in to_draw:
+                    v0 = edge.orig + edge.ray * i.lower
+                    v1 = edge.orig + edge.ray * i.upper
+                    draw_edge.append( Edge(v0,v1))
+        else:
+            # Nothing is invisble => everything is visible
+            draw_edge.append( edge)
+
+    return draw_edge
 
 
-    zscreen.clear()
-    pygame.display.flip()
+# Animate
+
+def persp( v, zoom = 350):
+    # Z points away from us
+
+    d = (v.z + Z_CAMERA) / zoom
+    return Vtx( v.x / d + APPLE_XRES / 2,
+                v.y / d + APPLE_YRES / 2,
+                v.z*100) # see Vertex construtor and round operation
+
+
+def animate_3D( screen):
+    recorder_frames = []
+    theta = 0
+
+
+    zscreen = ZBuffer( APPLE_XRES, APPLE_YRES)
+
+    RUNNING, PAUSE = 0, 1
+    state = RUNNING
+    total_chains = 0
+
+
+    for i,face in enumerate(faces):
+        face.number = (i+1)*8 # will be a color
+
+    for frame_ndx in range(NB_FRAMES):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_p:
+                    for event in pygame.event.get():
+                        if event.type == pygame.KEYDOWN:
+                            if event.key == pygame.K_r:
+                                break
+
+
+        #screen.fill(black)
+
+        theta = math.sin(frame_ndx * 2*math.pi / NB_FRAMES) *ATTENUATION
+        rot = angle_axis_quat(theta, axis)
+
+        # drawn_edges = set()
+
+        frame_lines = []
+
+        # xv = dict()
+
+        # t_y = -0
+        # for face in faces:
+
+
+        #     vp = []
+        #     for v in face.vertices:
+        #         # Avoid recomputing vertices
+        #         if v.vid not in xv:
+        #             xv[v.vid] = persp( Vtx( *rotate_quat( rot, [v.x,v.y,v.z])), ZOOM).grab_id(v)
+        #         vp.append( xv[v.vid])
+
+        #     # print(len(xv))
+        #     # print([v.vid for v in vp])
+
+        #     # vp = [ persp( Vtx( *rotate_quat( rot, [v.x,v.y,v.z])), ZOOM).grab_id(v)
+        #     #        for v in face.vertices ]
+        #     face.xformed_vertices = vp
+
+        #     if face.hidden:
+        #         v1 = vp[0] - vp[1]
+        #         v2 = vp[0] - vp[2]
+        #         if v1.cross(v2).z < 0:
+        #             #pass
+        #             continue
+
+        #     #zscreen.draw_face( face)
+
+        #     for i in range( face.edges):
+        #         a,b = vp[i], vp[(i+1)%len(face.vertices)]
+
+        #         # Get id's of edge end points
+        #         k = min( a.vid, b.vid), max( a.vid, b.vid)
+        #         if k not in drawn_edges:
+        #             drawn_edges.add( k)
+        #             # pygame.draw.line( screen, (255,255,255),
+        #             #                   (a.x,a.y + t_y),
+        #             #                   (b.x,b.y + t_y), 1)
+
+        #             # frame_lines.append( (a.x,a.y + t_y,
+        #             #                      b.x,b.y + t_y) )
+
+
+
+        # edge_cache = dict()
+
+        # for face in faces:
+        #     for i in range( len(face.xformed_vertices)):
+        #         a = face.xformed_vertices[i]
+        #         b = face.xformed_vertices[i-1]
+
+        #         if a.vid < b.vid:
+        #             edge_id = (a.vid, b.vid)
+        #         else:
+        #             edge_id = (b.vid, a.vid)
+
+        #         if edge_id not in edge_cache:
+        #             edge_cache[edge_id] = set([face])
+        #         else:
+        #             edge_cache[edge_id].add( face)
+
+        # segments = []
+        # for key, sup_faces in edge_cache.items():
+        #     assert len(sup_faces) == 2
+        #     #print([f.number for f in sup_faces])
+        #     segments.extend( zscreen.draw_line( xv[key[0]], xv[key[1]], 255, [f.number for f in sup_faces]))
+
+
+        screen.fill( (0,0,0) )
+        # zscreen.show_pygame( screen)
 
 
 
 
+        # for a,b in segments:
+        #     pygame.draw.line( screen, (0,0,255),
+        #                       (a.x,a.y),
+        #                       (b.x,b.y), 1)
 
-pygame.quit()
+        #     frame_lines.append( (a.x,a.y,
+        #                          b.x,b.y) )
+
+        clipped_edges = export_faces( faces, rot)
+
+
+        def persp2( a):
+            assert not math.isnan(a.x), f"{a}"
+            assert not math.isnan(a.y), f"{a}"
+
+            z = ZOOM / ( a.z + Z_CAMERA)
+            return Vertex( round(a.x*z) + APPLE_XRES / 2,
+                           round(a.y*z) + APPLE_YRES / 2, 0)
+
+        drawn_edges = 0
+        for e in clipped_edges:
+            #print( f"{e}")
+            a = persp2( e.v1)
+            b = persp2( e.v2)
+
+            if (a-b).norm() >= 2:
+                drawn_edges += 1
+                pygame.draw.line( screen, (0,255,0),
+                                  (a.x,a.y),
+                                  (b.x,b.y), 1)
+                frame_lines.append( (a.x,a.y,b.x,b.y) )
+
+
+        print( "{} faces, {} drawn edges".format( len(faces), drawn_edges))
+
+        # edge_pool = EdgePool()
+        # points = dict()
+        # edges = []
+        # for ax, ay, bx, by in frame_lines:
+        #     if (ax,ay) not in points:
+        #         a = Vertex(ax,ay)
+        #         points[(ax,ay)] = a
+        #     else:
+        #         a = points[(ax,ay)]
+
+        #     if (bx,by) not in points:
+        #         b = Vertex(bx,by)
+        #         points[(bx,by)] = b
+        #     else:
+        #         b = points[(bx,by)]
+
+        #     if id(a) > id(b):
+        #         a,b=b,a
+        #     edge = Edge(a,b)
+        #     edge_pool.add_edge( edge )
+        #     edges.append( (a,b) )
+
+        # for x,y in points.keys():
+        #     pygame.draw.line( screen, (255,255,255),
+        #                       (x,y),
+        #                       (x+1,y+1), 1)
+
+        # g = nx.Graph()
+        # g.add_edges_from( edges)
+        # print("Graph : {} nodes, {} edges".format( len(g.nodes), len(g.edges)))
+
+        # print( "Frame {} : Edge pool size : {} edges".format(len(recorder_frames), len(edge_pool._edges)))
+        # c = edge_pool.make_chains()
+        # total_chains += len(c)
+        # print( "   {} chains, total {}".format( len( c), total_chains))
+        recorder_frames.append( frame_lines)
+
+
+        #zscreen.clear()
+        pygame.display.flip()
+
+    return recorder_frames
+
+# edges = parse_animals( screen)
+# recorder_frames = []
+# for i in range( 200):
+#     frame = []
+#     for e in edges:
+#         tx = -i
+#         frame.append( [e.v1.x + tx, e.v1.y, e.v2.x + tx, e.v2.y] )
+#     recorder_frames.append( frame)
+
+# pygame.quit()
 
 # def draw_triangle_edges( scren, v1, v2, v3, color):
 #      vert = [ v1, v2, v3]
@@ -1046,48 +1241,68 @@ def hclip( a, b):
 
 def gen_data_line( fo, a, b):
     #print( f"ORG : {a.x},{a.y} -- {b.x},{b.y}")
-    a,b = hclip( *clip(a,b) )
+    #a,b = hclip( *clip(a,b) )
 
     # if a:
     #     print( f"{a.x},{a.y} -- {b.x},{b.y}")
     # else:
     #     print("---")
 
-    if a == None:
-        return
+    # if a == None:
+    #     return
 
 
     dx, dy = (b - a).x, (b - a).y
 
+    # Line is less than a pixel wide/tall.
     if abs(dx) < 1 and abs(dy) < 1:
+        return
+
+    # Mostly horizontal line is not wide enough.
+    if abs(dx) > abs(dy) and abs(dx) < 2*TILE_SIZE:
         return
 
     # print(b-a)
     if dx*dx > dy*dy:
-        #return
 
-        # mostly horizontal line
+        # mostly horizontal line -------------------------------------
+
         if a.x > b.x:
             a,b = b,a
             dx, dy = (b - a).x, (b - a).y
 
         assert -256*TILE_SIZE < int(256.0*TILE_SIZE*dy/dx) < 256*TILE_SIZE, "{} / {}".format(int(256.0*TILE_SIZE*dy/dx), 256*6)
         assert dx > 0
+        assert dx < 256, "Decompression only handles delta X less than 256 (1 byte)"
 
+        # |dx| > |dy| => |dy/dx| < 1
+        # In the end slope is multiplied by 256
+        # so hibyte = 0-TILE_SIZE, lobyte = decimals
+        # So I compute 256*TILE_SIZE*dy / dx
+        # dividend is potentially 8+3+8 = 19 bits
+        # But in total, I'll need say 280/TILE_SIZE
+        # iterations to build a line => 40 tile sizes.
+        # So I can afford an error of 1/(280/40)
         slope = TILE_SIZE * dy/dx
 
         # The difficult part of mostly horizontal lines is the edges.
-        # The idea is this. We imagine the line goes from a tile aligned
-        # boundary (left) to another (right). That is, screen X position
-        # which are multiple of TILE_SIZE. Doing that we extend an actual
-        # line a bit in both directions. To compensate for that, we'll mask
-        # those extension sot that they are not drawn
+        # The idea is this. We imagine the line goes from a tile
+        # aligned boundary (left) to another (right). That is, screen
+        # X position which are multiple of TILE_SIZE. Doing that we
+        # extend an actual line a bit in both directions. To
+        # compensate for that, we'll mask those extension so that
+        # they are not drawn
 
-        # We do all of this because we draw the line tile by tile
-        # and have to use full tiles. We must also avoid the
-        # difficulty of computing intersection between the lines and
-        # the modulo TILE_SIZE x position (because this implies multiplication
-        # by slope which is 16 bits => hard to do)
+        # We do all of this because we draw the line tile by tile and
+        # have to use full tiles. We must also avoid the difficulty of
+        # computing intersection between the lines and the modulo
+        # TILE_SIZE x position (because this implies multiplication by
+        # slope which is 16 bits => hard to do)
+
+        # At this points dx > 0 (but delta y may be negative)
+
+        a_org = a
+        b_org = b
 
         # left part
         lx = int(a.x)
@@ -1099,6 +1314,7 @@ def gen_data_line( fo, a, b):
         else:
             left_mask = 0
 
+        # right part
         rx = int(b.x)
         if rx % TILE_SIZE <= TILE_SIZE-1:
             f = TILE_SIZE - 1 - (rx % TILE_SIZE)
@@ -1111,8 +1327,8 @@ def gen_data_line( fo, a, b):
 
         dx, dy = (b - a).x, (b - a).y
 
-        if abs(dx) < 2*TILE_SIZE:
-            return
+        # if abs(dx) < 2*TILE_SIZE:
+        #     return
 
         # In case the slope is 45° (possible) or
         # more (clearly an rror somewhere), I fix
@@ -1130,6 +1346,8 @@ def gen_data_line( fo, a, b):
         assert abs(slope) < TILE_SIZE, f"{slope} is too big : {dy}/{dx}"
         assert int_to_16( abs(slope)) < TILE_SIZE*256, "16bits slope too big : {} !< {}, {}/{}".format( int_to_16( abs(slope)), TILE_SIZE*256, dy, dx)
 
+        assert abs(dx) < 256, "Decompression only handles delta X less than 256 (1 byte)"
+
         # Of no use ...
         # if abs(slope) == 1:
         #     slope *= 1-2/255
@@ -1138,21 +1356,29 @@ def gen_data_line( fo, a, b):
 
         # Note that dx is stored over 5 bits => the maximum width
         # we can handle is 32*7 = 224 pixels (out of 270)
+
+        islope = int_to_16( abs( slope)) # abs(TILE_SIZE*dy/dx)*256 on 16 bits
+
+        # islope = int( abs(slope) * 32) * 8
+
         if slope >= 0:
             d = [ 0 + (right_mask << 5),
                   int(a.x),
                   int(a.y),
-                  (dx_int << 2) + (left_mask >> 1),
-                  int_to_16( slope)]
+                  (dx_int << 2) + (left_mask >> 1)] + word_to_bytes(islope)
         else:
             d = [ 0 + (right_mask << 5),
-                  int(a.x), int(a.y),
-                  (dx_int << 2) + (left_mask >> 1),
-                  int_to_16( abs(slope)) | 0x8000]
+                  int(a.x),
+                  int(a.y),
+                  (dx_int << 2) + (left_mask >> 1)] + word_to_bytes(islope | 0x8000)
+
+        d.extend(   word_to_bytes( int(a_org.x)) + [int(a_org.y)] \
+                    + word_to_bytes( int(b_org.x)) + [int(b_org.y)])
 
     else:
-        #return
-        # mostly vertical line ( |dx| < |dy|)
+
+        # mostly vertical line ( |dx| < |dy|) ------------------------
+
         if a.y > b.y:
             a,b = b,a
             dx, dy = (b - a).x, (b - a).y
@@ -1174,18 +1400,109 @@ def gen_data_line( fo, a, b):
         d = [ 1,
               int(a.x),
               int(a.y),
-              max(1, int(dy )), #  // TILE_SIZE
-              int_to_16( TILE_SIZE*dx/dy)]
+              max(1, int(dy )) ] + word_to_bytes( int_to_16( TILE_SIZE*dx/dy))
+
+
+        d.extend(   word_to_bytes( int(a.x)) + [int(a.y)] \
+                    + word_to_bytes( int(b.x)) + [int(b.y)])
 
     if fo is not None:
         #print(d)
-        fo.write("\t.byte {}\n".format(",".join(map("${:02X}".format,d[0:-1]))))
+        fo.write("\t.byte {}\n".format(",".join(map("${:02X}".format,d))))
         #fo.write("\t.word {}\t;{}\n".format(d[4],slope))
 
-        fo.write("\t.byte {},{} \t;{}\n".format((d[4] & 255),d[4]>>8,slope))
+        # fo.write("\t.byte {},{} \t;{}\n".format((d[4] & 255),d[4]>>8,slope))
 
-    return bytearray( d[0:-1] + [(d[4] & 255), d[4]>>8])
+    return bytearray( d) # d[0:-1] + [(d[4] & 255), d[4]>>8])
     # fobin.write( bytearray( d[0:-1] + [(d[4] & 255), d[4]>>8]))
+
+
+
+pygame.init()
+screen = pygame.display.set_mode( (APPLE_XRES*4, APPLE_YRES*4))
+
+# recorder_frames = animate_3D( screen)
+# with open("clipper","wb") as f_out:
+#     pickle.dump( recorder_frames, f_out)
+pygame.quit()
+
+with open("clipper","rb") as f_in:
+    recorder_frames = pickle.load( f_in)
+
+
+def paths_to_bytes( paths):
+    data = []
+
+    for path in paths:
+        for edge in path:
+            a = edge[0]
+            b = edge[1]
+            data.append( [ a[0], a[1], b[0], b[1] ])
+    return data
+
+def stats_paths( g, paths, show=True):
+    l_tot = 0
+    for path in paths:
+
+        l = 1 # 1 byte for count
+        points = [e[0] for e in path] + [ path[-1][1] ]
+        for point in points:
+            if point[0] < 255:
+                l += 1 + 1 # x & y
+            else:
+                l += 2 + 1 # x & y
+
+        l_tot += l
+
+    if show:
+        print("Edges:{}, nodes:{}, paths:{}; {} bytes vs {} ({:.2f})".format(len(g.edges), len(g.nodes), len(paths), l_tot, 6*len(g.edges), l_tot/(6*len(g.edges))))
+
+
+    return l_tot
+
+def frame_compress( frame):
+    g = nx.Graph()
+    for segment in frame:
+        a = (segment[0], segment[1])
+        b = (segment[2], segment[3])
+
+        # Final clipping and abnormal edge rejection steps
+        a,b = hclip( *clip( Vertex(*a),Vertex(*b)) )
+
+        if a is None or b is None:
+            continue
+
+        d = a - b
+        if abs(d.x) < 1 and abs(d.y) < 1:
+            continue
+
+        if abs(d.x) > abs(d.y) and abs(d.x) < 2*TILE_SIZE:
+            continue
+
+        g.add_edge( (a.x,a.y),(b.x,b.y))
+
+    best_paths = []
+    best_bytes = 0
+    nb_improve = 0
+
+    for i in range(20):
+        paths = longest_paths_search( g,randomized=True)
+
+        if not best_paths:
+            best_paths = paths
+            best_bytes = stats_paths( g, paths, show=False)
+        elif len(best_paths) > len(paths):
+            nb_improve += 1
+            #print(f"improvement {nb_improve}!")
+            stats_paths( g, best_paths)
+            best_paths = paths
+            best_bytes = stats_paths( g, paths, show=False)
+            #print()
+
+    stats_paths( g, best_paths)
+    return best_paths
+
+
 
 
 compute_vertical_tiles()
@@ -1202,13 +1519,13 @@ delta = 0
 #         y = math.sin( math.pi*i/STEPS)*62
 #         gen_data_line( fo, CENTER + Vertex(x,y), CENTER + Vertex(-x,-y))
 
-print("Recorded {} lines".format( len(recorded_lines)))
+print("Recorded {} frames".format( len(recorder_frames)))
 
 mem_block = bytearray()
 nb_mem_blocks = 1
 last_end_block_mark = None
 
-import glob
+
 
 for fn in glob.glob(f"build/bin_lines*"):
     os.remove(fn)
@@ -1224,8 +1541,8 @@ with open("build/lines.s","w") as fo:
     total_pixels = 0
 
 
-    for i,frame in enumerate(recorded_lines):
-        if i == 0:
+    for frame_ndx,frame in enumerate(recorder_frames):
+        if frame_ndx == 0:
             fo.write("line_data_frame1:\t;Beginning of first frame\n")
 
         npixels = 0
@@ -1239,14 +1556,21 @@ with open("build/lines.s","w") as fo:
             win_y_min = min( win_y_min, a.y)
             win_y_max = max( win_y_max, a.y)
 
-        for li,l in enumerate(frame):
-            # if i > 0 or 10 <= li <= 12:
+        # All lines in the frame
+
+        #for li,l in enumerate(frame):
+            # if frame_ndx > 0 or 10 <= li <= 12:
+
+        for li,l in enumerate( paths_to_bytes( frame_compress( frame ))):
 
             a = Vertex( l[0],l[1])
             b = Vertex( l[2],l[3])
 
-            if i == 0:
+            if frame_ndx == 0:
+                # Generate some source code
                 bin_data = gen_data_line( fo, a, b)
+                if li == 0:
+                    fo.write("threed_line_size_marker:\n")
             else:
                 bin_data = gen_data_line( None, a, b)
 
@@ -1272,8 +1596,9 @@ with open("build/lines.s","w") as fo:
         nb_segments = len(frame)
         print(f"Frame draws {npixels} cycles; {nb_segments} segments. Clearing woud cost {surf} cycles ({win_w}x{win_h}).")
 
-        if i != len(recorded_lines)-1:
+        if frame_ndx != len(recorder_frames)-1:
             # not the last frame
+
 
             # One disk track = 4KB, memory above 0xD000 is 12 kb => 3
             # tracks I just need to have two alternating tracks (I
@@ -1293,15 +1618,17 @@ with open("build/lines.s","w") as fo:
 
 
             else:
-                fo.write(f"\t.byte 3\t;; end of frame {i}\n")
+                if frame_ndx == 0:
+                    fo.write(f"\t.byte 3\t;; end of frame {frame_ndx}\n")
                 mem_block.extend( bytes([3]))
 
         else:
-            fo.write("\t.byte 4\t;; end of animation\n")
+            if frame_ndx == 0:
+                fo.write("\t.byte 4\t;; end of animation\n")
             mem_block.extend( bytes([4]))
 
 
-        if i == 0:
+        if frame_ndx == 0:
             l = len(mem_block)
             fo.write(f"line_data_frame2:\t;Beginning of second frame; {l} bytes\n")
 
@@ -1309,10 +1636,11 @@ with open("build/lines.s","w") as fo:
     TOTAL_ANIM_SECONDS = 6.74/2 # 14.6 with player
     ONE_MHZ = 1000000
 
-    cycles_per_pixel = ONE_MHZ * TOTAL_ANIM_SECONDS / total_pixels
-    print("Total pixels drawn : {} in {} frames => {:.1f} cycles/pixel".format(total_pixels, len(recorded_lines), cycles_per_pixel))
+    # cycles_per_pixel = ONE_MHZ * TOTAL_ANIM_SECONDS / total_pixels
+    # print("Total pixels drawn : {} in {} frames => {:.1f} cycles/pixel".format(total_pixels, len(recorder_frames), cycles_per_pixel))
 
     if len( mem_block) > 0:
+        print(f"Last block is {nb_mem_blocks}")
         with open(f"build/bin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
             fo_bin.write(mem_block)
 

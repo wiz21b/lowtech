@@ -1,3 +1,5 @@
+import portion
+import random
 import re
 import math
 import colorama
@@ -11,6 +13,7 @@ APPLE_XRES = 40*7 # 280
 APPLE_HGR_PIXELS_PER_BYTE = 7
 TRACKS_PER_DISK = 35
 SECTORS_PER_TRACK = 16
+SECTOR_SIZE = 256
 DISK_SIZE = TRACKS_PER_DISK*SECTORS_PER_TRACK*256
 
 def np_append_row( a, v = 0):
@@ -81,15 +84,15 @@ class AppleDisk:
         self.nb_writes = 0
 
     def set_sector(self, track : int, logical_sector : int, data : bytearray):
-        assert len(data) == 256
+        assert len(data) == SECTOR_SIZE
         assert type(data) == bytearray
         assert 0 <= track < TRACKS_PER_DISK
         assert 0 <= logical_sector < SECTORS_PER_TRACK
 
         sector = self.DOS_SECTORS_MAP[logical_sector]
-        track_offset = track * SECTORS_PER_TRACK * 256
-        dsk_ofs = track_offset + sector*256
-        self._disk[dsk_ofs:dsk_ofs+256] = data
+        track_offset = track * SECTORS_PER_TRACK * SECTOR_SIZE
+        dsk_ofs = track_offset + sector*SECTOR_SIZE
+        self._disk[dsk_ofs:dsk_ofs+SECTOR_SIZE] = data
 
 
     def set_track_sector( self, track, sector):
@@ -105,15 +108,15 @@ class AppleDisk:
 
         #print( "Writing {} bytes from T:{} S:{}".format(len(data), self._track, self._sector))
 
-        for offset in range( 0, len(data), 256 ):
+        for offset in range( 0, len(data), SECTOR_SIZE ):
 
-            if len(data) - offset  >=  256:
-                s = data[offset:offset+256]
+            if len(data) - offset  >=  SECTOR_SIZE:
+                s = data[offset:offset+SECTOR_SIZE]
             else:
                 s = data[offset:len(data)]
-                s.extend( [0] * (256 - len(s)))
+                s.extend( [0] * (SECTOR_SIZE - len(s)))
 
-            assert len(s) == 256
+            assert len(s) == SECTOR_SIZE
             #print(f"Writing  {self._track}/{self._sector}, offset {offset:x}")
             last_sector = self._track, self._sector
             self.set_sector( self._track, self._sector, bytearray(s))
@@ -121,8 +124,8 @@ class AppleDisk:
 
             self.sector_map[self._track][self._sector] = ident
 
-            #if len(data) - offset > 256:
-            if self._sector < 15:
+            #if len(data) - offset > SECTOR_SIZE:
+            if self._sector < SECTORS_PER_TRACK-1:
                 self._sector += 1
             else:
                 self._sector = 0
@@ -136,7 +139,7 @@ class AppleDisk:
         #                   last_sector[0],last_sector[1],
         #                   load_page, label) )
 
-        #print("init_track_read {},{},{},{},${:x}\t; {} bytes, {} pages".format( first_sector[0],first_sector[1],last_sector[0],last_sector[1], load_page, len(data), (len(data) + 255)//256))
+        #print("init_track_read {},{},{},{},${:x}\t; {} bytes, {} pages".format( first_sector[0],first_sector[1],last_sector[0],last_sector[1], load_page, len(data), (len(data) + 255)//SECTOR_SIZE))
         #print(f"{sectors_written} sectors written")
         self.nb_writes += 1
 
@@ -255,7 +258,7 @@ class LoaderTOC:
             print(f"{sector:X} {t}")
 
         print()
-        print("{} free sectors = {} bytes".format(free_sectors, free_sectors*256))
+        print("{} free sectors = {} bytes".format(free_sectors, free_sectors*SECTOR_SIZE))
         print("-"*45)
 
 
@@ -289,6 +292,9 @@ class Vertex:
         self._vec = np.array( [x,y,z] )
         self._id = vertex_id
         vertex_id += 1
+
+    def as_array(self):
+        return [self._vec[0],self._vec[1],self._vec[2]]
 
     def grab_id( self, other):
         self._id = other._id
@@ -332,6 +338,16 @@ class Vertex:
         self._vec[1] *= v
         self._vec[2] *= v
 
+    def norm( self):
+        # FIXME use numpy euclidean L2 norm
+        # https://iq.opengenus.org/norm-method-of-numpy-in-python/
+        return math.sqrt( sum( [ c**2 for c in self._vec]))
+
+    def normalize( self):
+        n = self.norm()
+        v = self._vec
+        return Vertex( v[0]/n, v[1]/n, v[2]/n )
+
     def __mul__(self,other):
         if type(other) == Vertex:
             return np.dot( self._vec, other._vec)
@@ -348,10 +364,10 @@ class Vertex:
         return Vertex( v[0], v[1], v[2] )
 
     def __str__(self):
-        return "{:.1f},{:.1f},{:.1f}".format(self.x, self.y, self.z)
+        return "{:.2f},{:.2f},{:.2f}".format(self.x, self.y, self.z)
 
     def __format__( self, format_spec):
-        return "{:.1f},{:.1f},{:.1f}".format(self.x, self.y, self.z)
+        return "{:.2f},{:.2f},{:.2f}".format(self.x, self.y, self.z)
 
 
 def bounding_box( points):
@@ -377,6 +393,411 @@ class Edge:
 
     def points( self):
         return [self.v1, self.v2]
+
+    @property
+    def ray( self):
+        return self.v2 - self.v1
+
+    @property
+    def orig(self):
+        return self.v1
+
+    def __format__( self, z):
+        return f"edge: {self.v1} -> {self.v2}"
+
+
+def LinePlaneCollision(planeNormal, planePoint, rayDirection, rayPoint, epsilon=1e-6):
+
+    # from https://rosettacode.org/wiki/Find_the_intersection_of_a_line_with_a_plane#Python
+
+    ndotu = planeNormal * rayDirection
+    if abs(ndotu) < epsilon:
+        return None
+
+    w = rayPoint - planePoint
+    si = (planeNormal * w) * (-1/ ndotu)
+    Psi = w + rayDirection * si + planePoint
+    return Psi
+
+
+def bound_by( x, a,b):
+    if x < a:
+        return a
+    elif x > b:
+        return b
+    else:
+        return x
+
+EPSILON = 1e-6
+
+class Triangle:
+    def __init__( self, a : Vertex, b : Vertex, c : Vertex):
+        self.a,self.b,self.c = a,b,c
+
+    def __format__(self,fmt):
+        return f"[Tri: {self.a} | {self.b} | {self.c}]"
+
+    def normal( self):
+        ab = self.b - self.a
+        ac = self.c - self.a
+        return ab.cross(ac).normalize()
+
+    def locate_point( self, p):
+
+        v_u = self.b - self.a
+        v_v = self.c - self.a
+        ap = p - self.a
+
+        u = ap*v_u * (1/ (v_u.norm()**2))
+        v = ap*v_v * (1/ (v_v.norm()**2))
+
+        return u,v
+
+
+    def edges( self):
+        return [ Edge( self.a, self.b),
+                 Edge( self.b, self.c),
+                 Edge( self.c, self.a) ]
+
+
+
+
+
+    def intersect_segment( self, r :Edge):
+        ERROR = None
+
+        v0 = self.a
+        v1 = self.b
+        v2 = self.c
+
+        v0v1 = v1 - v0
+        v0v2 = v2 - v0
+        pvec = r.ray.cross(v0v2)
+        det = v0v1 * pvec # Dot product
+
+        if det > -EPSILON and det < EPSILON:
+            return ERROR
+
+        invDet = 1 / det
+        tvec = r.orig - v0
+        u = (tvec * pvec) * invDet # dot product then scalar product
+
+        if u < 0 -EPSILON or u > 1 + EPSILON:
+            # print( f"bad   u:{u}")
+            return ERROR
+
+        qvec = tvec.cross(v0v1)
+        v = (r.ray * qvec) * invDet
+
+        if v < 0 - EPSILON or u + v > 1 + EPSILON:
+            # print( f"bad v u:{u}, u:{v}")
+            return ERROR
+
+        t = (v0v2 * qvec) * invDet
+        #assert not math.isnan(t) and not math.isnan(u) and not math.isnan(v)
+        return ( t,u,v)
+
+
+def all_edges_intersections( tri, edges):
+
+    # print(f"all_edges_intersections : {tri}")
+    intersections = []
+    for edge in edges:
+        res = tri.intersect_segment( edge)
+        if res is not None:
+            t,u,v = res
+
+            if abs(t) < EPSILON:
+                t = 0
+            elif abs(t-1) < EPSILON:
+                t = 1
+
+            if 0 <= t <= 1:
+                inter = edge.orig + (edge.ray * t)
+                intersections.append( inter)
+
+                # print( f"   Intersects with {edge} -> t={t}, point:{inter}")
+                # print( f"   edge.orig : {edge.orig}  edge_dir*t : {edge.ray*t}")
+                # print( "{}*{}={}".format( edge.ray.x, t, edge.ray.x * t))
+
+    return intersections
+
+
+def intersect_triangle( view_tri, tri):
+
+    # print("---------- intersect_triangle")
+
+    intersections1 = all_edges_intersections( tri, view_tri.edges())
+    intersections2 = all_edges_intersections( view_tri, tri.edges())
+
+    intersections = intersections1 + intersections2
+
+    #print(f"self collisions {inter}, t={t} between edge {self_edge} and {tri}")
+
+    # Now I project each intersection along a line
+    # A (= self.a) - I on the segment BC (so basically, I compute
+    # the intersection between AI and BC.
+    # I cannot compute the intersection directly because
+    # I fear rounding errors that could lead to AI and BC
+    # to not intersect at all.
+    #
+    # So I do it by computing the intersection between
+    # a plane orthogonal to ABC, passing through IA
+    # and BC.
+
+    inter_ts = []
+    ab = view_tri.b - view_tri.a
+    ac = view_tri.c - view_tri.a
+    bc = Edge( ab, ac)
+
+    special_t_0 = False
+    special_t_1 = False
+
+    for inter in intersections:
+
+        if (inter - view_tri.b).norm() < 1e-6:
+            special_t_0 = True
+            continue
+        elif (inter - view_tri.c).norm() < 1e-6:
+            special_t_1 = True
+            continue
+
+
+        # All vectors are relative to A
+
+        ai = inter - view_tri.a
+
+        iplane_org = ai
+        iplane_norm_base = ai.cross( view_tri.normal())
+        iplane_norm = iplane_norm_base.normalize()
+
+        edge_inter = LinePlaneCollision( iplane_norm, iplane_org, bc.ray, bc.orig)
+        #print( edge_inter)
+
+        if edge_inter is None:
+            #continue
+
+            print(f"{self}")
+            print(f"{tri}")
+
+            print( iplane_org)
+            print( iplane_norm)
+            print( f"bc.orig = {bc.orig}")
+            print( f"bc.ray  = {bc.ray}")
+
+            raise Exception("was expecting an intersection")
+
+        assert bc.ray.norm() > 0
+        t = (edge_inter - ab) * bc.ray * (1/(bc.ray.norm()**2))
+        #print(t)
+        if math.isnan(t):
+            print("---Error!")
+            print(f"{self} --- {tri}")
+            print( f"inter: {inter} - self.a : {view_tri.a}")
+            print(f"iplane = org:{iplane_org} -- norm_base:{iplane_norm_base} norm:{iplane_norm}")
+            print("self normal : {}".format( view_tri.normal()))
+            print(f"bc = org:{bc.orig} -- dir:{bc.ray}")
+            print(f"edge_inter = org:{edge_inter}")
+            raise Exception("NaN spotted")
+
+        if abs(t) < EPSILON:
+            t = 0
+        elif abs(1-t) < EPSILON:
+            t = 1
+        else:
+            t = bound_by(t,0,1)
+
+        inter_ts.append(t)
+
+    if len(inter_ts) == 0:
+        return None
+    elif len(inter_ts) == 1:
+        # At least one real intersection
+        if special_t_0:
+            inter_ts.append(0)
+        elif special_t_1:
+            inter_ts.append(1)
+
+    if not (len(inter_ts) == 0 or len(inter_ts) >= 2):
+        print(f"\nUnexpected number of intersections : {len(inter_ts)}. View-tri {view_tri}; other-tri : {tri}")
+        print(f"Special t : {special_t_0} {special_t_1}")
+        print("Intersections 1 : {}".format( [str(i) for i in intersections1]))
+        print("Intersections 2 : {}".format( [str(i) for i in intersections2]))
+
+        raise Exception("")
+
+
+
+    if inter_ts:
+        inter_ts = [t for t in sorted( inter_ts)]
+
+        cleaned_ts = [ inter_ts[0] ]
+        for i in range( 1, len( inter_ts)):
+            if abs(inter_ts[i] - cleaned_ts[-1]) > EPSILON:
+                assert not math.isnan( inter_ts[i] )
+                cleaned_ts.append( inter_ts[i] )
+
+        assert len( cleaned_ts) in (1, 2), f"unexpected length : {len( cleaned_ts)}"
+
+        if len( cleaned_ts) == 1:
+            return None
+
+        assert cleaned_ts[0] < cleaned_ts[1], f"{cleaned_ts[0]} >? {cleaned_ts[1]} -- {inter_ts}"
+        # Invisible t's interval
+        t_interval = portion.closed( cleaned_ts[0], cleaned_ts[1])
+
+        #print( f"returning : {t_interval}")
+        return t_interval
+    else:
+        return None
+
+
+class EdgeChain:
+    def __init__( self):
+        self._edges = []
+        self.first_point = self.last_point = None
+
+    @property
+    def edges( self):
+        return self._edges
+
+    def can_add_edge( self, edge):
+        return not self._edges or self.first_point in edge.points() or self.last_point in edge.points()
+
+    def add_edge( self, edge):
+        assert edge
+
+        if not self._edges:
+            self._edges = [edge]
+            self.first_point, self.last_point = edge.points()
+
+        elif self.first_point in edge.points():
+            self._edges = [edge] + self._edges
+
+            if edge.v1 != self.first_point:
+                self.first_point = edge.v1
+            else:
+                self.first_point = edge.v2
+
+        elif self.last_point in edge.points():
+            self._edges = self._edges + [edge]
+
+            if edge.v1 != self.last_point:
+                self.last_point = edge.v1
+            else:
+                self.last_point = edge.v2
+
+        else:
+            print("oups!")
+
+            print("Adding : {:x}-{:x}".format( id(edge.v1), id(edge.v2) ))
+
+            print("first:{:X}".format( id(self.first_point) ))
+            for e in self._edges:
+                print("{:X}-{:X}".format( id(e.v1), id(e.v2) ))
+
+            print("last:{:X}".format( id(self.last_point) ))
+
+            raise Exception(f"{edge} can't be added to the chain {self}")
+
+    def __len__( self):
+        return len( self.edges)
+
+    def __format__( self, z):
+
+        c = "_".join( [ "{}".format(e) for e in self._edges] )
+
+        return f"{id(self.first_point)} | {c} | {id(self.last_point)}"
+
+    def can_merge_with( self, chain):
+        assert type(chain) == EdgeChain
+
+        ends = [self.first_point, self.last_point]
+
+        return chain.first_point in ends or chain.last_point in ends
+
+    def merge( self, chain):
+        assert self.can_merge_with( chain)
+
+        print("-"*80)
+        # print( f"{self}")
+        # print( f"{chain}")
+
+        if chain.last_point in  (self.first_point, self.last_point):
+            for e in reversed(chain._edges):
+                self.add_edge(e)
+        else:
+            for e in chain._edges:
+                print("merging : {:x}-{:x}".format( id(e.v1), id(e.v2) ))
+                self.add_edge(e)
+
+class EdgePool:
+    def __init__( self):
+        self._edges = []
+
+    def add_edge( self, edge):
+        assert edge not in self._edges
+        self._edges.append( edge)
+
+    def add_edges( self, edges):
+        for edge in edges:
+            self.add_edge( edge)
+
+    def make_chains( self):
+
+        best_c = None
+
+        for i in range(10):
+            c = self._make_chains( random.sample( self._edges, k=len(self._edges)))
+            if best_c is None or len(c) < len(best_c):
+                best_c = c
+
+        # 139 => 1005 edges
+        return best_c
+
+    def _make_chains( self, edges):
+        chains = []
+        for edge in edges:
+
+            connectable_chain = None
+            edge_added_to_chain = False
+
+            for chain in chains:
+                if chain.can_add_edge( edge):
+                    chain.add_edge( edge)
+                    edge_added_to_chain = True
+                    break
+
+            if not edge_added_to_chain:
+                chain = EdgeChain()
+                chain.add_edge( edge)
+                chains.append( chain)
+
+        for i in range( len( chains)):
+            a = chains[i]
+
+            merged = False
+            for j in range( i+1, len(chains)):
+                b = chains[j]
+                if a.can_merge_with( b):
+                    b.merge(a)
+                    merged = True
+                    break
+
+            if merged:
+                chains[i] = None
+
+        chains = [c for c in chains if c]
+
+        assert len( edges) == sum( [len(c) for c in chains])
+
+        # print("Merge result")
+        # for i, chain in enumerate( chains):
+        #     print(f"Chain {i} {len(chain)}")
+        #     print_chain( chain)
+
+        return chains
+
 
 def special_points( v):
     top = v[0]
@@ -582,7 +1003,7 @@ def draw_triangle( screen, face, v1, v2, v3, color):
      # if vert[1].x > vert[2].x:
      #      vert[1], vert[2] = vert[2], vert[1]
 
-     vert = special_points( vert)
+     vert = special_points( vert) # top, v_left, v_right
 
      # The triangle is now cut in two triangles, each of which having an horizontal edge
 
@@ -635,7 +1056,6 @@ def draw_triangle( screen, face, v1, v2, v3, color):
 class ZBuffer:
     def __init__( self, w,h):
         self.width, self.height = int(w), int(h)
-
         self.clear()
 
     def clear(self):
@@ -790,6 +1210,7 @@ class ZBuffer:
 
 
         for i in range(len(vert) - 3 + 1):
+
             v = [vert[0].round(), vert[i+1].round(), vert[i+2].round()]
             face.compute_z_slope_along_x(v)
 
@@ -820,10 +1241,10 @@ class ZBuffer:
 
         # ptp = find range
         int_range = np.max(a) - np.min(a)
-        print("Int range = {}".format(int_range))
+        #print("Int range = {}".format(int_range))
         if int_range:
             r  = (a - np.min(a)) / int_range
-            print(np.max(r) - np.min(r))
+            #print(np.max(r) - np.min(r))
             z_norm = 254 - 8*((31*r).astype(int))
         else:
             z_norm = a
@@ -909,6 +1330,10 @@ def int_to_16(x : float):
     else:
         # remember, 0xFFFF == -1
         return 65536 + x
+
+def word_to_bytes( w):
+    assert 0 <= w < 65536
+    return [w & 255, w >> 8]
 
 def ror( num, bits=8):
     assert bits == 8
@@ -1662,3 +2087,7 @@ if __name__ == "__main__":
 
     print( ".".join( [ "{:08b}".format(s) for s in bits_to_color_hgr2( [1,3,3,3,3,3,2] )]))
     print( ".".join( [ "{:08b}".format(s) for s in bits_to_color_hgr2( [1,3,3,3,3,3,2]*2 )]))
+
+    edge = Edge( Vertex(0,0,0), Vertex(1,2,3))
+    print( f"{edge}")
+    print( edge.orig + edge.ray * 3)

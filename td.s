@@ -1,4 +1,4 @@
-;;; This code is (c) 2019 Stéphane Champailler
+;;; This code is (c) 2019-2020 Stéphane Champailler
 ;;; It is published under the terms of the
 ;;; GNU GPL License Version 3.
 
@@ -49,12 +49,14 @@ line_code_ptr_hi	= 246
 self_mod_ptr	= $82
 line_data_ptr	= 250
 tile_ptr	= 252
+mul1 = dummy_ptr
+mul2 = dummy_ptr+1
 dummy_ptr2	= 252
 dummy_ptr	= 254
 dummy_pointer	= 254
 
-LINES_TO_DO	= 6
-BYTES_PER_LINE	= 6
+BYTES_PER_LINE	= threed_line_size_marker - line_data_frame1
+
 
 	.segment "CODE"
 
@@ -550,6 +552,10 @@ end_of_frame:
 
 	jsr copy_line_data
 
+	LDA color
+	BNE skip_slope
+skip_slope:
+
 	LDY #0
 	LDA (line_data_ptr),Y
 	AND #31
@@ -593,9 +599,11 @@ unsupported_command:
 .endproc
 
 
-copy_line_data:
+	.proc copy_line_data
+
 	LDY #1
 
+	;; Convert x-coord from 8 bits to 16 bits
 	LDA #0
 	STA fx
 	LDA (line_data_ptr),Y
@@ -617,7 +625,61 @@ copy_line_data:
 	INY
 	LDA (line_data_ptr),Y
 	STA slope + 1
+
+	;;  new code ------------------------
+
+	INY
+	LDA (line_data_ptr),Y
+	STA x1
+	INY
+	LDA (line_data_ptr),Y
+	STA x1 + 1
+
+	INY
+	LDA (line_data_ptr),Y
+	STA y1
+
+	INY
+	LDA (line_data_ptr),Y
+	STA x2
+	INY
+	LDA (line_data_ptr),Y
+	STA x2 + 1
+
+	INY
+	LDA (line_data_ptr),Y
+	STA y2
+
+	JSR compute_line_parameters
 	RTS
+
+	;; ---------------------------------------------------------
+
+	.include "compu_line.s"
+
+
+
+
+slope65536:	.word 0
+slope256_2:	.word 0
+slope_by_256:	.byte 0
+work:	.word 0
+x1:	.word 0
+y1:	.byte 0
+x2:	.word 0
+y2:	.byte 0
+dx:	.word 0
+dy:	.byte 0
+dx_positive:	.byte 0
+dy_positive:	.byte 0
+work1:	.byte 0
+work2:	.byte 0
+left_mask:	.byte 0
+right_mask:	.byte 0
+clip_flags:	.byte 0
+
+	.endproc
+
 
 
 line_data_ptr1:	.word 0
@@ -750,8 +812,62 @@ tile_loop:
 
 .endproc
 
+	.proc multiply_8
+	;; Multiply mul1 * mul2
 
+	LDA #0
+	CMP mul2		; Clear Carry too
+	BEQ by0
 
+	dec mul2	; decrement mul2 because we will be adding with carry set for speed (an extra one)
+
+	ror mul1
+	bcc b1
+	adc mul2
+b1:
+	ror
+	ror mul1
+	bcc b2
+	adc mul2
+b2:
+	ror
+	ror mul1
+	bcc b3
+	adc mul2
+b3:
+	ror
+	ror mul1
+	bcc b4
+	adc mul2
+b4:
+	ror
+	ror mul1
+	bcc b5
+	adc mul2
+b5:
+	ror
+	ror mul1
+	bcc b6
+	adc mul2
+b6:
+	ror
+	ror mul1
+	bcc b7
+	adc mul2
+b7:
+	ror
+	ror mul1
+	bcc b8
+	adc mul2
+b8:
+	ror
+	ror mul1
+	inc mul2
+	rts
+by0:
+	STA mul1
+	RTS
+	.endproc
 
 
 
@@ -880,6 +996,8 @@ div7:
 	.include "build/htiles.s"
 	.include "build/tiles.s"
 	.include "build/tiles_lr.s"
+one_over_x:
+	.include "build/divtbl.s"
 
 
 

@@ -293,6 +293,10 @@ else:
 def crunch( filepath):
     fname = f"{filepath}.lzsa"
     run( f"{LZSA} -r -f2 {filepath} {fname}")
+
+    s = os.path.getsize( filepath)
+    c = os.path.getsize( fname)
+    print( f"Crunched {filepath} from {s} to {c}")
     return fname
 
 BUILD_DIR = "build"
@@ -302,6 +306,7 @@ TUNE = "data/FR.PT3"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mame", action="store_true")
+parser.add_argument("--awin", action="store_true")
 parser.add_argument("--no-precalc", action="store_true")
 parser.add_argument("--precalc", action="store_true")
 parser.add_argument("--music", action="store_true")
@@ -403,6 +408,13 @@ for i,fn in enumerate( sorted( glob.glob(f"{BUILD_DIR}/bin_lines*"))):
 
     td_files.append( (fn, page, f"data_3d_{i}") )
 
+    if i > 25:
+        print("ERROR : too many files")
+        break
+
+
+
+
 # This is a hack to avoid complex calculations to determine
 # when to stop reading sectors.
 # FIXME It wastes a sector on the disk :-(
@@ -475,9 +487,12 @@ shutil.copyfile(f"{BUILD_DIR}/datad000.o",f"{BUILD_DIR}/threed_data")
 orig_size = os.path.getsize( f"{BUILD_DIR}/THREED")
 f = crunch(f"{BUILD_DIR}/THREED")
 size = os.path.getsize(f)
+mem_limit = 0xBD00
 pages = (size + 255) // 256
-td_start_page = 0xBA - pages # BA is the best I can do
+end_of_code = 0x6000 + (orig_size + 255)
+td_start_page = (mem_limit >> 8) - pages # BA is the best I can do
 print(f"Crunch {f} ({orig_size}), {pages} pages, crunched data start on page {td_start_page:X}")
+assert end_of_code  < mem_limit, "Too big ! {:4X} > {:4X}".format(end_of_code, mem_limit)
 
 toc_disk.update_file( f"{BUILD_DIR}/THREED.lzsa", td_start_page, "threed")
 
@@ -586,7 +601,7 @@ if args.build:
     exit()
 
 print("Running emulator")
-if args.mame:
+if (args.mame or platform.system() == "Linux") and (not args.awin):
     # -resolution 1200x900
     # -sound none
     run(f"{MAME} apple2e -volume -12 -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.DSK")

@@ -137,7 +137,14 @@ go_on:
 	;jmp exit_interrupt
 
 pt3_interrupt_hook:
+	.ifndef MUSIC
+	JMP skip_music
 	.include "pt3_lib/pt3_lib_irq_handler.s"
+skip_music:
+	.else
+	.include "pt3_lib/pt3_lib_irq_handler.s"
+	.endif
+
 	jmp exit_interrupt
 
 quiet_exit:

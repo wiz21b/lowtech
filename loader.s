@@ -8,7 +8,7 @@
 	.include "defs.s"
 dummy_pointer = 254
 
-	MUSIC = 1
+	;MUSIC = 1
 	RUN_CHECK_DISK = 0
 
 	.segment "LOADER"
@@ -29,7 +29,6 @@ dummy_pointer = 254
 
 	JMP run
 	.include "read_sector.s"
-
 disk_toc: .include "build/loader_toc.s"
 
 
@@ -89,12 +88,12 @@ run:
 
 	.endif
 
-	LDA #FILE_EARTH
-	JSR load_file_no_irq
-	LDA #FILE_BIG_SCROLL
-	JSR load_file_no_irq
+	;; LDA #FILE_EARTH
+	;; JSR load_file_no_irq
+	;; LDA #FILE_BIG_SCROLL
+	;; JSR load_file_no_irq
 
-	JSR $6000
+	;; JSR $6000
 
 
 	;; Setting those up before activating language card RAM bank
@@ -151,12 +150,11 @@ run:
 	LDA #FILE_THREED
 	JSR load_file_no_irq
 
-	THREED_PACKED = $9B00
 	THREED_ADDRESS = $6000
 
-	LDA #<THREED_PACKED
+	LDA #<FILE_THREED_LOAD_ADDR
 	STA LZSA_SRC_LO
-	LDA #>THREED_PACKED
+	LDA #>FILE_THREED_LOAD_ADDR
 	STA LZSA_SRC_HI
 
 	LDA #<THREED_ADDRESS
