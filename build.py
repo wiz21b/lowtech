@@ -325,7 +325,7 @@ print("Builing demo")
 MUSIC_MEM = 'F700'
 
 if args.music:
-    additional_options = f"-D MUSIC" # -D PT3_LOC=\\${MUSIC_MEM}"
+    additional_options = f"-D MUSIC" # -D PT3_LOC=${MUSIC_MEM}"
 else:
     additional_options = ""
 
@@ -393,14 +393,19 @@ TUNE_ORIGINAL = f"{DATA_DIR}/2UNLIM2.pt3"
 crunch(TUNE_ORIGINAL)
 
 # lzsa -r -f2 data\2UNLIM.pt3 data\2UNLIM.lzsa
-TUNE_ADDRESS = 0xC000 - (((os.path.getsize(TUNE_ORIGINAL) + 255 + 256) >> 8) << 8)
+TUNE_ADDRESS = 0xFD00 - (((os.path.getsize(TUNE_ORIGINAL) + 255 + 256) >> 8) << 8)
+
+assert TUNE_ADDRESS >= 0xF000, "over 3D file load area"
 
 # TUNE = TUNE_ORIGINAL
 
 td_files = []
 import glob
 
-for i,fn in enumerate( sorted( glob.glob(f"{BUILD_DIR}/bin_lines*"))):
+for i,fn in enumerate( sorted( glob.glob(f"{BUILD_DIR}/xbin_lines*"))):
+    # if i == 0:
+    #     continue # FIXME Debugging !
+
     if i % 2 == 0:
         page= 0xD0
     else:
@@ -408,7 +413,7 @@ for i,fn in enumerate( sorted( glob.glob(f"{BUILD_DIR}/bin_lines*"))):
 
     td_files.append( (fn, page, f"data_3d_{i}") )
 
-    if i > 25:
+    if i > 20:
         print("ERROR : too many files")
         break
 
@@ -438,16 +443,16 @@ td_files.append( (f"{BUILD_DIR}/td_dummy", 0x02, "dummy") )
 
 
 toc_disk = LoaderTOC( f"{BUILD_DIR}/NEW.DSK")
-toc_disk.add_files( [
-    (f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
-    (f"{TUNE_ORIGINAL}.lzsa",  0x60, "pt3"),
-    # (TUNE,  0xB8, "pt3"),
-    # (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
-    # (f"{BUILD_DIR}/BSCROLL",0x60,"big_scroll"),
-    # (f"{BUILD_DIR}/CHKDSK",0x60,"check_disk"),
-    (f"{BUILD_DIR}/THREED.lzsa",0x9B,"threed") ] + td_files + \
-    [ (f"{DATA_DIR}/TITLEPIC.BIN", 0x20, "picture"),
-      (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")] )
+toc_disk.add_files( [ (f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
+                      (f"{TUNE_ORIGINAL}.lzsa",  0x60, "pt3"),
+                      # (TUNE,  0xB8, "pt3"),
+                      (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
+                      (f"{BUILD_DIR}/BSCROLL",0x60,"big_scroll"),
+                      # (f"{BUILD_DIR}/CHKDSK",0x60,"check_disk"),
+                      (f"{BUILD_DIR}/THREED.lzsa",0x9B,"threed") ] \
+                    + td_files + \
+                    [ (f"{DATA_DIR}/TITLEPIC.BIN", 0x20, "picture"),
+                      (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")] )
 
 # We compile the loader first, not knowing
 # the disk TOC content precisely. So we propose a TOC with dummies.
@@ -487,7 +492,7 @@ shutil.copyfile(f"{BUILD_DIR}/datad000.o",f"{BUILD_DIR}/threed_data")
 orig_size = os.path.getsize( f"{BUILD_DIR}/THREED")
 f = crunch(f"{BUILD_DIR}/THREED")
 size = os.path.getsize(f)
-mem_limit = 0xBD00
+mem_limit = 0xBE00
 pages = (size + 255) // 256
 end_of_code = 0x6000 + (orig_size + 255)
 td_start_page = (mem_limit >> 8) - pages # BA is the best I can do

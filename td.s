@@ -1,3 +1,5 @@
+	END_OF_TRACK = $FE
+	END_OF_MOVIE = $FF
 ;;; This code is (c) 2019-2020 Stéphane Champailler
 ;;; It is published under the terms of the
 ;;; GNU GPL License Version 3.
@@ -13,6 +15,7 @@
 	.import sector_status
 
 	.include "defs.s"
+	.include "build/xbin_lines_const.s"
 
 MOCK_6522_T1CL	=	$C404	; 6522 #1 t1 low order latches
 MOCK_6522_T1CH	=	$C405	; 6522 #1 t1 high order counter
@@ -24,6 +27,7 @@ x_shift = $84
 
 	debug_ptr = $86
 	debug_ptr2 = $88
+
 
 tile_ptr2a	= 212
 
@@ -109,8 +113,8 @@ loop_infinite:
 	;; LDA #$1
 	;; STA DONE_PLAYING
 
-	store_16 line_data_ptr1, line_data_frame1
-	store_16 line_data_ptr2, line_data_frame2
+	store_16 line_data_ptr1, lines_data
+	store_16 line_data_ptr2, lines_data + SECOND_FRAME_OFFSET
 
 				; 	add_const_to_16 line_data_ptr2, LINES_TO_DO * BYTES_PER_LINE +1
 demo3:
@@ -158,13 +162,14 @@ all_lines:
 	STA color
 	JSR draw_or_erase_multiple_lines
 
-	jsr skip_a_frame
+	jsr skip_a_frame2
+	jsr skip_a_frame2
+	BCS all_done
 	copy_16 line_data_ptr1, line_data_ptr
 
 	LDA #1
 	STA color
 	JSR draw_or_erase_multiple_lines
-	BCS all_done
 
 	.if GR_ONLY = 0
 	LDA $C055	; Show page 4
@@ -182,13 +187,14 @@ freeze:
 	STA color
 	JSR draw_or_erase_multiple_lines
 
-	jsr skip_a_frame
+	jsr skip_a_frame2
+	jsr skip_a_frame2
+	BCS all_done
 	copy_16 line_data_ptr2, line_data_ptr
 
 	LDA #1
 	STA color
 	JSR draw_or_erase_multiple_lines
-	BCS all_done
 
 	.if  GR_ONLY = 0
 	LDA $C054		; Show page 2
@@ -199,12 +205,12 @@ freeze:
 	.endif 			; TWO PAGES
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-	LDX #15
-show_sectors:
-	lda sector_status,X
-	sta $6d0,X
-	DEX
-	BPL show_sectors
+;; 	LDX #15
+;; show_sectors:
+;; 	lda sector_status,X
+;; 	sta $6d0,X
+;; 	DEX
+;; 	BPL show_sectors
 	;; We pause a bit of time before
 	;; loading a new file. Ths is to ensure
 	;; that both line data pointers are one
@@ -231,6 +237,11 @@ no_track_load:
 
 	JMP all_lines
 all_done:
+	.if GR_ONLY = 0
+	LDA $C055	; Show page 4
+	LDA $C057
+	LDA $C050 	; display graphics; last for cleaner mode change
+	.endif
 
 	RTS
 
@@ -241,8 +252,134 @@ lazy2:
 	.byte 0
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	.proc draw_or_erase_multiple_lines
 
-.proc draw_or_erase_multiple_lines
+
+
+	;store_16 line_data_ptr, $E000 ; DEBUG !!!
+
+draw_or_erase_frame:
+	;; jmp draw_or_erase_frame
+
+	;; Start parsing a new frame
+
+	LDY #1			; Skip byte count
+	STY frame_offset
+
+	LDA (line_data_ptr),Y
+	INY
+
+	CMP #END_OF_TRACK
+	BEQ end_of_track
+
+	CMP #END_OF_MOVIE
+	BEQ end_of_movie
+
+	STA paths_count
+
+next_path:
+	LDA (line_data_ptr),Y
+	INY
+	STA edge_count
+next_edge:
+	;; Edges are like this : P0-P1-P2, and that
+	;; gives [P0-P1],[P1-P2]
+
+	LDA (line_data_ptr),Y
+	INY
+	STA x1
+	LDA #0
+	STA x1+1
+	LDA (line_data_ptr),Y
+	INY
+	STA y1
+
+	STY frame_offset
+
+	LDA (line_data_ptr),Y
+	INY
+	STA x2
+	LDA #0
+	STA x2+1
+	LDA (line_data_ptr),Y
+	STA y2
+
+	JSR draw_or_erase_a_line
+
+	LDY frame_offset
+
+	DEC edge_count
+	BNE next_edge
+
+	INY			; skip the last point of the path.
+	INY
+	DEC paths_count
+	BNE next_path
+
+	CLC
+	RTS
+end_of_track:
+end_of_movie:
+	RTS
+
+frame_offset:	.byte 0
+paths_count:	.byte 0
+edge_count:	.byte 0
+
+	.endproc
+
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	.proc skip_a_frame2
+
+	;; Move to next frame
+
+	LDY #0			; read byte count
+	LDA (line_data_ptr),Y
+
+	;; Note that on end of movie, the byte count is zero.
+
+	add_a_to_16 line_data_ptr
+
+	;; Detect various ends
+
+	INY			; Skip byte count
+	LDA (line_data_ptr),Y
+
+	CMP #END_OF_TRACK
+	BEQ end_of_track
+
+	CMP #END_OF_MOVIE
+	BNE go_on
+
+	LDA #255
+	STA end_of_block
+	SEC
+	RTS
+
+end_of_track:
+	;;  Switch banks
+	LDA line_data_ptr + 1
+	AND #$F0
+	EOR #($D0 ^ $E0)
+	STA line_data_ptr + 1
+	LDA #0
+	STA line_data_ptr
+
+	;; Trigger next file read (later)
+	LDA #2
+	STA end_of_block
+
+go_on:
+	CLC
+	RTS
+
+	.endproc
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+.proc draw_or_erase_multiple_lines_old
 
 one_more_line:
 
@@ -545,32 +682,61 @@ end_of_frame:
 
 	.endproc
 
+
 .proc draw_or_erase_a_line
 
 	;; line_data_ptr must be set
 	;; color must be set
 
-	jsr copy_line_data
+	;; LDY #6
 
-	LDA color
-	BNE skip_slope
-skip_slope:
+	;; LDA (line_data_ptr),Y
+	;; STA x1
+	;; INY
+	;; LDA (line_data_ptr),Y
+	;; STA x1 + 1
 
-	LDY #0
-	LDA (line_data_ptr),Y
-	AND #31
+	;; INY
+	;; LDA (line_data_ptr),Y
+	;; STA y1
 
-	CMP #0
-	BNE vline
-	jsr draw_hline_full
-	rts
-vline:
-	CMP #1
-	BNE unsupported_command
-	jsr draw_vline_full
-unsupported_command:
-	rts
+	;; INY
+	;; LDA (line_data_ptr),Y
+	;; STA x2
+	;; INY
+	;; LDA (line_data_ptr),Y
+	;; STA x2 + 1
+
+	;; INY
+	;; LDA (line_data_ptr),Y
+	;; STA y2
+
+	.include "compu_line.s"
+
+
+
+
+slope65536:	.word 0
+slope256_2:	.word 0
+slope_by_256:	.byte 0
+work:	.word 0
+dx:	.word 0
+dy:	.byte 0
+dx_positive:	.byte 0
+dy_positive:	.byte 0
+work1:	.byte 0
+work2:	.byte 0
+left_mask:	.byte 0
+right_mask:	.byte 0
+clip_flags:	.byte 0
+
 .endproc
+
+x1:	.word 0
+y1:	.byte 0
+x2:	.word 0
+y2:	.byte 0
+
 
 .proc draw_to_page4
 	store_16 line_code_ptr_lo, p2_line_ptrs_lo
@@ -597,89 +763,6 @@ unsupported_command:
 	store_16 notb_line_code_ptr_hi, notb_line_ptrs_hi
 	rts
 .endproc
-
-
-	.proc copy_line_data
-
-	LDY #1
-
-	;; Convert x-coord from 8 bits to 16 bits
-	LDA #0
-	STA fx
-	LDA (line_data_ptr),Y
-	STA fx + 1
-
-	INY
-	LDA #0
-	STA fy
-	LDA (line_data_ptr),Y
-	STA fy + 1
-
-	INY
-	LDA (line_data_ptr),Y
-	STA length
-
-	INY
-	LDA (line_data_ptr),Y
-	STA slope
-	INY
-	LDA (line_data_ptr),Y
-	STA slope + 1
-
-	;;  new code ------------------------
-
-	INY
-	LDA (line_data_ptr),Y
-	STA x1
-	INY
-	LDA (line_data_ptr),Y
-	STA x1 + 1
-
-	INY
-	LDA (line_data_ptr),Y
-	STA y1
-
-	INY
-	LDA (line_data_ptr),Y
-	STA x2
-	INY
-	LDA (line_data_ptr),Y
-	STA x2 + 1
-
-	INY
-	LDA (line_data_ptr),Y
-	STA y2
-
-	JSR compute_line_parameters
-	RTS
-
-	;; ---------------------------------------------------------
-
-	.include "compu_line.s"
-
-
-
-
-slope65536:	.word 0
-slope256_2:	.word 0
-slope_by_256:	.byte 0
-work:	.word 0
-x1:	.word 0
-y1:	.byte 0
-x2:	.word 0
-y2:	.byte 0
-dx:	.word 0
-dy:	.byte 0
-dx_positive:	.byte 0
-dy_positive:	.byte 0
-work1:	.byte 0
-work2:	.byte 0
-left_mask:	.byte 0
-right_mask:	.byte 0
-clip_flags:	.byte 0
-
-	.endproc
-
 
 
 line_data_ptr1:	.word 0

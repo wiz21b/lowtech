@@ -370,6 +370,8 @@ def export_faces( faces, rot):
 
         all_ts = []
         for triangle in atriangles:
+            # t represents the interval(s) where view_triangle
+            # is hidden by triangle.
             t = intersect_triangle( view_triangle, triangle)
             if t:
                 all_ts.append(t)
@@ -1182,7 +1184,9 @@ def compute_hgr_offsets(fo):
 LIMY = TILE_SIZE
 BOTY = APPLE_YRES - TILE_SIZE
 LIMX = TILE_SIZE
-BOTX = APPLE_XRES - TILE_SIZE
+# BOTX is kept under 256 to make sure that all the X coordinates
+# can be kept in one byte
+BOTX = 255 - TILE_SIZE
 
 def clip( a, b):
 
@@ -1440,6 +1444,31 @@ def paths_to_bytes( paths):
             data.append( [ a[0], a[1], b[0], b[1] ])
     return data
 
+def paths_to_bytes2( paths):
+
+    def coord_to_bytes( pair):
+        x,y = int(pair[0]),int(pair[1])
+        assert 0 <= x <= 255 and 0 <= y <= 255
+        return [x,y]
+
+    data = [ len(paths) ]
+
+    for path in paths:
+
+        pdata = [ len( path)]
+
+        first_edge = path[0]
+        p0 = first_edge[ 0]
+        pdata.extend( coord_to_bytes(p0) )
+
+        for edge in path:
+            pN = edge[ 1]
+            pdata.extend( coord_to_bytes(pN))
+
+        data.extend( pdata)
+
+    return data
+
 def stats_paths( g, paths, show=True):
     l_tot = 0
     for path in paths:
@@ -1485,6 +1514,8 @@ def frame_compress( frame):
     best_bytes = 0
     nb_improve = 0
 
+    # Try several solutions randomly and pick the best.
+
     for i in range(20):
         paths = longest_paths_search( g,randomized=True)
 
@@ -1529,7 +1560,11 @@ last_end_block_mark = None
 
 for fn in glob.glob(f"build/bin_lines*"):
     os.remove(fn)
+for fn in glob.glob(f"build/xbin_lines*"):
+    os.remove(fn)
 
+
+cframes_bins = []
 
 with open("build/lines.s","w") as fo:
 
@@ -1561,7 +1596,18 @@ with open("build/lines.s","w") as fo:
         #for li,l in enumerate(frame):
             # if frame_ndx > 0 or 10 <= li <= 12:
 
-        for li,l in enumerate( paths_to_bytes( frame_compress( frame ))):
+        compressed_edges = frame_compress( frame )
+        frame_bin_data = paths_to_bytes2( compressed_edges)
+        frame_bin_data = [ len(frame_bin_data) + 1 ] + frame_bin_data
+        cframes_bins.append(frame_bin_data)
+
+        if frame_ndx == 0:
+            with open(f"build/xbin_lines_const.s","w") as fo_const:
+                fo_const.write(f"SECOND_FRAME_OFFSET = {len(frame_bin_data)}")
+
+        #print( "Bin: {} {}".format( len(frame_bin_data), frame_bin_data))
+
+        for li,l in enumerate( paths_to_bytes( compressed_edges)):
 
             a = Vertex( l[0],l[1])
             b = Vertex( l[2],l[3])
@@ -1608,6 +1654,8 @@ with open("build/lines.s","w") as fo:
             if len(mem_block) > 16*256 - 512:
                 mem_block.extend( bytes([5]))
 
+
+
                 fo.write(f"; File split {nb_mem_blocks}\n")
                 assert len(mem_block) <= 16*256, "the threshold is too big, {}".format(len(mem_block))
                 with open(f"build/bin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
@@ -1631,6 +1679,40 @@ with open("build/lines.s","w") as fo:
         if frame_ndx == 0:
             l = len(mem_block)
             fo.write(f"line_data_frame2:\t;Beginning of second frame; {l} bytes\n")
+
+
+
+    END_OF_TRACK = 0xFE
+    END_OF_MOVIE = 0xFF
+
+    nb_mem_blocks = 1
+
+    ndx = 0
+    while ndx < len(cframes_bins):
+
+        block = []
+        while ndx < len(cframes_bins):
+            frame_bin = cframes_bins[ndx]
+            if len( frame_bin) + len(block) + 2 < 16*256:
+                block.extend( frame_bin)
+                ndx += 1
+            else:
+                break
+
+        block.append( 0) # Dummy byte count (zero helps the code to be simpler)
+
+        if ndx < len(cframes_bins):
+            block.append( END_OF_TRACK)
+        else:
+            block.append( END_OF_MOVIE)
+
+        with open(f"build/xbin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
+            fo_bin.write( bytearray( block))
+        nb_mem_blocks += 1
+
+    if block:
+        with open(f"build/xbin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
+            fo_bin.write( bytearray( block))
 
 
     TOTAL_ANIM_SECONDS = 6.74/2 # 14.6 with player

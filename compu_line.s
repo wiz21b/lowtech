@@ -12,6 +12,8 @@ compute_line_parameters:
 	RTS
 	INC y2
 go_on:
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; MOSTLY VERTICAL LINE
 
 	SEC			; dx = y1 - y2
 	LDA y1
@@ -103,6 +105,7 @@ x_correctly_ordered:
 	STA slope
 	LDA slope65536+1
 	STA slope+1
+	jsr draw_vline_full
 
 	RTS
 
@@ -317,6 +320,9 @@ dont_fix_y2:
 	LDA slope65536+1
 	STA slope+1
 
+	LDY #0
+	LDA (line_data_ptr),Y
+	jsr draw_hline_full
 
 	RTS
 
@@ -335,6 +341,12 @@ divide_times_tile_size:
 	;; Compute : slope65536 (word) := TILE_SIZE (7) * A * (256/Y)
 	;; A and Y are positive numbers (0 <= A,y < 256)
 	;; Y is expected to be > A => 0 < A/Y < 1
+	;; Threfore, although the general principle is to multiply
+	;; A (8 bits) by a 16 bit 65536*1/Y table, the end result is
+	;; 24 bits BUT < 65536 ! ( if A/Y < 1, then 65536*A/Y < 65536,
+	;; then A*65536/Y < 65536 => A * tbl[Y] < 65536 ). In other
+	;; words, if one knows A, then it must choose Y such that
+	;; A/Y < 1
 
 	;; a * 65536 * 1/b
 	;; si B = 65536 * 1/b = Bh * 256 + Bl
@@ -355,7 +367,7 @@ divide_times_tile_size:
 
 
 	;; Compute LSB of A * (1/Y * 65536)
-	;; (so in the final 24 bits : 0L. (we discard the least-least significant byte))
+	;; 0LL (the MSB is 0 because ratio < 1)
 
 	PHA
 	STA mul1
@@ -371,7 +383,9 @@ divide_times_tile_size:
 	STA slope65536
 
 	;; Compute MSB of A * (1/Y * 65536)
-	;; (so in the final 24 bits : MM.)
+	;; (so in the final 24 bits : 0M0 the MSB is 0
+	;; because ratio < 1; the LSB is 0 (and not computed)
+	;; because we compute the hi-bytes of the multiplication.
 
 	PLA
 	STA mul1
@@ -387,7 +401,7 @@ divide_times_tile_size:
 	JSR multiply_8		; A:m1 := mul1 * mul2
 
 	;; Sum MSB and LSB to get a 16 bits results
-	;; MM. + 0L. = SS. (we discard the last one)
+	;; 0LL + 0M0 = 0SS (we discard the last one)
 
 	CLC
 	LDA mul1

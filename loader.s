@@ -59,21 +59,6 @@ run:
 	LDA #FILE_PT3
 	JSR load_file_no_irq
 
-	;; ;; B800
-	TUNE_PACKED = $6000
-	TUNE_ADDRESS = $B800
-
-	LDA #<TUNE_PACKED
-	STA LZSA_SRC_LO
-	LDA #>TUNE_PACKED
-	STA LZSA_SRC_HI
-
-	LDA #<TUNE_ADDRESS
-	STA LZSA_DST_LO
-	LDA #>TUNE_ADDRESS
-	STA LZSA_DST_HI
-
-	JSR DECOMPRESS_LZSA2_FAST
 
 
 
@@ -88,67 +73,54 @@ run:
 
 	.endif
 
-	;; LDA #FILE_EARTH
-	;; JSR load_file_no_irq
-	;; LDA #FILE_BIG_SCROLL
-	;; JSR load_file_no_irq
-
-	;; JSR $6000
-
-
 	;; Setting those up before activating language card RAM bank
 	;; seems important. Without that, things go totally wrong
 	;; (interrupt seems to trigger random writes in memory,
 	;; leading to unpredictable crashes).
 
-	;; lda	#<interrupt_handler
-	;; sta	$fffe
-	;; lda	#>interrupt_handler
-	;; sta	$ffff
-	;; lda	#<interrupt_handler
-	;; sta	$03fe
-	;; lda	#>interrupt_handler
-	;; sta	$03ff
-
-	.ifdef MUSIC
-	JSR start_player
-	.endif
 	set_irq_vector interrupt_handler
 
 	LDA LC_RAM_SELECT
 	LDA LC_RAM_SELECT
 
 
-;; 	;; Set the next interrupt just before a sector address
-;; 	;; block.
+	.ifdef MUSIC
+	LDA #<FILE_PT3_LOAD_ADDR
+	STA LZSA_SRC_LO
+	LDA #>FILE_PT3_LOAD_ADDR
+	STA LZSA_SRC_HI
 
-;; 	sei
-;; wait_sector:
-;; 	ldx #SLOT_SELECT
-;; 	jsr rdadr16
-;; 	lda sect
-;; 	cmp #1
-;; 	bne wait_sector
+	LDA #<PT3_LOC
+	STA LZSA_DST_LO
+	LDA #>PT3_LOC
+	STA LZSA_DST_HI
 
-;; 	ldx #SLOT_SELECT
-;; 	jsr read16
+	JSR DECOMPRESS_LZSA2_FAST
 
-;; 	.ifdef MUSIC
-;; 	JSR start_player2
-;; 	.endif
+	JSR start_player
+	.endif
 
-;;  	lda #0
-;;  	sta MOCK_6522_T1CL	; write into low-order latch
-;; 	lda #10		; #$31 = 49 => *3/4 = 36
-;;  	sta MOCK_6522_T1CH	; write into high-order latch,
-;; 	cli
-;; zzz:
-;; 	NOP
-;; 	JMP zzz
+	;; -----------------------------------------------------------
 
+	LDA #FILE_EARTH
+	JSR load_file_no_irq
+	LDA #FILE_BIG_SCROLL
+	JSR load_file_no_irq
+
+	.ifdef MUSIC
+	JSR start_interrupts
+	.endif
+	JSR $6000
+
+
+	;; -----------------------------------------------------------
 
 	LDA #FILE_THREED
+	.ifdef MUSIC
+	JSR load_file;_no_irq
+	.else
 	JSR load_file_no_irq
+	.endif
 
 	THREED_ADDRESS = $6000
 
@@ -165,17 +137,26 @@ run:
 	JSR DECOMPRESS_LZSA2_FAST
 
 	LDA #FILE_DATA_3D_0
+	.ifdef MUSIC
+	JSR load_file;_no_irq
+	.else
 	JSR load_file_no_irq
+	.endif
 	LDA #FILE_DATA_3D_1
+	.ifdef MUSIC
+	JSR load_file;_no_irq
+	.else
 	JSR load_file_no_irq
+	.endif
 
-	JSR start_interrupts
+	;; JSR start_interrupts
 
 	LDA #FILE_DATA_3D_2
 	JSR $6000
 
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;; -----------------------------------------------------------
 
+the_end:
 	LDA #FILE_PICTURE
 	JSR load_file
 	LDA #FILE_VERTI_SCROLL
