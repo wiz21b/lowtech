@@ -239,7 +239,7 @@ no_track_load:
 	INC frame_count
 	LDA frame_count
 infini_freeze:
-	CMP #10
+	CMP #3
 	;BEQ infini_freeze
 
 

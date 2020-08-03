@@ -146,6 +146,13 @@ x_correctly_ordered2:
 	CMP y2
 	BMI y_correctly_ordered2
 
+	;; Compensate for rounding errors.
+	;; I mus admit that I tested it "like that"
+	;; without proviong it's the right thing to do.
+	;; But visually it's convincing
+
+	INC y1
+	INC y2
 	LDA slope65536+1
 	ORA #$80
 	STA slope65536+1

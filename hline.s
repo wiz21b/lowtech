@@ -50,8 +50,8 @@ tile_loop:
 	STA (dummy_ptr),Y
 
 	INC start_y
-	DEX
-	BPL tile_loop
+	DEX			; sets N and Z
+	BPL tile_loop		; >= 0
 
 	LDX start_x		; Restore X
 	.endscope
