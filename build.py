@@ -390,10 +390,11 @@ disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
 # Creating the boot sector and boot loader
 
 TUNE_ORIGINAL = f"{DATA_DIR}/2UNLIM2.pt3"
+#TUNE_ORIGINAL = f"{DATA_DIR}/FC.PT3"
 crunch(TUNE_ORIGINAL)
 
 # lzsa -r -f2 data\2UNLIM.pt3 data\2UNLIM.lzsa
-TUNE_ADDRESS = 0xFD00 - (((os.path.getsize(TUNE_ORIGINAL) + 255 + 256) >> 8) << 8)
+TUNE_ADDRESS = 0xFD00 - (((os.path.getsize(TUNE_ORIGINAL) + 256) >> 8) << 8)
 
 assert TUNE_ADDRESS >= 0xF000, "over 3D file load area"
 
@@ -485,7 +486,7 @@ run(f"{LD65} -o {BUILD_DIR}/BSCROLL {BUILD_DIR}/big_scroll.o {BUILD_DIR}/loader.
 
 
 run(f"{CA65} -o {BUILD_DIR}/td.o -t apple2 --listing {BUILD_DIR}/td.txt {additional_options} td.s")
-run(f"{LD65} -o {BUILD_DIR}/THREED {BUILD_DIR}/td.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
+run(f"{LD65} -o {BUILD_DIR}/THREED {BUILD_DIR}/td.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/td_map.out")
 shutil.copyfile(f"{BUILD_DIR}/datad000.o",f"{BUILD_DIR}/threed_data")
 
 

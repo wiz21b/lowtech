@@ -220,7 +220,9 @@ class LoaderTOC:
                     break
 
                 size = len(data)
-                end = ((page_base * 256 + size) & 0xFF00) + 0xFF
+                assert size > 0, f"empty file ? {filepath}"
+                end = ((page_base * 256 + size - 1) & 0xFF00) + 0xFF
+
                 print(f"[{ident}] ${page_base:02X}00 - ${end:04X}: {filepath}, {size} bytes")
 
                 if i > 0:

@@ -235,6 +235,14 @@ wait_track_load:
 	INC next_file_to_load
 no_track_load:
 
+
+	INC frame_count
+	LDA frame_count
+infini_freeze:
+	CMP #10
+	;BEQ infini_freeze
+
+
 	JMP all_lines
 all_done:
 	.if GR_ONLY = 0
@@ -248,7 +256,7 @@ all_done:
 
 	jmp demo3
 
-lazy2:
+frame_count:
 	.byte 0
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -796,18 +804,6 @@ next_file_to_load:	.byte 0
 
 .proc draw_hline_full
 
-	LDY #0
-	LDA (line_data_ptr),Y
-	LSR
-	LSR
-	LSR
-	LSR
-	LSR
-	AND #7
-	TAY
-	LDA hline_masks_right, Y
-	STA mask_right
-
 	LDA color
 	BEQ erase
 
@@ -999,19 +995,33 @@ by0:
 .endproc
 
 .proc draw_hline
-	draw_hline2 TOP_DOWN
+	;draw_hline2 TOP_DOWN
+
+	direction = TOP_DOWN
+	clearing = 0
+	.include "hline_base.s"
 .endproc
 
 .proc draw_hline_up
-	draw_hline2 BOTTOM_UP
+	;draw_hline2 BOTTOM_UP
+
+	direction = BOTTOM_UP
+	clearing = 0
+	.include "hline_base.s"
 .endproc
 
 .proc erase_hline
-	draw_hline2 TOP_DOWN, 1
+	;draw_hline2 TOP_DOWN, 1
+	direction = TOP_DOWN
+	clearing = 1
+	.include "hline_base.s"
 .endproc
 
 .proc erase_hline_up
-	draw_hline2 BOTTOM_UP, 1
+	;draw_hline2 BOTTOM_UP, 1
+	direction = BOTTOM_UP
+	clearing = 1
+	.include "hline_base.s"
 .endproc
 
 
@@ -1067,7 +1077,7 @@ by0:
 	.endproc
 
 modulo7:
-	.repeat 256,I
+	.repeat 256,I		; I starts at zero.
 	.byte	I .MOD 7
 	.endrep
 

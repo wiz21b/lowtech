@@ -50,7 +50,8 @@ interrupt_handler_music:
 
 regular_operation:
 	;; We'll read 40/2=20 sectors per seconds while maintainng
-	;; a 40Hz interrupt frequency (for PT3 play).
+	;; a 40Hz interrupt frequency (for PT3 play). time_skip_count
+	;; counts one sector out of two.
 
 	INC time_skip_count
 	LDA time_skip_count
@@ -59,7 +60,7 @@ regular_operation:
 	LDA #0
 	STA time_skip_count
 
-	;; A full sector skip is actually make of two things
+	;; A full sector skip is actually made of two things
 	;; - the time it takes to read the data of the sector
 	;; - the (maximum) time it takes to reach the address
 	;;   nibbles preceding those sector data (we count that
@@ -68,7 +69,9 @@ regular_operation:
 	;;   read head is somewhere in the sector proceding that
 	;;   sector; so we must wait to reach the address nibbles)
 
-	;; Rememeber, 16 sectors per track, 5 round pers econd => 80 sectors per second.
+	;; Rememeber, 16 sectors per track, 5 round pers econd
+	;; => 80 sectors per second.
+
 	FULL_SECTOR_SKIP = 2*$3179 ; 2* 1/80th of sec => 1/40th of sec.
 
 	;; We set our timer interrupt at the same frequency
@@ -76,7 +79,7 @@ regular_operation:
 	;; That frequency is chosen for two reasons. First
 	;; reason is that if we wanted to read all sectors,
 	;; we would never leave the interrupt (we'd spend all
-	;; our time readin). The second reason is that the frequency
+	;; our time reading). The second reason is that the frequency
 	;; of one every two sectors is 2*1/80th = 40Hz. That frequency
 	;; is close to the 50Hz frequency of a PT3 player.
 
@@ -91,16 +94,17 @@ sector_was_read:
 
 	;draw_debug_info
 
-	;;  Given the fact that we have a 40Hz frequency,
+	;; Given the fact that we have a 40Hz IRQ frequency,
 	;; x2 because we skip one every other IRQ , we end
 	;; up reading a sector out of four. But, as a track is
 	;; 16 sectors, doing so leads to reading always the
 	;; same 4 sectors : 0,4,8,12,0,4,8,12,... To avoid that
 	;; we shift one sector each time the disk has completed a
-	;; revolution to have a pattern
-	;; such as : 0,4,8,12,1,5,9,13,2,6,10,14... This way
+	;; revolution (4 interrupts, counted in sector_shift)
+	;; to have a pattern such as : 0,4,8,12,1,5,9,13,2,6,10,14...
+	;; This way
 	;; we make sure we read each sector once and we also make sure
-	;; we read it ath mose appropriate time (that is, we don't
+	;; we read it at the most appropriate time (that is, we don't
 	;; have to wait for it).
 
 	INC sector_shift	; FIXME this can pobably be optimized a bit
@@ -113,14 +117,14 @@ sector_was_read:
 	CPX #12
 	BEQ shift_a_sector
 
-	CPX #17
+	CPX #17			; FIXME Why not 16 ???
 	BEQ back_to_zero
 
 	;; This time is computed to be the closest possible
 	;; to a sector address block on the disk, so that
 	;; rdadr16 waits the less possible.
 
-	REGULAR_SKIP = ($3179 * 3) / 4
+	REGULAR_SKIP = ($3179 * 5) / 6
 	SHIFTER_SKIP = $3179 + REGULAR_SKIP
 
 regular_sector_progress:

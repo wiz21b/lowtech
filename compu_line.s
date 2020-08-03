@@ -9,8 +9,7 @@ compute_line_parameters:
 	BMI y1_smaller	; y1 < y2
 
 	BNE go_on		;FIXME Handle horizontal lines correctly !
-	RTS
-	INC y2
+	;RTS
 go_on:
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; MOSTLY VERTICAL LINE
@@ -58,6 +57,16 @@ dx_is_positive:
 	LDA dx_positive
 	CMP dy_positive
 	BNE dx_different_dy
+
+	;; 45° line. It's a special case because in that
+	;; case dx/dy == 1 and this triggers some overflows
+	;; in my table lookups (esp. the 1/x table)
+
+	LDA #$FF
+	STA slope65536
+	LDA #6			; TILE-SIZE - 1
+	STA slope65536+1
+	BNE dx_equals_dy	; branch
 	RTS
 dx_different_dy:
 
@@ -71,6 +80,7 @@ dx_smaller_dy:
 	LDY dy_positive
 	JSR divide_times_tile_size
 
+dx_equals_dy:
 	LDA y1
 	CMP y2
 	BMI y_correctly_ordered
@@ -141,12 +151,9 @@ x_correctly_ordered2:
 	STA slope65536+1
 y_correctly_ordered2:
 
-	LDA #0
-	STA clip_flags
+	;; Prepare *LEFT* side of the line data ----------------------
 
-	;; Prepare *LEFT* side of the line data
-
-	;; Since [x1+1] th hi-bits of x1 are a mutliple
+	;; Since [x1+1] th hi-bits of x1 are a multiple
 	;; of 256, they go around the modulo7 table (which
 	;; is 256 bytes) => x % 7 = (n*256 + x) % 7 =
 	;; tbl[n*256 + x] = tbl[x]
@@ -184,15 +191,14 @@ fix_y1_slope_positive2:
 
 	;; second we compute x
 
-	LDA x1
-	SEC
-	SBC left_mask
-	STA x1			; x1 == x1 - (x1 % TILE_SIZE))
-	LDA x1 + 1
-	SBC #0
-	STA x1 + 1
+	;; LDA x1
+	;; SEC
+	;; SBC left_mask
+	;; STA x1			; x1 == x1 - (x1 % TILE_SIZE))
+	;; LDA x1 + 1
+	;; SBC #0
+	;; STA x1 + 1
 
-	INC clip_flags
 dont_fix_y1:
 
 	;; -----------------------------------------------------------
@@ -223,87 +229,64 @@ dont_fix_y1:
 
 	STA work
 
-	CLC
-	ADC x2
-	STA x2			; x2 := x2 + (TILE_SIZE - 1 - (x2 % TILE_SIZE))
-	LDA x2+1
-	ADC #0
-	STA x2+1
+	;; CLC
+	;; ADC x2
+	;; STA x2			; x2 := x2 + (TILE_SIZE - 1 - (x2 % TILE_SIZE))
+	;; LDA x2+1
+	;; ADC #0
+	;; STA x2+1
 
 	LDX work		; X := TILE_SIZE - 1 - (x2 % TILE_SIZE)
-	JSR slope_by_7		; work := X * slope_by_256
+	JSR slope_by_7		; work (16 bits) := X * slope_by_256
 
 	LDA slope65536+1
 	AND #$80
 	BEQ fix_y2_slope_positive
 
+	LDA y2
 	SEC
-	LDA y2
-	SBC work		; work = X (8 bits) by slope_by_256
-	jmp fix_y2_slope_positive2
+	SBC work+1		; work = X (8 bits) by slope_by_256
+	jmp fix_y2_slope_positive2 ; FIXME short jump
 fix_y2_slope_positive:
-	CLC
 	LDA y2
-	ADC work		; work = X (8 bits) by slope_by_256
+	CLC
+	ADC work+1		; work = X (8 bits) by slope_by_256
 fix_y2_slope_positive2:
 	STA y2			; y2 += (TILE_SIZE - 1 - (x2 % TILE_SIZE)) * slope_by_256
 
-	INC clip_flags
 dont_fix_y2:
 
 	;; -----------------------------------------------------------
-	;; Compute the number of full (= non clipped ) tiles we need
-	;; to draw
+	;; Compute the number of tiles we need
+	;; to draw (usually one left-clipped, a few complete and
+	;; onr right-clipped). The length is inclusive, so we go
+	;; from x1/7 to x2/7, inclusive. Therefore the length is
+	;; always >= 1. A length of one means that the left-clipped
+	;; and the right-clipped one are the same (they overlap).
 
 	LDX x2
 	LDA div7,X
 
 	LDX x1
 	SEC
-	SBC div7, x
+	SBC div7, X
 
 	CLC
 	ADC #1
-
-;; 	SEC
-;; 	SBC clip_flags
-;; 	BPL good_length
-;; 	LDA #0
-;; good_length:
 	STA length
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-	;; len = ((dx // 7) << 2) | (left_mask > 1)
-	;; LDX dx_positive		; dx < 280 => dx//7 < 40 => fits on 6 bits
-	;; LDA div7,X
-
-	LDA length
-
-	ASL			; 0 is shifted into bit 0
-	ASL
-	STA work		; work := (dx // 7) << 2 (6 hi bits)
-
-	LDA left_mask
-	LSR			; A := left_mask > 1
-	ORA work
-
-;infloop:
-	;; CMP length
-	;; BNE infloop
-
-	STA length
-
-
-	;; Initialize fx=0; fx+1=? (1 word)
-	;; fy=0, fy+1=? (1 word)
-	;; length (1 byte)
-	;; slope (1 word)
+	LDY left_mask
+	LDA hline_masks_left, Y
+	STA mask_left
 
 	LDY right_mask
 	LDA hline_masks_right, Y
 	STA mask_right
+
+	;; Initialize fx=0; fx+1=? (1 word)
+	;; fy=0, fy+1=? (1 word)
 
 	LDA #0
 	STA fx
@@ -320,8 +303,6 @@ dont_fix_y2:
 	LDA slope65536+1
 	STA slope+1
 
-	LDY #0
-	LDA (line_data_ptr),Y
 	jsr draw_hline_full
 
 	RTS
@@ -513,6 +494,7 @@ swap_slope_sign:
 	STA slope65536+1
 	RTS
 
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 swap_p1_p2:
 	LDA x1

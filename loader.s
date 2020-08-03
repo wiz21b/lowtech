@@ -102,15 +102,15 @@ run:
 
 	;; -----------------------------------------------------------
 
-	LDA #FILE_EARTH
-	JSR load_file_no_irq
-	LDA #FILE_BIG_SCROLL
-	JSR load_file_no_irq
+	;; LDA #FILE_EARTH
+	;; JSR load_file_no_irq
+	;; LDA #FILE_BIG_SCROLL
+	;; JSR load_file_no_irq
 
 	.ifdef MUSIC
 	JSR start_interrupts
 	.endif
-	JSR $6000
+	;; JSR $6000
 
 
 	;; -----------------------------------------------------------

@@ -1,5 +1,7 @@
 	.macro advance_tile_vertically mdirection
 
+	;; fx := fx + slope
+
 	CLC
 	LDA fx
 	ADC slope
@@ -98,7 +100,7 @@ modulo7_times8:
 
 	.scope
 
-	LDA #6			; 0 - tiles_length inclusive => 7.
+	LDA #6			; [0 - tiles_length] inclusive => len 7.
 	STA tiles_length
 
 	LDX length
@@ -108,7 +110,10 @@ modulo7_times8:
 	STA length_div7
 	CMP #0
 	BNE at_least_one_tile
-	RTS
+
+	JMP clipped_tile
+
+	;RTS
 
 at_least_one_tile:
 
@@ -158,7 +163,7 @@ loop_start2:
 	;; STA x_shift
 	;; PLA
 
-	.ifblank clearing
+	.ifblank clearing	; ----------------- Drawing
 
 	;; Choose the code segment to run to draw or clear
 	;; the line. self_mod will contain a pointer to
@@ -176,9 +181,11 @@ loop_start2:
 	.else
 	LDA #0
 	.endif
+
 	STA x_shift
 
-	.else
+	.else	; -------------------------------- Clearing
+
 	;; X = number of the tile we will draw
 
 	.if ::direction = ::RIGHT_TO_LEFT
@@ -187,8 +194,6 @@ loop_start2:
 	LDA tiles_breaks_indices,X
 	.endif
 
-
-	STOPPER = 0
 
 	STA self_mod_flag
 	CMP tiles_length		; 2/3d of times, no self mod is necessary
@@ -241,9 +246,11 @@ no_self_mod:
 	STA self_mod + 1
 	LDA (blank_line_code_ptr_hi), Y
 	STA self_mod +1 + 1
-	.endif			; end clearing code ------------------
 
+	.endif			; ------------------ end clearing code
 
+	;; ===========================================================
+	;; Now we perform the clear/draw operation
 
 	;; Y = how many lines to draw (zero included => if Y = 2
 	;; then 3 lines will be drawn)
@@ -296,10 +303,10 @@ no_undo_self_mod:
 	JMP loop_start
 tile_done:
 
+clipped_tile:
 	LDA length_mod7
 	CMP #0
 	BEQ really_done
-
 	STA tiles_length
 	LDA #1
 	STA length_div7

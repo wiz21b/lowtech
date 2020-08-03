@@ -1428,7 +1428,6 @@ screen = pygame.display.set_mode( (APPLE_XRES*4, APPLE_YRES*4))
 # recorder_frames = animate_3D( screen)
 # with open("clipper","wb") as f_out:
 #     pickle.dump( recorder_frames, f_out)
-pygame.quit()
 
 with open("clipper","rb") as f_in:
     recorder_frames = pickle.load( f_in)
@@ -1503,10 +1502,13 @@ def frame_compress( frame):
 
         d = a - b
         if abs(d.x) < 1 and abs(d.y) < 1:
+            # Edge too small (less than one pixel)
             continue
 
-        if abs(d.x) > abs(d.y) and abs(d.x) < 2*TILE_SIZE:
-            continue
+        # FIXME One must remove all of this (but right now, things
+        # break if I do it...)
+        # if abs(d.x) > abs(d.y) and abs(d.x) < 1*TILE_SIZE:
+        #     continue
 
         g.add_edge( (a.x,a.y),(b.x,b.y))
 
@@ -1534,6 +1536,18 @@ def frame_compress( frame):
     return best_paths
 
 
+def frame_draw( screen, paths):
+    for path in paths:
+        for edge in path:
+
+            p = edge[0]
+            x1,y1 = int(p[0]),int(p[1])
+            p = edge[1]
+            x2,y2 = int(p[0]),int(p[1])
+
+            pygame.draw.line( screen, (0,255,0),
+                              (x1,y1),
+                              (x2,y2), 1)
 
 
 compute_vertical_tiles()
@@ -1597,6 +1611,20 @@ with open("build/lines.s","w") as fo:
             # if frame_ndx > 0 or 10 <= li <= 12:
 
         compressed_edges = frame_compress( frame )
+
+        screen.fill( (0,0,0) )
+        for lx in range(40):
+            pygame.draw.line( screen, (0,0,255),
+                              (lx*7,0),
+                              (lx*7,192), 1)
+
+        frame_draw( screen, compressed_edges)
+        pygame.display.flip()
+        if len( cframes_bins) == 2*10:
+            input("pause")
+
+
+
         frame_bin_data = paths_to_bytes2( compressed_edges)
         frame_bin_data = [ len(frame_bin_data) + 1 ] + frame_bin_data
         cframes_bins.append(frame_bin_data)
@@ -1733,6 +1761,8 @@ with open("build/lines.s","w") as fo:
     #     data[-1] = 6
     # with open(f"build/bin_lines{fix_block}","wb") as fo_bin:
     #     fo_bin.write(data)
+
+pygame.quit()
 
 with open("build/precalc.s","w") as fo:
     for page in [1,2]:

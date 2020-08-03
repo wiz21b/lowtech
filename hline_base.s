@@ -1,79 +1,9 @@
-start_y:	.byte 0
-start_x:	.byte 0
+	;direction = 1
 
-	;; FIXME : left/right bitmask clipping routine
-	;; is anti-optimized :-) Needs a lot of reworking
-	;; to be performant.
+	TOP_DOWN = 2
+	BOTTOM_UP = 1
 
-.macro hline_7pixels_masked mask_byte, debug
-	.scope
-
-	;; X = offset on HGR line
-	;; Y = Y position
-	;; tile_ptr is set to the proper tile
-
-	STX start_x		; Save X
-	STY start_y
-
-	LDA mask_byte
-	EOR #$FF		; we draw black on white
-	AND #$7F
-	STA mask_byte
-
-	;; In fact it's min( slope+1, # of active bits in mask)
-	LDX slope+1
-
-tile_loop:
-	;;  dummy_ptr := hgr2_offset[ old_y]
-
-	LDY start_y
-	LDA (hgr_offsets_lo),Y
-	STA dummy_ptr
-	LDA (hgr_offsets_hi),Y
-	STA dummy_ptr + 1
-
-
-	TXA
-	TAY
-	LDA (tile_ptr),Y	; A := tile[ y_count]
-
-	ORA mask_byte		; A := tile[ y_count] & mask
-
-	LDY start_x
-	AND (dummy_ptr),Y	; A := (tile[ y_count] & mask) | hgr[fx]
-
-	.ifnblank debug
-	;LDA #$0
-	LDA mask_byte
-	.endif
-
-	STA (dummy_ptr),Y
-
-	INC start_y
-	DEX
-	BPL tile_loop
-
-	LDX start_x		; Restore X
-	.endscope
-.endmacro
-
-
-
-draw_masked_tile_left:
-	hline_7pixels_masked mask
-	RTS
-draw_masked_tile_right:
-	hline_7pixels_masked mask_right
-	RTS
-
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-.macro draw_hline2 direction, clearing
-	.scope
-
-	.if ::direction = ::TOP_DOWN
+	.if direction = TOP_DOWN
 	.else
 	;; Make the slope positive
 	LDA slope + 1
@@ -97,7 +27,7 @@ dont_merge_masks:
 	STA mask
 
 
-	.if ::direction = ::TOP_DOWN
+	.if direction = TOP_DOWN
 	;; store_16 self_mod + 1, HTILE_0
 	store_16 tile_ptr2a, HTILE_0
 	store_16 tile_ptr2b, HTILE_0
@@ -134,7 +64,7 @@ dont_merge_masks:
 
 	LDX fx+1		; From now on X must be preserved
 
-	.ifblank clearing
+	.if clearing = 0
 	;; clip left will decrease length by one and increase X by one
 	JSR clip_left
 	LDA length
@@ -154,7 +84,7 @@ has_right_part:
 
 loop:
 
-	.if ::direction = ::TOP_DOWN
+	.if direction = TOP_DOWN
 	LDY fy+1		; SAve for later
 
 	LDA fy
@@ -185,7 +115,7 @@ loop:
 	;; we must jump to and self modify code to jump there.
 
 	;; Y = old fy
-	.ifblank clearing
+	.if clearing = 0
 	LDA (notb_line_code_ptr_lo), Y
 	STA jsr_self_mod + 1
 	LDA (notb_line_code_ptr_hi), Y
@@ -211,13 +141,13 @@ loop_continue:
 	;; CMP #2
 	;; BPL loop
 
-	.ifblank clearing
+	.if clearing = 0
 	JMP clip_right
 	.endif
 	RTS
 
 loop2:
-	.if ::direction = ::TOP_DOWN
+	.if direction = TOP_DOWN
 	LDA fy+1
 	ADC slope+1
 	STA fy+1
@@ -229,7 +159,7 @@ loop2:
 	.endif
 
 	;; Y = old fy
-	.ifblank clearing
+	.if clearing = 0
 	LDA (notb_line_code_ptr_lo), Y
 	STA jsr_self_mod2 + 1
 	LDA (notb_line_code_ptr_hi), Y
@@ -262,7 +192,7 @@ jsr_self_mod2:
 	;;  ----------------------------------------------------------
 
 clip_right:
-	.if ::direction = ::TOP_DOWN
+	.if direction = TOP_DOWN
 	LDY fy+1		; SAve for later
 
 	LDA fy
@@ -289,12 +219,12 @@ clip_right:
 
 	.endif
 
-	;JSR draw_masked_tile_right
+	JSR draw_masked_tile_right
 	rts
 
 
 loop2_clip_right:
-	.if ::direction = ::TOP_DOWN
+	.if direction = TOP_DOWN
 	LDA fy+1
 	ADC slope+1
 	STA fy+1
@@ -305,13 +235,13 @@ loop2_clip_right:
 	TAY 			; save old fy for later
 	.endif
 
-	;JSR draw_masked_tile_right
+	JSR draw_masked_tile_right
 	rts
 
 	;; -----------------------------------------------------------
 
 clip_left:
-	.if ::direction = ::TOP_DOWN
+	.if direction = TOP_DOWN
 	LDY fy+1		; SAve for later
 	LDA fy
 	CLC
@@ -344,7 +274,7 @@ clip_left:
 
 
 loop2_clip:
-	.if ::direction = ::TOP_DOWN
+	.if direction = TOP_DOWN
 	LDA fy+1
 	ADC slope+1
 	STA fy+1
@@ -359,6 +289,3 @@ loop2_clip:
 	INX
 	DEC length 		; length := length - 1
 	rts
-
-	.endscope
-	.endmacro
