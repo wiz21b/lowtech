@@ -283,7 +283,7 @@ elif platform.system() == "Linux":
     LD65 = r"ld65"
     ACMDER = r"java -jar ../bad_apple/AppleCommander-1.3.5.13-ac.jar"
     ACME = r"acme"
-    APPLEWIN=r"/opt/wine-staging/bin/wine /home/stefan/AppleWin1.29.10.0/Applewin.exe"
+    APPLEWIN=r"/opt/wine-staging/bin/wine /home/stefan/AppleWin1.29.13.0/Applewin.exe"
     MAME = "mame"
     LZSA = "lzsa/lzsa"
 else:

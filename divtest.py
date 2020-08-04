@@ -1,6 +1,6 @@
 from py65emu.cpu import CPU
 from py65emu.mmu import MMU
-from utils import array_to_asm
+from utils import array_to_asm, array_to_hilo_asm
 
 
 def set_apple( page8):
@@ -36,9 +36,10 @@ def test_div_tables():
     y_table = [0] + [min( 0xFFFF, int( round( 256 * Y_MAX / y))) for y in range(1,256)]
 
 
+    print("hello")
     with open("build/divtbl.s","w") as fo:
-        array_to_asm( fo, y_table, ".word")
-
+        #array_to_asm( fo, y_table, ".word")
+        array_to_hilo_asm( fo, y_table, "one_over_x")
 
 
     for y in range(1,256):
@@ -160,7 +161,7 @@ def test_multiplication():
 
 
 
-#test_div_tables()
+test_div_tables()
 
 
 for n in range(0,256):

@@ -6,7 +6,7 @@ compute_line_parameters:
 
 	LDA y1
 	CMP y2
-	BMI y1_smaller	; y1 < y2
+	BCC y1_smaller	; y1 < y2
 
 	BNE go_on		;FIXME Handle horizontal lines correctly !
 	;RTS
@@ -70,7 +70,7 @@ dx_is_positive:
 	RTS
 dx_different_dy:
 
-	BMI dx_smaller_dy	; dx < dy
+	BCC dx_smaller_dy	; dx < dy
 	JMP dx_bigger_dy
 
 dx_smaller_dy:
@@ -83,7 +83,7 @@ dx_smaller_dy:
 dx_equals_dy:
 	LDA y1
 	CMP y2
-	BMI y_correctly_ordered
+	BCC y_correctly_ordered
 	JSR swap_p1_p2
 y_correctly_ordered:
 
@@ -91,7 +91,7 @@ y_correctly_ordered:
 
 	LDA x1
 	CMP x2
-	BMI x_correctly_ordered
+	BCC x_correctly_ordered
 	JSR swap_slope_sign
 x_correctly_ordered:
 
@@ -136,7 +136,7 @@ dx_bigger_dy:
 
 	LDA x1
 	CMP x2
-	BMI x_correctly_ordered2
+	BCC x_correctly_ordered2
 	JSR swap_p1_p2
 x_correctly_ordered2:
 
@@ -144,7 +144,7 @@ x_correctly_ordered2:
 
 	LDA y1
 	CMP y2
-	BMI y_correctly_ordered2
+	BCC y_correctly_ordered2
 
 	;; Compensate for rounding errors.
 	;; I mus admit that I tested it "like that"
@@ -359,10 +359,7 @@ divide_times_tile_size:
 
 	PHA
 	STA mul1
-	TYA
-	ASL
-	TAX
-	LDA one_over_x, X	; lobyte of table(65536/Y)[X]
+	LDA one_over_x_lo, Y	; lobyte of table(65536/Y)[X]
 	STA mul2
 	JSR multiply_8		; A:m1 := mul1 * mul2
 
@@ -377,10 +374,7 @@ divide_times_tile_size:
 
 	PLA
 	STA mul1
-	TYA
-	ASL
-	TAX
-	LDA one_over_x+1, X	; hibyte of table(65536/Y)[X]
+	LDA one_over_x_hi, Y	; hibyte of table(65536/Y)[X]
 	STA mul2
 	;; FIXME this is overkill : we only need the LSB byte, not the MSB
 	;; as the MSB is always zero ! So an early-out mechanism

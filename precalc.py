@@ -176,16 +176,16 @@ black = 0, 0, 0
 Vtx = Vertex
 faces = []
 
+SPEED = math.pi / 50
+axis2 = [-0.5,0.5,1]
+
 if SHAPE == "Tetrahedron":
 
     HIDDEN_FACES = True
-    if HIDDEN_FACES:
-        NB_FRAMES = 140
-    else:
-        NB_FRAMES = 240
+    NB_FRAMES = 240
 
     ATTENUATION = math.pi
-    ZOOM=300
+    ZOOM=600
     axis = [3,2,0.5]
     ta = Vtx(-1,-1,0)
     tb = Vtx(+1,-1,0)
@@ -199,12 +199,12 @@ if SHAPE == "Tetrahedron":
 # Cube ---------------------------------------------------------------
 
 if SHAPE == "Cube":
-    ATTENUATION = 4*math.pi
-    ZOOM=250
+    ATTENUATION = 2*math.pi
+    ZOOM=500
     HIDDEN_FACES = True
 
     NB_FRAMES = 220*6
-    NB_FRAMES = 220
+    #NB_FRAMES = 220
 
     axis = [3,2,0.5]
 
@@ -231,11 +231,13 @@ if SHAPE == "Cube":
 
 if SHAPE == "Cube2":
     ATTENUATION = math.pi * 1.7
-    ZOOM=350
+    ZOOM=400
     HIDDEN_FACES = True
-    NB_FRAMES = 300
+    NB_FRAMES = 900
+    SPEED = math.pi / 80
 
     axis = [3,2,0.5]
+    axis2 = [-0.5,0.5,1]
 
     faces += cube( 1, Vtx(-0.99,0,+1))
     faces += cube( 0.5, Vtx(-0.99,0,-0.8))
@@ -248,12 +250,14 @@ if SHAPE == "Cube2":
 
 if SHAPE == "Ogon":
     ATTENUATION = 1*math.pi
-    ZOOM = 250 # 170
+    ZOOM = 500 # 170
     HIDDEN_FACES = True
 
-    NB_FRAMES = 300
+    NB_FRAMES = 300*3
 
     axis = [3,2,0.5]
+    axis2 = [-0.5,0.5,1]
+
     a = Vtx(-0.75,-0.75,-1)
     b = Vtx(+0.75,-0.75,-1)
     c = Vtx(+0.75,+0.75,-1)
@@ -414,6 +418,7 @@ def persp( v, zoom = 350):
 def animate_3D( screen):
     recorder_frames = []
     theta = 0
+    beta = 0
 
 
     zscreen = ZBuffer( APPLE_XRES, APPLE_YRES)
@@ -441,8 +446,10 @@ def animate_3D( screen):
 
         #screen.fill(black)
 
+        beta += SPEED
+
         theta = math.sin(frame_ndx * 2*math.pi / NB_FRAMES) *ATTENUATION
-        rot = angle_axis_quat(theta, axis)
+        rot = mult_quat( angle_axis_quat(theta, axis), angle_axis_quat(beta, axis2))
 
         # drawn_edges = set()
 
@@ -555,8 +562,7 @@ def animate_3D( screen):
                                   (b.x,b.y), 1)
                 frame_lines.append( (a.x,a.y,b.x,b.y) )
 
-
-        print( "{} faces, {} drawn edges".format( len(faces), drawn_edges))
+        print( f"Frame {frame_ndx}/{NB_FRAMES} {len(faces)} faces, {drawn_edges} drawn edges")
 
         # edge_pool = EdgePool()
         # points = dict()
@@ -1422,16 +1428,6 @@ def gen_data_line( fo, a, b):
 
 
 
-pygame.init()
-screen = pygame.display.set_mode( (APPLE_XRES*4, APPLE_YRES*4))
-
-# recorder_frames = animate_3D( screen)
-# with open("clipper","wb") as f_out:
-#     pickle.dump( recorder_frames, f_out)
-
-with open("clipper","rb") as f_in:
-    recorder_frames = pickle.load( f_in)
-
 
 def paths_to_bytes( paths):
     data = []
@@ -1550,6 +1546,18 @@ def frame_draw( screen, paths):
                               (x2,y2), 1)
 
 
+
+pygame.init()
+screen = pygame.display.set_mode( (APPLE_XRES, APPLE_YRES))
+
+# recorder_frames = animate_3D( screen)
+# with open( SHAPE,"wb") as f_out:
+#     pickle.dump( recorder_frames, f_out)
+
+with open( SHAPE,"rb") as f_in:
+    recorder_frames = pickle.load( f_in)
+
+
 compute_vertical_tiles()
 compute_vertical_tiles_right_left()
 
@@ -1621,7 +1629,8 @@ with open("build/lines.s","w") as fo:
         frame_draw( screen, compressed_edges)
         pygame.display.flip()
         if len( cframes_bins) == 2*10:
-            input("pause")
+            #input("pause")
+            pass
 
 
 

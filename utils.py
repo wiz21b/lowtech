@@ -1662,6 +1662,16 @@ def image_to_hgr( image):
 
     return hgr
 
+def array_to_hilo_asm( fo, a, label):
+    assert label
+
+    fo.write("{}_lo:\n".format(label))
+    array_to_asm( fo, [ x & 0xFF for x in a ], ".byte")
+
+    fo.write("{}_hi:\n".format(label))
+    array_to_asm( fo, [ (x >> 8) for x in a ], ".byte")
+
+
 def array_to_asm( fo, a, line_prefix, label = ""):
 
     if type(a[0]) == str:
