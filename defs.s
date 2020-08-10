@@ -86,7 +86,7 @@ j:
 .endmacro
 
 
-
+	;; target := target - mem_b
 .macro	sub16 target, mem_b
 	SEC
 	LDA target
@@ -109,6 +109,19 @@ j:
 	STA target+1
 .endmacro
 
+; 16 bit word := 16 bit word - 16 bit const
+.macro sub_16_to_const target, const
+	SEC
+	LDA #<(const)     ; low byte
+	SBC target
+	STA target
+
+	LDA #>(const)	; high byte
+	SBC target+1
+	STA target+1
+.endmacro
+
+
 ; 16 bit word := 16 bit word + 16 bit const
 .macro add_mem_16 target, source
 	CLC
@@ -129,6 +142,8 @@ j:
 	.endmacro
 
 
+	;; Deprecated because can't SMC MockingBoard slot
+
 	.macro set_timer_const value
 	lda	#>(value)	; 9C
 	;CLC
@@ -140,12 +155,13 @@ j:
 
 
 	.macro set_irq_vector target
+	;; This assumes the Language Card bank is activated !
 	lda	#<target
 	sta	$fffe
 	lda	#>target
 	sta	$ffff
-	lda	#<target
-	sta	$03fe
-	lda	#>target
-	sta	$03ff
+	;; lda	#<target
+	;; sta	$03fe
+	;; lda	#>target
+	;; sta	$03ff
 	.endmacro

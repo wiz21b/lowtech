@@ -1,3 +1,5 @@
+	KBD_CLEAR = $C010
+	KBD_INPUT = $C000
 
 
 ;;; This code is (c) 2019 Stéphane Champailler
@@ -301,8 +303,17 @@ start_point:
 	lda #$D0
 	sta buf
 
+all_tests_loop:
 	JSR check_diskii
-	;JSR check_music
+	JSR clear_txt
+
+	JSR check_music
+	JSR clear_txt
+
+	JSR check_basic_irq_replay
+	JSR clear_txt
+
+	JMP all_tests_loop
 
 	BRK
 
@@ -344,55 +355,180 @@ start_point:
 
 	.proc check_music
 
+	print_str disk_replay_header, $400
+
+
 	;; LDX #$FF
 	;; STX read_sector_simulation
 
 	JSR locate_drive_head	; Motor on !
-
 	JSR start_player
 
 infiniloop2:
-;;	inc $400
-;; 	LDX #20
-;; pause2:
-;; 	LDY #$00
-;; pause1:
-;; 	DEY
-;; 	BNE pause1
-;; 	DEX
-;; 	BNE pause2
 
-error:
-	inc $480
+	inc $480		; Show we're doing something
+
 	ldx #SLOT_SELECT
 	JSR rdadr16
 	ldx #SLOT_SELECT
+	JSR read16
+	ldx #SLOT_SELECT
 	JSR rdadr16
-	BCS error
 
 	JSR pt3_irq_handler
+
+	JSR read_keyboard
+	BEQ no_key
+
+	jsr	reset_ay_both
+	jsr	clear_ay_both
+
+	RTS
+no_key:
+
 	JMP infiniloop2
 
-	set_irq_vector interrupt_handler_music
-	LDA LC_RAM_SELECT
-	LDA LC_RAM_SELECT
+;; 	set_irq_vector interrupt_handler_music
+;; 	LDA LC_RAM_SELECT
+;; 	LDA LC_RAM_SELECT
 
-	JSR start_interrupts
+;; 	JSR start_interrupts
 
-	set_timer_const 1000000/50
+;; 	set_timer_const 1000000/50
 
 
-infiniloop:
-	INC $400
-	JMP infiniloop
+;; infiniloop:
+;; 	INC $400
+;; 	JMP infiniloop
+
+disk_replay_header:	.byte "DISK REPLAY AT 40HZ",0
 
 	.endproc
 
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+	.proc check_basic_irq_replay
+
+	print_str irq_replay_header, $400
+
+	JSR start_player
+
+	;; From the Apple 2c Reference Manual Volume 1 :
+
+	;; " Vector location is $FFFE-$FFFF
+	;;   of ROM or whichever bank of RAM is switched in.
+	;;   If ROM is switched in, this vector is the address
+	;;   of the Monitor's interrupt handler. If the monitor
+	;;   gets the interrupt, then it dispatches to $3F0-$3F1
+	;;   in case of a BRK, or $3FE-3FF else. "
+
+	;; Same information in the Apple 2e Reference Manual.
+
+	;; On table 14, page 132 of the Apple II Reference (Woz),
+	;; the same IRQ vectors are given, and later in the book,
+	;; the $FFFE vector is given too. But no explanation about
+	;; the IRQ handling in the Monitor.
+
+	;; Since I use the bank switched memory (64kb), then
+	;; the $FFFE-$FFFF vector is defined by me and won't go
+	;; to the monitor ('cos the RAM has been switched !!!guess!!!).
+	;; So I don't have to touch $3fe/$3ff (on the 2+, 2e and 2c).
+
+
+	LDA LC_RAM_SELECT
+	LDA LC_RAM_SELECT
+	set_irq_vector basic_irq_handler
+
+
+	JSR start_interrupts
+	set_timer_const 1000000/50
+
+infiniloop:
+	JSR read_keyboard
+	BEQ no_key
+	jsr stop_mockingboard_interrupts
+	jsr	reset_ay_both
+	jsr	clear_ay_both
+	RTS
+no_key:
+
+	JMP infiniloop
+
+irq_replay_header:	.byte "BASIC IRQ REPLAY AT 50HZ",0
+
+	.endproc
+
+
+	.proc basic_irq_handler
+
+	php
+	pha
+	txa
+	pha			; save X
+	tya
+	pha			; save Y
+
+	inc $480
+
+	;; FIXME this must be SMC'ed to handle MockingBoard
+	;; on another port.
+	LDA	$C404		; Allow the next IRQ from the 6522
+
+pt3_interrupt_hook:
+	JSR pt3_irq_handler
+	;.include "pt3_lib/pt3_lib_irq_handler.s"
+;; 	stx	DONE_PLAYING
+;; 	jsr	clear_ay_both
+
+;; 	ldx	#$ff		; also mute the channel
+;; 	stx	AY_REGISTERS+7	; just in case
+
+exit_interrupt:
+
+	pla
+	tay			; restore Y
+	pla
+	tax			; restore X
+	pla			; restore a
+interrupt_smc:
+				;lda $45
+	;; FIXME I'm sure the start_player code messes around here
+	;; So sometimes it's LDA $45, sometimes it's NOP/NOP
+	;; Maybe the difference resides in the fact that I activate
+	;; the language card or not.
+
+	nop
+	nop
+	;; LDA $45
+	plp
+	RTI
+
+	.endproc
+
+
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	.proc stop_mockingboard_interrupts
+	SEI
+	lda #$0		; One-shot mode, no PB7
+	ldy #$0B
+	sta (MB_Base),Y ; MOCK_6522_ACR
+
+	lda #%01111111		; Clear all interrupt enable bits
+				;sta MOCK_6522_IER
+	LDY #$0E
+	sta (MB_Base),Y
+	CLI
+
+	RTS
+	.endproc
+
 
 	.proc check_diskii
+
+	STA KBD_CLEAR
 
 	print_str header, $400
 	print_str seek_header, $650
@@ -405,14 +541,6 @@ all_tracks_loop:
 	;; Make sure we're not bothered by interrupts
 	;; (this code may be useless, depending on the context)
 
-	lda #$0		; One-shot mode, no PB7
-	ldy #$0B
-	sta (MB_Base),Y ; MOCK_6522_ACR
-
-	lda #%01111111		; Clear all interrupt enable bits
-				;sta MOCK_6522_IER
-	LDY #$0E
-	sta (MB_Base),Y
 
 	LDA #0
 	STA current_track
@@ -466,6 +594,10 @@ end_loop:
 	CMP #SECTORS_PER_TRACK*2
 	BNE sector_loop
 
+	JSR read_keyboard
+	BEQ no_key
+	RTS
+no_key:
 	JSR show_track
 
 	LDA current_track
@@ -494,6 +626,10 @@ no_track_error:
 	JSR seek
 	BCS error_track
 
+	;; Looking at seek's routine, it looks like it spend
+	;; some time on waiting for read head stabilisation.
+	;; Therefore, I don't need to wait.
+
 	read_timer_direct timer
 	fix_6522_read_value timer
 	sub_16_to_const timer, TIMER_START
@@ -512,15 +648,6 @@ smc:
 	STA debug_ptr + 1
 	print_timer timer
 
-	;; ;; Wait one full sector for the head to be in position.
-	;; ;; Notice I don't do it with rdadr because I want to
-	;; ;; to be able to do that 1/ outside of an interrupt 2/ not
-	;; ;; being disturbed by an interrupt (rdard can be disturbed)
-	;; ;; A full sector read is about $3200 cycles.
-
-	;; LDY #$10
-	;; LDX #$FF
-	;; JSR a_pause
 
 	JMP track_loop
 
@@ -688,6 +815,22 @@ clear:
 	STA $700,Y
 	DEY
 	BNE clear
+
+	print_str apple_header, $750 + 20
+
+	LDA apple_model
+	CLC
+	ADC #$80
+	STA $750 + 20 + 7
+
+	print_str mb_header, $750
+
+	LDA #$50 + 14
+	STA debug_ptr
+	LDA #$07
+	STA debug_ptr + 1
+	print_timer MB_Base
+
 	RTS
 
 	.endproc
@@ -969,6 +1112,8 @@ disk_toc: .include "build/loader_toc.s"
 
 
 
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 apple_model:	.byte 0
 
@@ -1031,6 +1176,7 @@ apple2plus:
 
 
 
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	.proc detect_mocking_board
 
@@ -1076,4 +1222,15 @@ mb_not_found:
 	STA MB_Base+1
 	RTS
 
+	.endproc
+
+	.proc read_keyboard
+
+	LDA KBD_INPUT
+	BPL no_good_key
+	STA KBD_CLEAR
+	RTS
+no_good_key:
+	LDA #$0
+	RTS
 	.endproc
