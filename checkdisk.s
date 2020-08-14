@@ -169,7 +169,7 @@
 
 	.align 256
 	PT3_LOC = *
-	.incbin "data/FR.PT3"
+	.incbin "data/2UNLIM2.pt3" ;FR.PT3"
 	.align 256
 
 
@@ -273,6 +273,67 @@ txt_ofs:
 
 mb_header:	.byte "MOCKINGBOARD:",0
 apple_header:	.byte "APPLE 2",0
+lang_card_text:	.byte "LANG. CARD",0
+
+	READ_SECTOR = 1
+	MUSIC_LONG = 2
+	MUSIC_REGULAR = 3
+	MUSIC_SHORT = 4
+
+read_sector_states:
+
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_REGULAR
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_REGULAR
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_REGULAR
+.byte READ_SECTOR
+.byte MUSIC_SHORT
+.byte MUSIC_REGULAR
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_REGULAR
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_REGULAR
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_REGULAR
+.byte READ_SECTOR
+.byte MUSIC_SHORT
+.byte MUSIC_REGULAR
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_REGULAR
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_REGULAR
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_REGULAR
+.byte READ_SECTOR
+.byte MUSIC_SHORT
+.byte MUSIC_REGULAR
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_REGULAR
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_REGULAR
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_REGULAR
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_LONG
+.byte MUSIC_LONG
+
+	NB_READ_SECTOR_STATES = * - read_sector_states
+
 
 ;;; ==================================================================
 ;;; ==================================================================
@@ -281,21 +342,33 @@ apple_header:	.byte "APPLE 2",0
 
 start_point:
 	JSR detect_apple
-	print_str apple_header, $750 + 20
 
-	LDA apple_model
-	CLC
-	ADC #$80
-	STA $750 + 20 + 7
+	JSR clear_txt
 
 	JSR detect_mocking_board
-	print_str mb_header, $750
+	JSR clear_txt
 
-	LDA #$50 + 14
-	STA debug_ptr
-	LDA #$07
-	STA debug_ptr + 1
-	print_timer MB_Base
+	jsr	mockingboard_detect
+	bcc	mocking_not_found
+	jsr	mockingboard_patch
+mocking_not_found:
+
+
+	;; Crucial for interrupts to work !!!
+
+	LDA LC_RAM_SELECT
+	LDA LC_RAM_SELECT
+
+	LDA #$55
+	STA $E000
+	LDA $E000
+	CMP #$55
+	BNE no_language_card
+	LDA #1
+	STA has_language_card
+no_language_card:
+
+	JSR clear_txt
 
 
 	lda #$07
@@ -303,15 +376,22 @@ start_point:
 	lda #$D0
 	sta buf
 
+
 all_tests_loop:
-	JSR check_diskii
 	JSR clear_txt
+	JSR check_music_disk_based_replay
 
-	JSR check_music
-	JSR clear_txt
+	;; JSR clear_txt
+	;; JSR check_basic_irq_replay
 
-	JSR check_basic_irq_replay
+	;; JSR clear_txt
+	;; JSR check_diskii
+
+	;; JSR clear_txt
+	;; JSR check_basic_irq_plus_disk_replay
+
 	JSR clear_txt
+	JSR check_basic_irq_plus_disk_replay2
 
 	JMP all_tests_loop
 
@@ -353,10 +433,9 @@ all_tests_loop:
 
 ;;; ==================================================================
 
-	.proc check_music
+	.proc check_music_disk_based_replay
 
 	print_str disk_replay_header, $400
-
 
 	;; LDX #$FF
 	;; STX read_sector_simulation
@@ -366,7 +445,7 @@ all_tests_loop:
 
 infiniloop2:
 
-	inc $480		; Show we're doing something
+	inc $400+39		; Show we're doing something
 
 	ldx #SLOT_SELECT
 	JSR rdadr16
@@ -436,13 +515,11 @@ disk_replay_header:	.byte "DISK REPLAY AT 40HZ",0
 	;; So I don't have to touch $3fe/$3ff (on the 2+, 2e and 2c).
 
 
-	LDA LC_RAM_SELECT
-	LDA LC_RAM_SELECT
 	set_irq_vector basic_irq_handler
 
 
 	JSR start_interrupts
-	set_timer_const 1000000/50
+	set_timer_to_const 1022000/50
 
 infiniloop:
 	JSR read_keyboard
@@ -473,16 +550,11 @@ irq_replay_header:	.byte "BASIC IRQ REPLAY AT 50HZ",0
 
 	;; FIXME this must be SMC'ed to handle MockingBoard
 	;; on another port.
-	LDA	$C404		; Allow the next IRQ from the 6522
+	LDY #$04
+	LDA (MB_Base),Y
+	;LDA	$C404		; Allow the next IRQ from the 6522
 
-pt3_interrupt_hook:
 	JSR pt3_irq_handler
-	;.include "pt3_lib/pt3_lib_irq_handler.s"
-;; 	stx	DONE_PLAYING
-;; 	jsr	clear_ay_both
-
-;; 	ldx	#$ff		; also mute the channel
-;; 	stx	AY_REGISTERS+7	; just in case
 
 exit_interrupt:
 
@@ -491,16 +563,6 @@ exit_interrupt:
 	pla
 	tax			; restore X
 	pla			; restore a
-interrupt_smc:
-				;lda $45
-	;; FIXME I'm sure the start_player code messes around here
-	;; So sometimes it's LDA $45, sometimes it's NOP/NOP
-	;; Maybe the difference resides in the fact that I activate
-	;; the language card or not.
-
-	nop
-	nop
-	;; LDA $45
 	plp
 	RTI
 
@@ -509,6 +571,369 @@ interrupt_smc:
 
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	.proc check_basic_irq_plus_disk_replay2
+
+	LDA #0
+	STA current_track
+        ldx #SLOT_SELECT
+	JSR seek
+
+	print_str irq_disk_replay_header, $400
+
+	JSR start_player
+
+	;; From the Apple 2c Reference Manual Volume 1 :
+
+	;; " Vector location is $FFFE-$FFFF
+	;;   of ROM or whichever bank of RAM is switched in.
+	;;   If ROM is switched in, this vector is the address
+	;;   of the Monitor's interrupt handler. If the monitor
+	;;   gets the interrupt, then it dispatches to $3F0-$3F1
+	;;   in case of a BRK, or $3FE-3FF else. "
+
+	;; Same information in the Apple 2e Reference Manual.
+
+	;; On table 14, page 132 of the Apple II Reference (Woz),
+	;; the same IRQ vectors are given, and later in the book,
+	;; the $FFFE vector is given too. But no explanation about
+	;; the IRQ handling in the Monitor.
+
+	;; Since I use the bank switched memory (64kb), then
+	;; the $FFFE-$FFFF vector is defined by me and won't go
+	;; to the monitor ('cos the RAM has been switched !!!guess!!!).
+	;; So I don't have to touch $3fe/$3ff (on the 2+, 2e and 2c).
+
+
+	set_irq_vector disk_irq_handler2
+
+
+	JSR start_interrupts
+	set_timer_to_const 1022000/40
+
+	JSR read_keyboard
+infiniloop:
+	JSR read_keyboard
+	BEQ infiniloop
+
+	jsr stop_mockingboard_interrupts
+	jsr	reset_ay_both
+	jsr	clear_ay_both
+	RTS
+
+irq_disk_replay_header:	.byte "ADVANCED IRQ + DISK READ REPLAY",0
+
+	.endproc
+
+	;;  ---------------------------------------------------
+
+	.proc disk_irq_handler2
+
+	;; 2aec => wait = 3d0 / 660
+	;; 2Bec => wait = 2d0 / 550
+	;; 2CEC => too small
+
+	ONE_80TH = $31E7	; 1022000/80
+
+	;; For Mame
+	;; DISK_READ_TIME = $3180	; Time to read the addr+data part of a sector
+	;; TOLERANCE = $200 ; That's the minimum I can get
+
+	;; For AppleWin DSK
+
+	;DISK_READ_TIME = $2B10
+	;TOLERANCE = $100
+
+	;; For AppleWin WOZ
+
+	DISK_READ_TIME = $3180	; Time to read the addr+data part of a sector
+	DATA_READ_TIME = $2D60
+	TOLERANCE = $180
+
+	php
+	pha
+	txa
+	pha			; save X
+	tya
+	pha			; save Y
+
+	;LDA	$C404		; Allow the next IRQ from the 6522
+	LDY #$04
+	LDA (MB_Base),Y
+
+	LDY stepper
+	INY
+	CPY #NB_READ_SECTOR_STATES
+	BNE stepper_good
+	LDY #0
+stepper_good:
+	STY stepper
+
+	LDA read_sector_states,Y
+
+	CMP #MUSIC_LONG
+	BEQ music_long
+	CMP #MUSIC_REGULAR
+	BEQ music_regular
+	CMP #MUSIC_SHORT
+	BEQ music_short
+	CMP #READ_SECTOR
+	BEQ read_sector
+
+infiniloop:
+	JMP infiniloop
+
+music_regular:
+	set_timer_to_const DISK_READ_TIME
+	JSR pt3_irq_handler
+	JMP exit_interrupt
+
+music_short:
+	set_timer_to_const DISK_READ_TIME - 2*TOLERANCE
+	JSR pt3_irq_handler
+	JMP exit_interrupt
+
+music_long:
+	set_timer_to_const 2*DISK_READ_TIME
+	JSR pt3_irq_handler
+	JMP exit_interrupt
+
+read_sector:
+	ldx #SLOT_SELECT
+	JSR rdadr16
+	ldx #SLOT_SELECT
+	JSR read16
+
+	;; This is tricky ! Doing a pause this way
+	;; ensures that the next PT3 beat will be played
+	;; at the right time but also it makes sure we
+	;; resync our timings on the disk speed. This way
+	;; we prevent an accumulation of errors on the timer's
+	;; interrupts.
+
+	set_timer_to_const TOLERANCE
+
+	;; DEBUG -----------------------------------------------------
+
+	LDY sect
+	LDA $500,Y
+	EOR #('#' ^ ' ')
+	STA $500,Y
+
+exit_interrupt:
+	pla
+	tay			; restore Y
+	pla
+	tax			; restore X
+	pla			; restore a
+	plp
+
+	RTI
+
+stepper:	.byte 0
+timer_read:	.word 0
+
+	.endproc
+
+
+
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	.proc check_basic_irq_plus_disk_replay
+
+	LDA #0
+	STA current_track
+        ldx #SLOT_SELECT
+	JSR seek
+
+	print_str irq_disk_replay_header, $400
+
+	JSR start_player
+
+	;; From the Apple 2c Reference Manual Volume 1 :
+
+	;; " Vector location is $FFFE-$FFFF
+	;;   of ROM or whichever bank of RAM is switched in.
+	;;   If ROM is switched in, this vector is the address
+	;;   of the Monitor's interrupt handler. If the monitor
+	;;   gets the interrupt, then it dispatches to $3F0-$3F1
+	;;   in case of a BRK, or $3FE-3FF else. "
+
+	;; Same information in the Apple 2e Reference Manual.
+
+	;; On table 14, page 132 of the Apple II Reference (Woz),
+	;; the same IRQ vectors are given, and later in the book,
+	;; the $FFFE vector is given too. But no explanation about
+	;; the IRQ handling in the Monitor.
+
+	;; Since I use the bank switched memory (64kb), then
+	;; the $FFFE-$FFFF vector is defined by me and won't go
+	;; to the monitor ('cos the RAM has been switched !!!guess!!!).
+	;; So I don't have to touch $3fe/$3ff (on the 2+, 2e and 2c).
+
+
+	set_irq_vector disk_irq_handler
+
+
+	JSR start_interrupts
+	set_timer_to_const 1022000/40
+
+	JSR read_keyboard
+infiniloop:
+	JSR read_keyboard
+	BEQ infiniloop
+
+	jsr stop_mockingboard_interrupts
+	jsr	reset_ay_both
+	jsr	clear_ay_both
+	RTS
+
+irq_disk_replay_header:	.byte "BASIC IRQ + DISK READ REPLAY AT 40HZ",0
+
+	.endproc
+
+	;;  ---------------------------------------------------
+
+	.proc disk_irq_handler
+
+	;; 2aec => wait = 3d0 / 660
+	;; 2Bec => wait = 2d0 / 550
+	;; 2CEC => too small
+
+	ONE_80TH = $31E7	; 1022000/80
+
+	;; For Mame
+	;; DISK_READ_TIME = $3180	; Time to read the addr+data part of a sector
+	;; TOLERANCE = $200 ; That's the minimum I can get
+
+	;; For AppleWin DSK
+
+	;DISK_READ_TIME = $2B10
+	;TOLERANCE = $100
+
+	;; For AppleWin WOZ
+
+	DISK_READ_TIME = $30B0	; Time to read the addr+data part of a sector
+	TOLERANCE = $200
+
+	PAUSE_UNTIL_MUSIC = DISK_READ_TIME + TOLERANCE	; $33E6
+	PAUSE_UNTIL_RDADR = DISK_READ_TIME - 2*TOLERANCE  ; $2B6A ; $27EC = 1022000/80 * 0.87
+
+	php
+	pha
+	txa
+	pha			; save X
+	tya
+	pha			; save Y
+
+
+	INC stepper
+	LDA stepper
+	STA $400 + 39
+	CMP #$FF
+	BNE no_head_move	; FIXITI!
+
+	;; LDA #0
+	;; STA stepper 		; back to disk step
+
+	;; INC current_track
+	;; LDA current_track
+	;; CLC
+	;; ADC #$B0
+	;; STA $400+38
+
+	;; LDA current_track
+	;; ldx #SLOT_SELECT
+	;; JSR seek
+	;; JMP exit_interrupt
+
+no_head_move:
+	AND #$01
+	BEQ music_step
+
+disk_step:
+	LDA stepper
+	CMP #$2F
+	BNE read_sector
+shift_a_sector:
+	ldx #SLOT_SELECT
+	JSR rdadr16
+	ldx #SLOT_SELECT
+	JSR rdadr16
+
+	LDA #0
+	STA stepper
+	JMP exit_interrupt
+
+read_sector:
+	ldx #SLOT_SELECT
+	JSR rdadr16
+	BCS disk_step
+
+	read_timer_direct timer_read
+
+	set_timer_to_const PAUSE_UNTIL_MUSIC 	; $3465 = 1022000/80 * 1.04
+
+	ldx #SLOT_SELECT
+	JSR read16
+
+	;; DEBUG -----------------------------------------------------
+
+	sub_16_to_const timer_read, PAUSE_UNTIL_RDADR
+	LDA stepper
+	LSR
+	AND #15
+	ASL
+	TAX
+	LDA txt_ofs + 6,X
+	STA debug_ptr
+	LDA txt_ofs + 6 +1,X
+	STA debug_ptr+1
+	print_timer2 timer_read
+
+	INC debug_ptr
+	LDA sect
+	jsr byte_to_text
+
+
+	JMP exit_interrupt
+
+music_step:
+	set_timer_to_const PAUSE_UNTIL_RDADR
+	JSR pt3_irq_handler
+
+exit_interrupt:
+
+	;; FIXME this must be SMC'ed to handle MockingBoard
+	;; on another port.
+	;LDA	$C404		; Allow the next IRQ from the 6522
+	LDY #$04
+	LDA (MB_Base),Y
+
+
+	pla
+	tay			; restore Y
+	pla
+	tax			; restore X
+	pla			; restore a
+	plp
+
+	RTI
+
+stepper:	.byte 0
+timer_read:	.word 0
+
+	.endproc
+
+
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 	.proc stop_mockingboard_interrupts
 	SEI
@@ -711,7 +1136,11 @@ first_col:
 
 	INC debug_ptr
 
-
+	LDA MB_Base
+	CMP #$FF
+	BNE has_mb
+	JMP skip_mb_data
+has_mb:
 	;; Copy some data to ease computations
 
 	LDX loop_sect
@@ -752,6 +1181,7 @@ first_col:
 	INC debug_ptr
 	print_timer data_time
 
+skip_mb_data:
 	LDA loop_sect
 	CLC
 	ADC #2
@@ -830,6 +1260,12 @@ clear:
 	LDA #$07
 	STA debug_ptr + 1
 	print_timer MB_Base
+
+	LDA has_language_card
+	BEQ no_lang_card
+	print_str lang_card_text, $750 + 20 + 7 + 2
+
+no_lang_card:
 
 	RTS
 
@@ -1045,11 +1481,7 @@ start_player:
 	lda	#1
 	sta LOOP
 
-	;; jsr	mockingboard_detect
-	;; bcc	mocking_not_found
 
-	;; jsr	mockingboard_patch
-mocking_not_found:
 	jsr	mockingboard_init
 
 	jsr	pt3_init_song
@@ -1057,6 +1489,8 @@ mocking_not_found:
 	jsr	clear_ay_both
 
 	rts
+
+
 
 	.proc init_file_load
 	;;  A = file index in TOC
@@ -1116,6 +1550,7 @@ disk_toc: .include "build/loader_toc.s"
 
 
 apple_model:	.byte 0
+has_language_card:	.byte 0
 
 	.proc detect_apple
 
