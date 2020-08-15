@@ -504,6 +504,7 @@ calibration_loop:
 draw_loop:
 	PHA
 	ASL
+	TAX
 
 	lda sector_times + 1,X
 	sta sector_time+1
@@ -553,22 +554,18 @@ draw_loop:
 	STA total_sector_time + 2
 
 
-	LDA data_time + 1
-	SEC
-	SBC #>(1022000/80)
 	CLC
-	ADC #20
-	TAX
-	LDA #'D'
-	STA $580,X
-
+	LDA sector_time
+	ROL
 	LDA sector_time + 1
+	ROL
+
 	SEC
-	SBC #>(1022000/80)
+	SBC #>(2*1022000/80)
 	CLC
 	ADC #20
 	TAX
-	LDA #'S'
+	LDA #'S'+$80
 	STA $580,X
 
 	PLA
