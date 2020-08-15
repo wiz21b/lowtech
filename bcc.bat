@@ -11,6 +11,6 @@ java -jar ..\bad_apple\AppleCommander-1.3.5.13-ac.jar -p NEW.DSK CHKDSK  BIN 0x6
 dsk2woz.exe NEW.DSK NEW.WOZ
 
 REM -speed 40
-REM c:\port-stc\opt\mame\mame64 apple2p -skip_gameinfo -window -nomax -flop1 NEW.WOZ -rp bios
+c:\port-stc\opt\mame\mame64 apple2p -skip_gameinfo -window -nomax -flop1 NEW.WOZ -rp bios
 
-\PORT-STC\opt\applewin\Applewin.exe -d1 NEW.WOZ
+REM \PORT-STC\opt\applewin\Applewin.exe -d1 NEW.WOZ

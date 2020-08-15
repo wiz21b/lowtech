@@ -457,11 +457,13 @@ all_tests_loop:
 	CALIBRATION_RUNS = 128	;MUST BE 128 (hardcoded computations)
 
 	TIMES_YPOS = $700
+	TIMES2_YPOS = $780
 
 	print_str calibration_header, $400
 	print_str mire, $500
 	print_str mire, $600
 	print_str times_txt, TIMES_YPOS
+	print_str times2_txt, TIMES2_YPOS
 
 	JSR locate_drive_head	; Motor on !
 
@@ -553,6 +555,7 @@ draw_loop:
 	ADC total_sector_time + 2
 	STA total_sector_time + 2
 
+	;; scale x2 to have a better picture
 
 	CLC
 	LDA sector_time
@@ -581,7 +584,7 @@ done_loop:
 	ROL total_data_time + 1
 	ROL total_data_time + 2
 
-	store_16 debug_ptr, TIMES_YPOS + 14
+	store_16 debug_ptr, TIMES_YPOS + 18
 	print_timer2 total_data_time + 1
 
 	CLC
@@ -589,7 +592,7 @@ done_loop:
 	ROL total_sector_time + 1
 	ROL total_sector_time + 2
 
-	store_16 debug_ptr, TIMES_YPOS + 36
+	store_16 debug_ptr, TIMES2_YPOS + 18
 	print_timer2 total_sector_time + 1
 
 no_key:
@@ -615,7 +618,8 @@ data_times:	.repeat CALIBRATION_RUNS
 
 calibration_header:	.byte "CALIBRATION",0
 mire:	.byte "--------------------!-------------------",0
-times_txt:	.byte "AVG DATA READ:      AVG SECTOR READ:",0
+times_txt:	.byte "AVG DATA READ:   $.... CYCLES",0
+times2_txt:	.byte "AVG SECTOR READ: $.... CYCLES",0
 
 	.endproc
 
