@@ -13,19 +13,32 @@
 
 	.include "defs.s"
 
+	TIMER_START = $FFFF - 32
+
 	.macro set_timer_to_const value
 
 	LDY #4
 	lda	#<(value)
 	sta	(MB_Base),Y	; write into low-order latch,
 
-	;; Once the MSB is set, the counter starts counting
-
 	INY
 	lda	#>(value)
 	sta	(MB_Base),Y	; write into high-order latch
 
 	.endmacro
+
+	.macro set_timer_to_target value
+
+	LDY #4
+	lda	value
+	sta	(MB_Base),Y	; write into low-order latch,
+
+	INY
+	lda	value + 1
+	sta	(MB_Base),Y	; write into high-order latch
+
+	.endmacro
+
 
 	MB_Base = $F0
 	Temp = $FF
@@ -378,14 +391,19 @@ no_language_card:
 
 
 all_tests_loop:
+	jsr stop_mockingboard_interrupts
+	JSR clear_txt
+	JSR calibration
+
+	JSR clear_txt
+	JSR check_diskii
+
 	JSR clear_txt
 	JSR check_music_disk_based_replay
 
 	;; JSR clear_txt
 	;; JSR check_basic_irq_replay
 
-	;; JSR clear_txt
-	;; JSR check_diskii
 
 	;; JSR clear_txt
 	;; JSR check_basic_irq_plus_disk_replay
@@ -430,6 +448,179 @@ all_tests_loop:
 ;; loop_count:	.byte 0
 ;; loop_count2:	.byte 0
 ;; file_being_loaded:	.byte 3
+
+
+;;; ==================================================================
+
+	.proc calibration
+
+	CALIBRATION_RUNS = 128	;MUST BE 128 (hardcoded computations)
+
+	TIMES_YPOS = $700
+
+	print_str calibration_header, $400
+	print_str mire, $500
+	print_str mire, $600
+	print_str times_txt, TIMES_YPOS
+
+	JSR locate_drive_head	; Motor on !
+
+
+	LDA #0
+	STA sector_count
+
+	STA total_sector_time
+	STA total_sector_time+1
+	STA total_sector_time+2
+
+	STA total_data_time
+	STA total_data_time+1
+	STA total_data_time+2
+
+
+	ldx #SLOT_SELECT
+	JSR rdadr16
+	ldx #SLOT_SELECT
+	JSR read16
+
+calibration_loop:
+	set_timer_to_const TIMER_START
+
+	ldx #SLOT_SELECT
+	JSR read16
+	read_timer2 data_times
+
+	ldx #SLOT_SELECT
+	JSR rdadr16
+	read_timer2 sector_times
+
+	LDA sector_count
+	CLC
+	ADC #2
+	STA sector_count
+	BCC calibration_loop
+
+	LDA #0
+draw_loop:
+	PHA
+	ASL
+
+	lda sector_times + 1,X
+	sta sector_time+1
+	lda sector_times,X
+	sta sector_time
+
+	lda data_times + 1,X
+	sta data_time+1
+	lda data_times,X
+	sta data_time
+
+	;; Fix the value read from the 6522 (MSB/LSB incoherence)
+
+	fix_6522_read_value sector_time
+	fix_6522_read_value data_time
+
+	;; The 6522 counts down to zero, but we count the other way
+
+	sub_16_to_const sector_time, TIMER_START
+	sub_16_to_const data_time, TIMER_START
+
+	;; Remove the time it took to measure the time :-)
+
+	sub_const_to_16 sector_time, CYCLES_FOR_READING_TIMER
+	sub_const_to_16 data_time, CYCLES_FOR_READING_TIMER
+
+	CLC
+	LDA data_time
+	ADC total_data_time
+	STA total_data_time
+	LDA data_time + 1
+	ADC total_data_time + 1
+	STA total_data_time + 1
+	LDA #0
+	ADC total_data_time + 2
+	STA total_data_time + 2
+
+	CLC
+	LDA sector_time
+	ADC total_sector_time
+	STA total_sector_time
+	LDA sector_time + 1
+	ADC total_sector_time + 1
+	STA total_sector_time + 1
+	LDA #0
+	ADC total_sector_time + 2
+	STA total_sector_time + 2
+
+
+	LDA data_time + 1
+	SEC
+	SBC #>(1022000/80)
+	CLC
+	ADC #20
+	TAX
+	LDA #'D'
+	STA $580,X
+
+	LDA sector_time + 1
+	SEC
+	SBC #>(1022000/80)
+	CLC
+	ADC #20
+	TAX
+	LDA #'S'
+	STA $580,X
+
+	PLA
+	CMP #CALIBRATION_RUNS - 1
+	BEQ done_loop
+	CLC
+	ADC #1
+	JMP draw_loop
+done_loop:
+
+	CLC
+	ROL total_data_time
+	ROL total_data_time + 1
+	ROL total_data_time + 2
+
+	store_16 debug_ptr, TIMES_YPOS + 14
+	print_timer2 total_data_time + 1
+
+	CLC
+	ROL total_sector_time
+	ROL total_sector_time + 1
+	ROL total_sector_time + 2
+
+	store_16 debug_ptr, TIMES_YPOS + 36
+	print_timer2 total_sector_time + 1
+
+no_key:
+	JSR read_keyboard
+	BEQ no_key
+
+
+
+	RTS
+
+data_time:	.word 0
+sector_time:	.word 0
+total_data_time:	.byte 0,0,0
+total_sector_time:	.byte 0,0,0
+
+sector_count:	.byte 0
+sector_times:	.repeat CALIBRATION_RUNS
+	.word 0
+	.endrepeat
+data_times:	.repeat CALIBRATION_RUNS
+	.word 0
+	.endrepeat
+
+calibration_header:	.byte "CALIBRATION",0
+mire:	.byte "--------------------!-------------------",0
+times_txt:	.byte "AVG DATA READ:      AVG SECTOR READ:",0
+
+	.endproc
 
 ;;; ==================================================================
 
@@ -575,8 +766,33 @@ exit_interrupt:
 
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	TOLERANCE = $180
 
 	.proc check_basic_irq_plus_disk_replay2
+
+	LDA calibration::total_sector_time + 1
+	STA full_sector_time
+	LDA calibration::total_sector_time + 2
+	STA full_sector_time + 1
+
+	CLC
+	LDA full_sector_time
+	ROL
+	STA twice_full_sector_time
+	LDA full_sector_time + 1
+	ROL
+	STA twice_full_sector_time + 1
+
+
+	SEC
+	LDA full_sector_time
+	SBC #<(2*TOLERANCE)
+	STA full_sector_time_minus_twice_tolerance
+	LDA full_sector_time + 1
+	SBC #>(2*TOLERANCE)
+	STA full_sector_time_minus_twice_tolerance + 1
+
+
 
 	LDA #0
 	STA current_track
@@ -626,6 +842,9 @@ infiniloop:
 	RTS
 
 irq_disk_replay_header:	.byte "ADVANCED IRQ + DISK READ REPLAY",0
+full_sector_time:	.word 0
+twice_full_sector_time:	.word 0
+full_sector_time_minus_twice_tolerance:	.word 0
 
 	.endproc
 
@@ -650,9 +869,7 @@ irq_disk_replay_header:	.byte "ADVANCED IRQ + DISK READ REPLAY",0
 
 	;; For AppleWin WOZ
 
-	DISK_READ_TIME = $3180	; Time to read the addr+data part of a sector
-	DATA_READ_TIME = $2D60
-	TOLERANCE = $180
+	DISK_READ_TIME = $3184	; Time to read the addr+data part of a sector
 
 	php
 	pha
@@ -688,17 +905,21 @@ infiniloop:
 	JMP infiniloop
 
 music_regular:
-	set_timer_to_const DISK_READ_TIME
+	;set_timer_to_const DISK_READ_TIME
+	set_timer_to_target check_basic_irq_plus_disk_replay2::full_sector_time
+
 	JSR pt3_irq_handler
 	JMP exit_interrupt
 
 music_short:
-	set_timer_to_const DISK_READ_TIME - 2*TOLERANCE
+	;set_timer_to_const DISK_READ_TIME - 2*TOLERANCE
+	set_timer_to_target check_basic_irq_plus_disk_replay2::full_sector_time_minus_twice_tolerance
 	JSR pt3_irq_handler
 	JMP exit_interrupt
 
 music_long:
-	set_timer_to_const 2*DISK_READ_TIME
+	;set_timer_to_const 2*DISK_READ_TIME
+	set_timer_to_target check_basic_irq_plus_disk_replay2::twice_full_sector_time
 	JSR pt3_irq_handler
 	JMP exit_interrupt
 
@@ -950,6 +1171,8 @@ timer_read:	.word 0
 	RTS
 	.endproc
 
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	.proc check_diskii
 
@@ -980,7 +1203,6 @@ track_loop:
 	STA sector_count
 
 sector_loop:
-	TIMER_START = $FFFF - 32
 
 	set_timer_to_const TIMER_START
 
