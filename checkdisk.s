@@ -384,19 +384,16 @@ no_language_card:
 	JSR clear_txt
 
 
-	lda #$07
-	sta buf + 1
-	lda #$D0
-	sta buf
-
 
 all_tests_loop:
+
 	jsr stop_mockingboard_interrupts
-	JSR clear_txt
-	JSR calibration
 
 	JSR clear_txt
 	JSR check_diskii
+
+	JSR clear_txt
+	JSR calibration
 
 	JSR clear_txt
 	JSR check_music_disk_based_replay
@@ -467,6 +464,10 @@ all_tests_loop:
 
 	JSR locate_drive_head	; Motor on !
 
+	lda #$07
+	sta buf + 1
+	lda #$D0
+	sta buf
 
 	LDA #0
 	STA sector_count
@@ -578,6 +579,8 @@ draw_loop:
 	ADC #1
 	JMP draw_loop
 done_loop:
+
+	;; ROL because we have 128 measurements.
 
 	CLC
 	ROL total_data_time
@@ -776,6 +779,15 @@ exit_interrupt:
 	LDA calibration::total_sector_time + 2
 	STA full_sector_time + 1
 
+
+	CLC
+	LDA calibration::total_data_time + 1
+	ADC #<TOLERANCE
+	STA data_time_plus_tolerance
+	LDA calibration::total_data_time + 2
+	ADC #>TOLERANCE
+	STA data_time_plus_tolerance + 1
+
 	CLC
 	LDA full_sector_time
 	ROL
@@ -846,6 +858,7 @@ irq_disk_replay_header:	.byte "ADVANCED IRQ + DISK READ REPLAY",0
 full_sector_time:	.word 0
 twice_full_sector_time:	.word 0
 full_sector_time_minus_twice_tolerance:	.word 0
+data_time_plus_tolerance:	.word 0
 
 	.endproc
 
@@ -853,24 +866,9 @@ full_sector_time_minus_twice_tolerance:	.word 0
 
 	.proc disk_irq_handler2
 
-	;; 2aec => wait = 3d0 / 660
-	;; 2Bec => wait = 2d0 / 550
-	;; 2CEC => too small
+	;; ONE_80TH = $31E7	; 1022000/80
 
-	ONE_80TH = $31E7	; 1022000/80
-
-	;; For Mame
-	;; DISK_READ_TIME = $3180	; Time to read the addr+data part of a sector
-	;; TOLERANCE = $200 ; That's the minimum I can get
-
-	;; For AppleWin DSK
-
-	;DISK_READ_TIME = $2B10
-	;TOLERANCE = $100
-
-	;; For AppleWin WOZ
-
-	DISK_READ_TIME = $3184	; Time to read the addr+data part of a sector
+	;; DISK_READ_TIME = $3184	; Time to read the addr+data part of a sector
 
 	php
 	pha
@@ -879,8 +877,7 @@ full_sector_time_minus_twice_tolerance:	.word 0
 	tya
 	pha			; save Y
 
-	;LDA	$C404		; Allow the next IRQ from the 6522
-	LDY #$04
+	LDY #$04	; Allow the next IRQ from the 6522
 	LDA (MB_Base),Y
 
 	LDY stepper
@@ -902,9 +899,6 @@ stepper_good:
 	CMP #READ_SECTOR
 	BEQ read_sector
 
-infiniloop:
-	JMP infiniloop
-
 music_regular:
 	;set_timer_to_const DISK_READ_TIME
 	set_timer_to_target check_basic_irq_plus_disk_replay2::full_sector_time
@@ -924,9 +918,21 @@ music_long:
 	JSR pt3_irq_handler
 	JMP exit_interrupt
 
+sector_already_read:
+	set_timer_to_target check_basic_irq_plus_disk_replay2::data_time_plus_tolerance
+	JMP exit_interrupt
+
 read_sector:
 	ldx #SLOT_SELECT
 	JSR rdadr16
+
+	ldx sect
+	lda sector_status, X
+	beq sector_already_read
+	STA buf + 1
+	lda #0
+	sta buf
+
 	ldx #SLOT_SELECT
 	JSR read16
 
@@ -938,6 +944,11 @@ read_sector:
 	;; interrupts.
 
 	set_timer_to_const TOLERANCE
+
+	;; Mark sector as read
+	LDX sect
+	LDA #0
+	STA sector_status, X
 
 	;; DEBUG -----------------------------------------------------
 
@@ -1180,12 +1191,16 @@ timer_read:	.word 0
 	STA KBD_CLEAR
 
 	print_str header, $400
-	print_str seek_header, $650
+	print_str seek_header, $5D0
 
 all_tracks_loop:
 	print_str track0_header, $480
 
 	JSR locate_drive_head	; Motor on
+	lda #$07
+	sta buf + 1
+	lda #$D0
+	sta buf
 
 	;; Make sure we're not bothered by interrupts
 	;; (this code may be useless, depending on the context)
@@ -1290,9 +1305,9 @@ no_track_error:
 smc:
 	ADC #$0
 
-	ADC #<$6D0
+	ADC #<$650
 	STA debug_ptr
-	LDA #>$6D0
+	LDA #>$650
 	STA debug_ptr + 1
 	print_timer timer
 
