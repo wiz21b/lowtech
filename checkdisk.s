@@ -1,5 +1,6 @@
 	KBD_CLEAR = $C010
 	KBD_INPUT = $C000
+	ONE_80TH = 1022000/80 	; 180th of a second
 
 
 ;;; This code is (c) 2019 Stéphane Champailler
@@ -292,6 +293,8 @@ lang_card_text:	.byte "LANG. CARD",0
 	MUSIC_LONG = 2
 	MUSIC_REGULAR = 3
 	MUSIC_SHORT = 4
+	LOOP_STATES = 5
+	STAND_BY_STATE = 6
 
 read_sector_states:
 
@@ -344,8 +347,10 @@ read_sector_states:
 .byte MUSIC_LONG
 .byte MUSIC_LONG
 .byte MUSIC_LONG
+.byte LOOP_STATES
+STAND_BY_STATE_NDX = * - read_sector_states
+	.byte STAND_BY_STATE
 
-	NB_READ_SECTOR_STATES = * - read_sector_states
 
 
 ;;; ==================================================================
@@ -457,10 +462,6 @@ all_tests_loop:
 	TIMES2_YPOS = $780
 
 	print_str calibration_header, $400
-	print_str mire, $500
-	print_str mire, $600
-	print_str times_txt, TIMES_YPOS
-	print_str times2_txt, TIMES2_YPOS
 
 	JSR locate_drive_head	; Motor on !
 
@@ -483,8 +484,6 @@ all_tests_loop:
 
 	ldx #SLOT_SELECT
 	JSR rdadr16
-	ldx #SLOT_SELECT
-	JSR read16
 
 calibration_loop:
 	set_timer_to_const TIMER_START
@@ -564,8 +563,9 @@ draw_loop:
 	LDA sector_time + 1
 	ROL
 
+
 	SEC
-	SBC #>(2*1022000/80)
+	SBC #>(2*ONE_80TH)
 	CLC
 	ADC #20
 	TAX
@@ -580,7 +580,14 @@ draw_loop:
 	JMP draw_loop
 done_loop:
 
+	print_str mire, $500
+	print_str mire, $600
+	print_str times_txt, TIMES_YPOS
+	print_str times2_txt, TIMES2_YPOS
+
 	;; ROL because we have 128 measurements.
+	;; so 128 measurements x 2 = 256 and then
+	;; I leaf the LSByte out => 128 x 2 / 256 = 1 :-)
 
 	CLC
 	ROL total_data_time
@@ -772,6 +779,7 @@ exit_interrupt:
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	TOLERANCE = $180
 
+
 	.proc check_basic_irq_plus_disk_replay2
 
 	LDA calibration::total_sector_time + 1
@@ -840,12 +848,49 @@ exit_interrupt:
 
 	set_irq_vector disk_irq_handler2
 
+	LDA #0
+	STA stepper
+	LDA #15
+	STA sectors_to_read2
 
 	JSR start_interrupts
 	set_timer_to_const 1022000/40
 
 	JSR read_keyboard
 infiniloop:
+
+	LDA sectors_to_read2
+	BNE more_sectors_to_read
+
+	LDA current_track
+	CLC
+	ADC #2
+	AND #31
+	STA current_track
+        ldx #SLOT_SELECT
+	JSR seek		; A = half track you want !
+
+ 	;; Clear sector map
+
+	LDY #16
+	LDA #$E0
+clear_sector_statuses:
+	DEY
+	STA sector_status,Y
+	BNE clear_sector_statuses
+
+	;; Tell the IRQ handler it can read sectors again
+	LDA #0
+	STA stepper
+	LDA #15
+	STA sectors_to_read2
+
+
+
+	INC $400+38
+
+more_sectors_to_read:
+
 	JSR read_keyboard
 	BEQ infiniloop
 
@@ -854,21 +899,12 @@ infiniloop:
 	jsr	clear_ay_both
 	RTS
 
-irq_disk_replay_header:	.byte "ADVANCED IRQ + DISK READ REPLAY",0
-full_sector_time:	.word 0
-twice_full_sector_time:	.word 0
-full_sector_time_minus_twice_tolerance:	.word 0
-data_time_plus_tolerance:	.word 0
 
-	.endproc
+	;; -----------------------------------------------------------
+	;; INTERRUPT HANDLER
+	;; -----------------------------------------------------------
 
-	;;  ---------------------------------------------------
-
-	.proc disk_irq_handler2
-
-	;; ONE_80TH = $31E7	; 1022000/80
-
-	;; DISK_READ_TIME = $3184	; Time to read the addr+data part of a sector
+disk_irq_handler2:
 
 	php
 	pha
@@ -880,15 +916,19 @@ data_time_plus_tolerance:	.word 0
 	LDY #$04	; Allow the next IRQ from the 6522
 	LDA (MB_Base),Y
 
-	LDY stepper
-	INY
-	CPY #NB_READ_SECTOR_STATES
-	BNE stepper_good
-	LDY #0
-stepper_good:
-	STY stepper
+	LDA sectors_to_read2
+	BEQ music_long
 
+	LDY stepper
+read_sector_state:
 	LDA read_sector_states,Y
+	INY
+	CMP #LOOP_STATES
+	BNE dont_loop_states
+	LDY #0
+	BEQ read_sector_state	; Always taken
+dont_loop_states:
+	STY stepper
 
 	CMP #MUSIC_LONG
 	BEQ music_long
@@ -925,7 +965,9 @@ sector_already_read:
 read_sector:
 	ldx #SLOT_SELECT
 	JSR rdadr16
-
+	BCC no_rdadr16_error
+	INC $500 + 39
+no_rdadr16_error:
 	ldx sect
 	lda sector_status, X
 	beq sector_already_read
@@ -935,6 +977,9 @@ read_sector:
 
 	ldx #SLOT_SELECT
 	JSR read16
+	BCC no_read16_error
+	INC $500 + 36
+no_read16_error:
 
 	;; This is tricky ! Doing a pause this way
 	;; ensures that the next PT3 beat will be played
@@ -949,6 +994,8 @@ read_sector:
 	LDX sect
 	LDA #0
 	STA sector_status, X
+
+	DEC sectors_to_read2
 
 	;; DEBUG -----------------------------------------------------
 
@@ -969,8 +1016,19 @@ exit_interrupt:
 
 stepper:	.byte 0
 timer_read:	.word 0
+sectors_to_read2:	.byte 0
+
+
+irq_disk_replay_header:	.byte "ADVANCED IRQ + DISK READ REPLAY",0
+full_sector_time:	.word 0
+twice_full_sector_time:	.word 0
+full_sector_time_minus_twice_tolerance:	.word 0
+data_time_plus_tolerance:	.word 0
 
 	.endproc
+
+	;;  ---------------------------------------------------
+
 
 
 
