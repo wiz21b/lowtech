@@ -83,6 +83,7 @@
 disk_toc:
 	;; 1st track, 1st sector, last track, last sector, 1st memory page
 	.byte 3,9,4,11,$E0
+	.byte 6,4,7,2,$E0
 
 	.include "read_sector.s" ; RWTS code
 
@@ -435,7 +436,7 @@ exit_interrupt:
 	JSR init_file_load
 
 	JSR start_interrupts
-	set_timer_to_const 1022000/40
+	;set_timer_to_const 1022000/40
 
 	JSR read_keyboard
 infiniloop:
@@ -446,6 +447,10 @@ infiniloop:
 
 	JSR display_track_info
 	JSR handle_track_progress
+	BCS still_stuff_to_read
+
+	LDA #1
+	JSR init_file_load
 
 still_stuff_to_read:
 
