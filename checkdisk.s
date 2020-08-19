@@ -1,6 +1,3 @@
-	KBD_CLEAR = $C010
-	KBD_INPUT = $C000
-	ONE_80TH = 1022000/80 	; 180th of a second
 
 
 ;;; This code is (c) 2019 Stéphane Champailler
@@ -14,34 +11,8 @@
 
 	.include "defs.s"
 
-	TIMER_START = $FFFF - 32
-
-	.macro set_timer_to_const value
-
-	LDY #4
-	lda	#<(value)
-	sta	(MB_Base),Y	; write into low-order latch,
-
-	INY
-	lda	#>(value)
-	sta	(MB_Base),Y	; write into high-order latch
-
-	.endmacro
-
-	.macro set_timer_to_target value
-
-	LDY #4
-	lda	value
-	sta	(MB_Base),Y	; write into low-order latch,
-
-	INY
-	lda	value + 1
-	sta	(MB_Base),Y	; write into high-order latch
-
-	.endmacro
 
 
-	MB_Base = $F0
 	Temp = $FF
 	debug_ptr = $86
 	debug_ptr2 = $88
@@ -61,83 +32,6 @@
 	STA print_str_helper::smc2+1+1
 
 	JSR print_str_helper
-	.endmacro
-
-	;SLOT_SELECT	= $60	; 0 (drive 1) 110 (slot 6) 0000
-	;; MOCK_6522_ACR	= $C40B	; 6522 #1 auxilliary control register
-	;; MOCK_6522_IER	= $C40E	; 6522 #1 interrupt enable register
-	;; MOCK_6522_T1CL	= $C404	; 6522 #1 t1 low order latches
-	;; MOCK_6522_T1CH	= $C405	; 6522 #1 t1 high order counter
-
-
-
-
-	CYCLES_FOR_READING_TIMER = 28 	; not entirely exact !
-					; the first read_timer shoul not
-					; include the last STA.
-
-	.macro read_timer2 target
-
-	;; Total : 28 cycles. Don't forget to remove those
-	;; from the total measurements, else you'll time
-	;; the chronometer time as well !
-
-	LDY #4			; 2 cycles
-	LDX sector_count	; 4 cycles
-
-	;; Read LSB *first* (See 6522 counter fix macro below)
-
-	LDA (MB_Base),Y 	; 5 cycles; read MOCK_6522_T1CH
-	sta target, X		; (*) 5 cycles
-
-	;; Read MSB
-	INY			; (*) 2 cycles
-	LDA (MB_Base),Y		; (*) 5 cycles; read MOCK_6522_T1CL
-	sta target+1,X		; 5 cycles
-
-	;; (*) cycles that count as "time between reading
-	;; LSB and MSB)
-
-	.endmacro
-
-
-	.macro read_timer_direct target
-
-	LDY #4			; 2 cycles
-	LDA (MB_Base),Y 	; 5 cycles; read MOCK_6522_T1CH
-	sta target		; (*) 4 cycles
-	INY			; (*) 2 cycles
-	LDA (MB_Base),Y		; (*) 5 cycles; read MOCK_6522_T1CL
-	sta target+1		; 4 cycles
-
-	.endmacro
-
-
-
-	;; Number of cycles betwwen the moment we read the
-	;; LSB of the 6522 counter and the MSB.
-	CYCLES_BETWEEN_LSB_MSB_6522_READ = 12
-
-	.macro fix_6522_read_value read_value_6522
-	.scope
-	;; When reading the 6522 counter, LSB first then MSB,
-	;; the LSB is always n cycles too early compared to
-	;; the moment were the MSB was read. By substracting
-	;; those cycle from the LSB, we "delay" it to the moment
-	;; where the MSB was read. So it has the value it would
-	;; have had if it were to be read at the same time the
-	;; the MSB is read. Notice we don't touch the MSB.
-
-	;; read_value_6522 = value (word) that was read from
-	;; the 6522 counter. This must have been read LSB
-	;; first and MSB second.
-
-	LDA read_value_6522
-	SEC
-	SBC #CYCLES_BETWEEN_LSB_MSB_6522_READ
-	STA read_value_6522
-
-	.endscope
 	.endmacro
 
 
@@ -186,74 +80,25 @@
 	.incbin "data/2UNLIM2.pt3" ;FR.PT3"
 	.align 256
 
+disk_toc:
+	;; 1st track, 1st sector, last track, last sector, 1st memory page
+	.byte 3,9,4,11,$E0
 
 	.include "read_sector.s" ; RWTS code
-
-
-	.macro sector_read_code
-	;; regular_sector_read_test
-
-	;; LATCH_ADVANCED_STATUS = 1
-	;; SECTOR_READ = 2
-	;; SECTOR_SEEK = 4
-	;; SECTOR_RDADR = 8
-
-
-	LDA read_in_pogress
-	BEQ no_read
-
-	JSR read_sector_in_track
-
-	LDA read_sector_status
-	AND #SECTOR_READ
-	BNE skip_pause
-
-	LDA read_sector_status
-	AND #SECTOR_RDADR
-	BNE data_read
-
-	LDA read_sector_status
-	AND #SECTOR_SEEK
-	BNE latch_advance
-	BEQ skip_pause
-
-latch_advance:
-	LDA #0
-	STA sector_shift
-	jmp skip_pause
-no_read:
-        ldx #SLOT_SELECT
-	JSR rdadr16
-data_read:
-	ldx #SLOT_SELECT
-	jsr read16
-
-no_latch_advance:
-skip_pause:
-	LDA curtrk
-	CLC
-	ROR
-	TAX
-	LDA hexa_apple,X
-	STA $7d0+38
-	.endmacro
-
 
 	.include "pt3_lib/zp.inc"
 	.include "pt3_lib/hardware.inc" ; some firmware locations
 	.include "pt3_lib/pt3_lib_core.s"
 	.include "pt3_lib/pt3_lib_init.s"
 	.include "pt3_lib/pt3_lib_mockingboard_setup.s"
-
-
-
-	;.include "pt3_lib/interrupt_handler.s"
+	.include "pt3_lib/interrupt_handler.s"
 	; if you're self patching, detect has to be after
 	; interrupt_handler.s
 	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
+	.include "file_load.s"
 
 
-	.include "irq.s"
+	;.include "irq.s"
 
 	;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -289,67 +134,6 @@ mb_header:	.byte "MOCKINGBOARD:",0
 apple_header:	.byte "APPLE 2",0
 lang_card_text:	.byte "LANG. CARD",0
 
-	READ_SECTOR = 1
-	MUSIC_LONG = 2
-	MUSIC_REGULAR = 3
-	MUSIC_SHORT = 4
-	LOOP_STATES = 5
-	STAND_BY_STATE = 6
-
-read_sector_states:
-
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_SHORT
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_SHORT
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_SHORT
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_LONG
-.byte MUSIC_LONG
-.byte LOOP_STATES
-STAND_BY_STATE_NDX = * - read_sector_states
-	.byte STAND_BY_STATE
 
 
 
@@ -372,19 +156,6 @@ start_point:
 mocking_not_found:
 
 
-	;; Crucial for interrupts to work !!!
-
-	LDA LC_RAM_SELECT
-	LDA LC_RAM_SELECT
-
-	LDA #$55
-	STA $E000
-	LDA $E000
-	CMP #$55
-	BNE no_language_card
-	LDA #1
-	STA has_language_card
-no_language_card:
 
 	JSR clear_txt
 
@@ -398,7 +169,7 @@ all_tests_loop:
 	JSR check_diskii
 
 	JSR clear_txt
-	JSR calibration
+	JSR calibration_check
 
 	JSR clear_txt
 	JSR check_music_disk_based_replay
@@ -418,89 +189,19 @@ all_tests_loop:
 	BRK
 
 
-	;; JSR check_diskii_with_irq
-
-
-
-;; files_loop:
-;; 	LDA file_being_loaded			; threeD data => page $d000, won't overwrite us !
-;; 	INC file_being_loaded
-;; 	JSR init_file_load
-
-;; 	LDA #'*'+$80
-;; 	STA $750+36
-
-;; wait_file:
-;; 	LDA read_in_pogress
-;; 	BNE wait_file
-
-
-;; pause:
-;; 	LDA #'P'+$80
-;; 	STA $750+35
-;; 	JSR scroll_text
-;; 	INC loop_count2
-;; 	LDA loop_count2
-;; 	AND #127
-;; 	BNE pause
-
-;; 	JMP files_loop
-
-
-;; loop_count:	.byte 0
-;; loop_count2:	.byte 0
-;; file_being_loaded:	.byte 3
 
 
 ;;; ==================================================================
 
-	.proc calibration
+	.proc calibration_check
 
 	CALIBRATION_RUNS = 128	;MUST BE 128 (hardcoded computations)
-
 	TIMES_YPOS = $700
 	TIMES2_YPOS = $780
 
-	print_str calibration_header, $400
 
-	JSR locate_drive_head	; Motor on !
+	JSR calibration
 
-	lda #$07
-	sta buf + 1
-	lda #$D0
-	sta buf
-
-	LDA #0
-	STA sector_count
-
-	STA total_sector_time
-	STA total_sector_time+1
-	STA total_sector_time+2
-
-	STA total_data_time
-	STA total_data_time+1
-	STA total_data_time+2
-
-
-	ldx #SLOT_SELECT
-	JSR rdadr16
-
-calibration_loop:
-	set_timer_to_const TIMER_START
-
-	ldx #SLOT_SELECT
-	JSR read16
-	read_timer2 data_times
-
-	ldx #SLOT_SELECT
-	JSR rdadr16
-	read_timer2 sector_times
-
-	LDA sector_count
-	CLC
-	ADC #2
-	STA sector_count
-	BCC calibration_loop
 
 	LDA #0
 draw_loop:
@@ -513,47 +214,25 @@ draw_loop:
 	lda sector_times,X
 	sta sector_time
 
-	lda data_times + 1,X
-	sta data_time+1
-	lda data_times,X
-	sta data_time
+	;; lda data_times + 1,X
+	;; sta data_time+1
+	;; lda data_times,X
+	;; sta data_time
 
 	;; Fix the value read from the 6522 (MSB/LSB incoherence)
 
 	fix_6522_read_value sector_time
-	fix_6522_read_value data_time
+	;fix_6522_read_value data_time
 
 	;; The 6522 counts down to zero, but we count the other way
 
 	sub_16_to_const sector_time, TIMER_START
-	sub_16_to_const data_time, TIMER_START
+	;sub_16_to_const data_time, TIMER_START
 
 	;; Remove the time it took to measure the time :-)
 
 	sub_const_to_16 sector_time, CYCLES_FOR_READING_TIMER
-	sub_const_to_16 data_time, CYCLES_FOR_READING_TIMER
-
-	CLC
-	LDA data_time
-	ADC total_data_time
-	STA total_data_time
-	LDA data_time + 1
-	ADC total_data_time + 1
-	STA total_data_time + 1
-	LDA #0
-	ADC total_data_time + 2
-	STA total_data_time + 2
-
-	CLC
-	LDA sector_time
-	ADC total_sector_time
-	STA total_sector_time
-	LDA sector_time + 1
-	ADC total_sector_time + 1
-	STA total_sector_time + 1
-	LDA #0
-	ADC total_sector_time + 2
-	STA total_sector_time + 2
+	;sub_const_to_16 data_time, CYCLES_FOR_READING_TIMER
 
 	;; scale x2 to have a better picture
 
@@ -562,7 +241,6 @@ draw_loop:
 	ROL
 	LDA sector_time + 1
 	ROL
-
 
 	SEC
 	SBC #>(2*ONE_80TH)
@@ -580,28 +258,14 @@ draw_loop:
 	JMP draw_loop
 done_loop:
 
+	print_str calibration_header, $400
 	print_str mire, $500
 	print_str mire, $600
 	print_str times_txt, TIMES_YPOS
 	print_str times2_txt, TIMES2_YPOS
 
-	;; ROL because we have 128 measurements.
-	;; so 128 measurements x 2 = 256 and then
-	;; I leaf the LSByte out => 128 x 2 / 256 = 1 :-)
-
-	CLC
-	ROL total_data_time
-	ROL total_data_time + 1
-	ROL total_data_time + 2
-
 	store_16 debug_ptr, TIMES_YPOS + 18
 	print_timer2 total_data_time + 1
-
-	CLC
-	ROL total_sector_time
-	ROL total_sector_time + 1
-	ROL total_sector_time + 2
-
 	store_16 debug_ptr, TIMES2_YPOS + 18
 	print_timer2 total_sector_time + 1
 
@@ -613,18 +277,7 @@ no_key:
 
 	RTS
 
-data_time:	.word 0
 sector_time:	.word 0
-total_data_time:	.byte 0,0,0
-total_sector_time:	.byte 0,0,0
-
-sector_count:	.byte 0
-sector_times:	.repeat CALIBRATION_RUNS
-	.word 0
-	.endrepeat
-data_times:	.repeat CALIBRATION_RUNS
-	.word 0
-	.endrepeat
 
 calibration_header:	.byte "CALIBRATION",0
 mire:	.byte "--------------------!-------------------",0
@@ -668,19 +321,6 @@ infiniloop2:
 no_key:
 
 	JMP infiniloop2
-
-;; 	set_irq_vector interrupt_handler_music
-;; 	LDA LC_RAM_SELECT
-;; 	LDA LC_RAM_SELECT
-
-;; 	JSR start_interrupts
-
-;; 	set_timer_const 1000000/50
-
-
-;; infiniloop:
-;; 	INC $400
-;; 	JMP infiniloop
 
 disk_replay_header:	.byte "DISK REPLAY AT 40HZ",0
 
@@ -777,119 +417,38 @@ exit_interrupt:
 
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	TOLERANCE = $180
+
 
 
 	.proc check_basic_irq_plus_disk_replay2
 
-	LDA calibration::total_sector_time + 1
-	STA full_sector_time
-	LDA calibration::total_sector_time + 2
-	STA full_sector_time + 1
-
-
-	CLC
-	LDA calibration::total_data_time + 1
-	ADC #<TOLERANCE
-	STA data_time_plus_tolerance
-	LDA calibration::total_data_time + 2
-	ADC #>TOLERANCE
-	STA data_time_plus_tolerance + 1
-
-	CLC
-	LDA full_sector_time
-	ROL
-	STA twice_full_sector_time
-	LDA full_sector_time + 1
-	ROL
-	STA twice_full_sector_time + 1
-
-
-	SEC
-	LDA full_sector_time
-	SBC #<(2*TOLERANCE)
-	STA full_sector_time_minus_twice_tolerance
-	LDA full_sector_time + 1
-	SBC #>(2*TOLERANCE)
-	STA full_sector_time_minus_twice_tolerance + 1
-
-
-
-	LDA #0
-	STA current_track
-        ldx #SLOT_SELECT
-	JSR seek
-
 	print_str irq_disk_replay_header, $400
+	print_str track_message, $480
 
 	JSR start_player
 
-	;; From the Apple 2c Reference Manual Volume 1 :
-
-	;; " Vector location is $FFFE-$FFFF
-	;;   of ROM or whichever bank of RAM is switched in.
-	;;   If ROM is switched in, this vector is the address
-	;;   of the Monitor's interrupt handler. If the monitor
-	;;   gets the interrupt, then it dispatches to $3F0-$3F1
-	;;   in case of a BRK, or $3FE-3FF else. "
-
-	;; Same information in the Apple 2e Reference Manual.
-
-	;; On table 14, page 132 of the Apple II Reference (Woz),
-	;; the same IRQ vectors are given, and later in the book,
-	;; the $FFFE vector is given too. But no explanation about
-	;; the IRQ handling in the Monitor.
-
-	;; Since I use the bank switched memory (64kb), then
-	;; the $FFFE-$FFFF vector is defined by me and won't go
-	;; to the monitor ('cos the RAM has been switched !!!guess!!!).
-	;; So I don't have to touch $3fe/$3ff (on the 2+, 2e and 2c).
 
 
 	set_irq_vector disk_irq_handler2
 
 	LDA #0
-	STA stepper
-	LDA #15
-	STA sectors_to_read2
+	JSR init_file_load
 
 	JSR start_interrupts
 	set_timer_to_const 1022000/40
 
 	JSR read_keyboard
 infiniloop:
+	JSR display_track_info
 
-	LDA sectors_to_read2
-	BNE more_sectors_to_read
+	LDA sectors_to_read
+	BNE still_stuff_to_read
 
-	LDA current_track
-	CLC
-	ADC #2
-	AND #31
-	STA current_track
-        ldx #SLOT_SELECT
-	JSR seek		; A = half track you want !
+	JSR display_track_info
+	JSR handle_track_progress
 
- 	;; Clear sector map
+still_stuff_to_read:
 
-	LDY #16
-	LDA #$E0
-clear_sector_statuses:
-	DEY
-	STA sector_status,Y
-	BNE clear_sector_statuses
-
-	;; Tell the IRQ handler it can read sectors again
-	LDA #0
-	STA stepper
-	LDA #15
-	STA sectors_to_read2
-
-
-
-	INC $400+38
-
-more_sectors_to_read:
 
 	JSR read_keyboard
 	BEQ infiniloop
@@ -899,326 +458,39 @@ more_sectors_to_read:
 	jsr	clear_ay_both
 	RTS
 
-
-	;; -----------------------------------------------------------
-	;; INTERRUPT HANDLER
-	;; -----------------------------------------------------------
-
-disk_irq_handler2:
-
-	php
-	pha
-	txa
-	pha			; save X
-	tya
-	pha			; save Y
-
-	LDY #$04	; Allow the next IRQ from the 6522
-	LDA (MB_Base),Y
-
-	LDA sectors_to_read2
-	BEQ music_long
-
-	LDY stepper
-read_sector_state:
-	LDA read_sector_states,Y
-	INY
-	CMP #LOOP_STATES
-	BNE dont_loop_states
-	LDY #0
-	BEQ read_sector_state	; Always taken
-dont_loop_states:
-	STY stepper
-
-	CMP #MUSIC_LONG
-	BEQ music_long
-	CMP #MUSIC_REGULAR
-	BEQ music_regular
-	CMP #MUSIC_SHORT
-	BEQ music_short
-	CMP #READ_SECTOR
-	BEQ read_sector
-
-music_regular:
-	;set_timer_to_const DISK_READ_TIME
-	set_timer_to_target check_basic_irq_plus_disk_replay2::full_sector_time
-
-	JSR pt3_irq_handler
-	JMP exit_interrupt
-
-music_short:
-	;set_timer_to_const DISK_READ_TIME - 2*TOLERANCE
-	set_timer_to_target check_basic_irq_plus_disk_replay2::full_sector_time_minus_twice_tolerance
-	JSR pt3_irq_handler
-	JMP exit_interrupt
-
-music_long:
-	;set_timer_to_const 2*DISK_READ_TIME
-	set_timer_to_target check_basic_irq_plus_disk_replay2::twice_full_sector_time
-	JSR pt3_irq_handler
-	JMP exit_interrupt
-
-sector_already_read:
-	set_timer_to_target check_basic_irq_plus_disk_replay2::data_time_plus_tolerance
-	JMP exit_interrupt
-
-read_sector:
-	ldx #SLOT_SELECT
-	JSR rdadr16
-	BCC no_rdadr16_error
-	INC $500 + 39
-no_rdadr16_error:
-	ldx sect
-	lda sector_status, X
-	beq sector_already_read
-	STA buf + 1
-	lda #0
-	sta buf
-
-	ldx #SLOT_SELECT
-	JSR read16
-	BCC no_read16_error
-	INC $500 + 36
-no_read16_error:
-
-	;; This is tricky ! Doing a pause this way
-	;; ensures that the next PT3 beat will be played
-	;; at the right time but also it makes sure we
-	;; resync our timings on the disk speed. This way
-	;; we prevent an accumulation of errors on the timer's
-	;; interrupts.
-
-	set_timer_to_const TOLERANCE
-
-	;; Mark sector as read
-	LDX sect
-	LDA #0
-	STA sector_status, X
-
-	DEC sectors_to_read2
-
-	;; DEBUG -----------------------------------------------------
-
-	LDY sect
-	LDA $500,Y
-	EOR #('#' ^ ' ')
-	STA $500,Y
-
-exit_interrupt:
-	pla
-	tay			; restore Y
-	pla
-	tax			; restore X
-	pla			; restore a
-	plp
-
-	RTI
-
-stepper:	.byte 0
-timer_read:	.word 0
-sectors_to_read2:	.byte 0
-
-
-irq_disk_replay_header:	.byte "ADVANCED IRQ + DISK READ REPLAY",0
-full_sector_time:	.word 0
-twice_full_sector_time:	.word 0
-full_sector_time_minus_twice_tolerance:	.word 0
-data_time_plus_tolerance:	.word 0
-
-	.endproc
-
-	;;  ---------------------------------------------------
-
-
-
-
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-	.proc check_basic_irq_plus_disk_replay
-
-	LDA #0
-	STA current_track
-        ldx #SLOT_SELECT
-	JSR seek
-
-	print_str irq_disk_replay_header, $400
-
-	JSR start_player
-
-	;; From the Apple 2c Reference Manual Volume 1 :
-
-	;; " Vector location is $FFFE-$FFFF
-	;;   of ROM or whichever bank of RAM is switched in.
-	;;   If ROM is switched in, this vector is the address
-	;;   of the Monitor's interrupt handler. If the monitor
-	;;   gets the interrupt, then it dispatches to $3F0-$3F1
-	;;   in case of a BRK, or $3FE-3FF else. "
-
-	;; Same information in the Apple 2e Reference Manual.
-
-	;; On table 14, page 132 of the Apple II Reference (Woz),
-	;; the same IRQ vectors are given, and later in the book,
-	;; the $FFFE vector is given too. But no explanation about
-	;; the IRQ handling in the Monitor.
-
-	;; Since I use the bank switched memory (64kb), then
-	;; the $FFFE-$FFFF vector is defined by me and won't go
-	;; to the monitor ('cos the RAM has been switched !!!guess!!!).
-	;; So I don't have to touch $3fe/$3ff (on the 2+, 2e and 2c).
-
-
-	set_irq_vector disk_irq_handler
-
-
-	JSR start_interrupts
-	set_timer_to_const 1022000/40
-
-	JSR read_keyboard
-infiniloop:
-	JSR read_keyboard
-	BEQ infiniloop
-
-	jsr stop_mockingboard_interrupts
-	jsr	reset_ay_both
-	jsr	clear_ay_both
-	RTS
-
-irq_disk_replay_header:	.byte "BASIC IRQ + DISK READ REPLAY AT 40HZ",0
-
-	.endproc
-
-	;;  ---------------------------------------------------
-
-	.proc disk_irq_handler
-
-	;; 2aec => wait = 3d0 / 660
-	;; 2Bec => wait = 2d0 / 550
-	;; 2CEC => too small
-
-	ONE_80TH = $31E7	; 1022000/80
-
-	;; For Mame
-	;; DISK_READ_TIME = $3180	; Time to read the addr+data part of a sector
-	;; TOLERANCE = $200 ; That's the minimum I can get
-
-	;; For AppleWin DSK
-
-	;DISK_READ_TIME = $2B10
-	;TOLERANCE = $100
-
-	;; For AppleWin WOZ
-
-	DISK_READ_TIME = $30B0	; Time to read the addr+data part of a sector
-	TOLERANCE = $200
-
-	PAUSE_UNTIL_MUSIC = DISK_READ_TIME + TOLERANCE	; $33E6
-	PAUSE_UNTIL_RDADR = DISK_READ_TIME - 2*TOLERANCE  ; $2B6A ; $27EC = 1022000/80 * 0.87
-
-	php
-	pha
-	txa
-	pha			; save X
-	tya
-	pha			; save Y
-
-
-	INC stepper
-	LDA stepper
-	STA $400 + 39
-	CMP #$FF
-	BNE no_head_move	; FIXITI!
-
-	;; LDA #0
-	;; STA stepper 		; back to disk step
-
-	;; INC current_track
-	;; LDA current_track
-	;; CLC
-	;; ADC #$B0
-	;; STA $400+38
-
-	;; LDA current_track
-	;; ldx #SLOT_SELECT
-	;; JSR seek
-	;; JMP exit_interrupt
-
-no_head_move:
-	AND #$01
-	BEQ music_step
-
-disk_step:
-	LDA stepper
-	CMP #$2F
-	BNE read_sector
-shift_a_sector:
-	ldx #SLOT_SELECT
-	JSR rdadr16
-	ldx #SLOT_SELECT
-	JSR rdadr16
-
-	LDA #0
-	STA stepper
-	JMP exit_interrupt
-
-read_sector:
-	ldx #SLOT_SELECT
-	JSR rdadr16
-	BCS disk_step
-
-	read_timer_direct timer_read
-
-	set_timer_to_const PAUSE_UNTIL_MUSIC 	; $3465 = 1022000/80 * 1.04
-
-	ldx #SLOT_SELECT
-	JSR read16
-
-	;; DEBUG -----------------------------------------------------
-
-	sub_16_to_const timer_read, PAUSE_UNTIL_RDADR
-	LDA stepper
-	LSR
-	AND #15
-	ASL
-	TAX
-	LDA txt_ofs + 6,X
-	STA debug_ptr
-	LDA txt_ofs + 6 +1,X
-	STA debug_ptr+1
-	print_timer2 timer_read
-
-	INC debug_ptr
-	LDA sect
+display_track_info:
+	lda current_track
+	clc
+	adc #3
+	asl
+	tax
+	lda txt_ofs,x
+	sta debug_ptr
+	lda txt_ofs+1,x
+	sta debug_ptr+1
+
+	lda current_track
 	jsr byte_to_text
 
+	inc debug_ptr
+	inc debug_ptr
+	inc debug_ptr
 
-	JMP exit_interrupt
+	ldy #15
+show_sector_status:
+	lda sector_status_debug,y
+	bne was_read
+to_read:
+	lda #'.'+$80
+was_read:
+	sta (debug_ptr),Y
+	dey
+	bpl show_sector_status
 
-music_step:
-	set_timer_to_const PAUSE_UNTIL_RDADR
-	JSR pt3_irq_handler
+	RTS
 
-exit_interrupt:
-
-	;; FIXME this must be SMC'ed to handle MockingBoard
-	;; on another port.
-	;LDA	$C404		; Allow the next IRQ from the 6522
-	LDY #$04
-	LDA (MB_Base),Y
-
-
-	pla
-	tay			; restore Y
-	pla
-	tax			; restore X
-	pla			; restore a
-	plp
-
-	RTI
-
-stepper:	.byte 0
-timer_read:	.word 0
-
+irq_disk_replay_header:	.byte "ADVANCED IRQ + DISK READ REPLAY",0
+track_message:	.byte "TR 0123456789ABCDEF",0
 	.endproc
 
 
@@ -1522,6 +794,7 @@ seek_header:	.byte "TRACK SEEK TIME:",0
 track0_header:	.byte "    *** GOING BACK TO TRACK ZERO ***    ",0
 blank_line_header:	.byte "                                        ",0
 
+current_track:	.byte 0
 	.endproc
 
 
@@ -1660,300 +933,6 @@ no_lang_card:
 	rts
 	.endproc
 
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-	.proc interrupt_handler_dummy
-
-	PHP
-	INC $7D0
-	PLP
-
-	RTI
-
-	.endproc
-
-
-;;; ==================================================================
-
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-	.macro regular_sector_read_test
-	INC loop_count
-	LDA loop_count
-	AND #63
-	BNE just_sector
-
-	LDA curtrk
-	CLC
-	ADC #2
-        ldx #SLOT_SELECT
-	JSR seek
-
-	;; In the test, this seems to be NOT necessary
-	LDA #0
-	STA sector_shift
-
-	LDA curtrk
-	CLC
-	ROR
-	TAX
-	LDA hexa_apple,X
-	STA $7d0+38
-
-
-just_sector:
-	LDA loop_count
-	AND #%11110000
-	CLC
-	ROR
-	ROR
-	ROR
-	ROR
-	TAX
-	LDA hexa_apple,x
-	STA $7d0+39
-
-        ldx #SLOT_SELECT
-	JSR rdadr16
-
-	ldx #SLOT_SELECT
-	jsr read16
-	.endmacro
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-
-
-
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-	.proc check_diskii_with_irq
-
-	set_irq_vector interrupt_handler_music
-	LDA LC_RAM_SELECT
-	LDA LC_RAM_SELECT
-
-	JSR start_player
-	JSR start_interrupts
-
-;; wait_sector_zero:
-;;         ldx #SLOT_SELECT
-;; 	JSR rdadr16		; stabilize
-;; 	LDA sect
-;; 	BNE wait_sector_zero
-
-;; 	SEI
-;; 	set_irq_vector interrupt_handler_music
-
-;; 	;; MOCK_6522_ACR = C40B
-;; 	;; bits 7 and 6 controls the timer1 operating mode
-;; 	;; $40 = Generate continuous interrupts, PB7 is disabled.
-;; 	lda	#%01000000
-;; 	sta	MOCK_6522_ACR	; ACR register
-
-;; 	lda	#%01111111	; clear all interrupt "enables"
-;; 	sta	MOCK_6522_IER	; IER register (interrupt enable)
-
-;; 	lda	#%11000000	; set timer1 IRQ enable
-;; 	sta	MOCK_6522_IER	; IER register (interrupt enable)
-
-
-
-;; 	lda	#$7F		; clear all interrupt flags
-;; 	set_timer_const $FFFE
-;; 	CLI
-
-	RTS
-	.endproc
-
-
-
-start_player:
-	lda	#0
-	sta	DONE_PLAYING
-	lda	#1
-	sta LOOP
-
-
-	jsr	mockingboard_init
-
-	jsr	pt3_init_song
-	jsr	reset_ay_both
-	jsr	clear_ay_both
-
-	rts
-
-
-
-	.proc init_file_load
-	;;  A = file index in TOC
-
-wait_lock:
-	LDX read_in_pogress
-	BNE wait_lock
-
-	CMP file_being_loaded
-	BEQ file_in_load
-	STA file_being_loaded
-
-	;;  Compute A * 5
-	STA smc + 1
-	ASL
-	ASL
-	CLC
-smc:
-	ADC #0
-	TAX
-
-	;SEI			; Don't forget we might read sector from inside an interrupt !
-	LDA disk_toc,X
-	STA first_track
-	STA current_track
-
-	LDA disk_toc+1,X
-	STA first_sector
-	LDA disk_toc+2,X
-	STA last_track
-	LDA disk_toc+3,X
-	STA last_sector
-	LDA disk_toc+4,X
-	STA first_page
-
-	;; PHA
-	;; LDA #0			; FIXME should not be necessary
-	;; STA sectors_to_read
-
-	LDA #1
-	STA read_in_pogress
-
-	;; PLA
-	;CLI
-file_in_load:
-	RTS
-
-.export file_being_loaded
-file_being_loaded:	.byte $FF
-disk_toc: .include "build/loader_toc.s"
-
-	.endproc
-
-
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-apple_model:	.byte 0
-has_language_card:	.byte 0
-
-	.proc detect_apple
-
-	;; The following code is a slightly adapted
-	;; version of what was gently provided by
-	;; French Touch
-
-        LDA $FBB3
-
-        CMP #$06                ; IIe/IIc/IIGS = 06
-        BEQ apple2_e_c_gs
-
-	CMP #$38
-	BEQ apple2
-
-	CMP #$EA
-	BEQ apple2plus
-
-unrecognized_apple:
-	LDA #'?'
-quick_return:
-	STA apple_model
-	RTS
-
-apple2_e_c_gs:
-
-	;; IIc ?
-
-	LDA $FBC0               ; détection IIc
-        BEQ apple2_c            ; 0 = IIc => bad guy2
-
-	;; IIgs ou IIe ?
-        SEC
-        JSR $FE1F               ; TEST GS
-        BCS apple2_e
-
-apple2_gs:
-	LDA #'G'
-	BNE quick_return
-
-apple2_e:
-	LDA #'E'
-	BNE quick_return	; Always taken
-
-apple2_c:
-	LDA #'C'
-	BNE quick_return	; Always taken
-
-apple2:
-	LDA #' '
-	BNE quick_return	; Always taken
-
-apple2plus:
-	LDA #'+'
-	BNE quick_return	; Always taken
-
-	.endproc
-
-
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-	.proc detect_mocking_board
-
-	;; The following code is a slightly adapted
-	;; version of what was gently provided by
-	;; French Touch
-
-	LDA apple_model
-	CMP #'C'
-	BNE not_a_2c
-
-	;; Tip from Fenarinarsa from French Touch,
-	;; activate the MB so that it is not shadowed
-	;; by the mouse.
-
-	LDA #$FF
-	STA $C404
-	STA $C405
-not_a_2c:
-
-	LDA #00
-	STA MB_Base
-bdet:	LDA #$07		; on commence en $C7 jusqu'en $C1
-	ORA #$C0		; -> $Cx
-	STA MB_Base+1
-
-	LDY #04		; $CX04
-	LDA (MB_Base),Y	; timer 6522 (Low Order Counter) - attention compte à rebour !
-	STA Temp		; 3 cycles
-	LDA (MB_Base),Y	; + 5 cycles = 8 cycles entre les deux accès au timer
-	SEC		;
-	SBC Temp		;
-	CMP #$F8		; -8 (compte à rebour) ?
-	BEQ mb_found
-	DEC bdet+1	; on décrémente le "slot" pour tester le suivant
-	BNE bdet		; on boucle de 7 à 1
-	JMP mb_not_found	; on est arrivé au SLOT0 donc pas de MB!
-mb_found:
-	RTS
-mb_not_found:
-	LDA #$FF
-	STA MB_Base
-	STA MB_Base+1
-	RTS
-
-	.endproc
 
 	.proc read_keyboard
 

@@ -2,7 +2,14 @@
 
 echo "Assembling the code"
 
-ca65 -o build/checkdisk.o -D MUSIC checkdisk.s
+
+ca65 -o build/checkdisk.o -D MUSIC -D DEBUG checkdisk.s
+
+retVal=$?
+if [ $retVal -ne 0 ]; then
+    exit 1;
+fi
+
 ld65 -o CHKDSK build/checkdisk.o -C link.cfg
 ls -l CHKDSK
 
@@ -19,6 +26,7 @@ source-highlight --src-lang asm -f html --doc -c=asm-style.css  --lang-def asm.l
 ./dsk2woz NEW.DSK NEW.WOZ
 
 # \PORT-STC\opt\applewin\Applewin.exe -d1 NEW.DSK
-mame apple2e -skip_gameinfo -window -nomax -flop1 NEW.WOZ -rp ../bad_apple/bios -speed 1
+#mame apple2e -skip_gameinfo -window -nomax -flop1 NEW.WOZ -rp ../bad_apple/bios -speed 1
 
-#/opt/wine-staging/bin/wine ~/AppleWin1.29.13.0/Applewin.exe -d1 \\home\\stefan\\Dropbox\\demo2\\NEW.DSK
+# Only WOZ disk emulation seems to have correct timings.
+/opt/wine-staging/bin/wine ~/AppleWin1.29.13.0/Applewin.exe -d1 \\home\\stefan\\Dropbox\\demo2\\NEW.WOZ -conf ~/applewin.ini

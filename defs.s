@@ -9,7 +9,14 @@
 	OPCODE_BEQ 	= $F0
 	OPCODE_BPL 	= $10
 
+	KBD_CLEAR = $C010
+	KBD_INPUT = $C000
+	ONE_80TH = 1022000/80 	; 1/80th of a second
+
 	LC_RAM_SELECT	= $C08B	; 4K Bank A, RAM read, Write enabled
+
+	MB_Base = $F0		; Base addres of MockingBoard
+	;; FIXME Reuse the on efrom the PT3 player
 
 .macro store_8 target, const
 	lda #(const)
@@ -164,4 +171,114 @@ j:
 	;; sta	$03fe
 	;; lda	#>target
 	;; sta	$03ff
+	.endmacro
+
+
+	;; Computes A := A * 5 (so A must be < 51)
+	.macro mul_a_by_5
+	.scope
+	STA smc + 1
+	ASL
+	ASL
+	;; Carry is cleared, else A was too big to be multiplied
+smc:
+	ADC #0
+	.endscope
+	.endmacro
+
+
+
+	TIMER_START = $FFFF - 32
+
+	.macro set_timer_to_const value
+
+	LDY #4
+	lda	#<(value)
+	sta	(MB_Base),Y	; write into low-order latch,
+
+	INY
+	lda	#>(value)
+	sta	(MB_Base),Y	; write into high-order latch
+
+	.endmacro
+
+	.macro set_timer_to_target value
+
+	LDY #4
+	lda	value
+	sta	(MB_Base),Y	; write into low-order latch,
+
+	INY
+	lda	value + 1
+	sta	(MB_Base),Y	; write into high-order latch
+
+	.endmacro
+
+
+	CYCLES_FOR_READING_TIMER = 28 	; not entirely exact !
+					; the first read_timer shoul not
+					; include the last STA.
+
+	.macro read_timer2 target
+
+	;; Total : 28 cycles. Don't forget to remove those
+	;; from the total measurements, else you'll time
+	;; the chronometer time as well !
+
+	LDY #4			; 2 cycles
+	LDX sector_count	; 4 cycles
+
+	;; Read LSB *first* (See 6522 counter fix macro below)
+
+	LDA (MB_Base),Y 	; 5 cycles; read MOCK_6522_T1CH
+	sta target, X		; (*) 5 cycles
+
+	;; Read MSB
+	INY			; (*) 2 cycles
+	LDA (MB_Base),Y		; (*) 5 cycles; read MOCK_6522_T1CL
+	sta target+1,X		; 5 cycles
+
+	;; (*) cycles that count as "time between reading
+	;; LSB and MSB)
+
+	.endmacro
+
+
+	.macro read_timer_direct target
+
+	LDY #4			; 2 cycles
+	LDA (MB_Base),Y 	; 5 cycles; read MOCK_6522_T1CH
+	sta target		; (*) 4 cycles
+	INY			; (*) 2 cycles
+	LDA (MB_Base),Y		; (*) 5 cycles; read MOCK_6522_T1CL
+	sta target+1		; 4 cycles
+
+	.endmacro
+
+
+
+	;; Number of cycles betwwen the moment we read the
+	;; LSB of the 6522 counter and the MSB.
+	CYCLES_BETWEEN_LSB_MSB_6522_READ = 12
+
+	.macro fix_6522_read_value read_value_6522
+	.scope
+	;; When reading the 6522 counter, LSB first then MSB,
+	;; the LSB is always n cycles too early compared to
+	;; the moment were the MSB was read. By substracting
+	;; those cycle from the LSB, we "delay" it to the moment
+	;; where the MSB was read. So it has the value it would
+	;; have had if it were to be read at the same time the
+	;; the MSB is read. Notice we don't touch the MSB.
+
+	;; read_value_6522 = value (word) that was read from
+	;; the 6522 counter. This must have been read LSB
+	;; first and MSB second.
+
+	LDA read_value_6522
+	SEC
+	SBC #CYCLES_BETWEEN_LSB_MSB_6522_READ
+	STA read_value_6522
+
+	.endscope
 	.endmacro
