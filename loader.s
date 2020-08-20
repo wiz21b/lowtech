@@ -100,17 +100,24 @@ run:
 	JSR start_player
 	.endif
 
+
 	;; -----------------------------------------------------------
 
-	;; LDA #FILE_EARTH
-	;; JSR load_file_no_irq
-	;; LDA #FILE_BIG_SCROLL
-	;; JSR load_file_no_irq
+	FIRST_PART = 0
+
+	.if FIRST_PART = 1
+	LDA #FILE_EARTH
+	JSR load_file_no_irq
+	LDA #FILE_BIG_SCROLL
+	JSR load_file_no_irq
+	.endif
 
 	.ifdef MUSIC
 	JSR start_interrupts
 	.endif
-	;; JSR $6000
+	.if FIRST_PART = 1
+	JSR $6000
+	.endif
 
 
 	;; -----------------------------------------------------------
