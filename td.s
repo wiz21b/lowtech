@@ -13,6 +13,8 @@
 	.import read_sector_in_track
 	.import useless_sector
 	.import sector_status
+	.import handle_track_progress
+
 
 	.include "defs.s"
 	.include "build/xbin_lines_const.s"
@@ -164,7 +166,9 @@ all_lines:
 
 	jsr skip_a_frame2
 	jsr skip_a_frame2
-	BCS all_done
+	BCC go_on
+	JMP all_done
+go_on:
 	copy_16 line_data_ptr1, line_data_ptr
 
 	LDA #1
@@ -205,12 +209,6 @@ freeze:
 	.endif 			; TWO PAGES
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; 	LDX #15
-;; show_sectors:
-;; 	lda sector_status,X
-;; 	sta $6d0,X
-;; 	DEX
-;; 	BPL show_sectors
 	;; We pause a bit of time before
 	;; loading a new file. Ths is to ensure
 	;; that both line data pointers are one
@@ -220,6 +218,8 @@ freeze:
 	;; anything.
 
 disk_stuff:
+	JSR handle_track_progress
+
 	LDA end_of_block
 	CMP #255		; we're not waiting anything
 	BEQ no_track_load
@@ -236,10 +236,10 @@ wait_track_load:
 no_track_load:
 
 
-	INC frame_count
-	LDA frame_count
-infini_freeze:
-	CMP #3
+;; 	INC frame_count
+;; 	LDA frame_count
+;; infini_freeze:
+;; 	CMP #3
 	;BEQ infini_freeze
 
 
@@ -474,12 +474,10 @@ end_of_block:	.byte 255
 	.proc wait_disk_read
 wait_read2:
 	inc $2000
-	;; JSR read_sector_in_track
-
-	LDA read_in_pogress
-	CMP #0
-	BNE wait_read2
-	rts
+	inc $4000
+	JSR handle_track_progress
+	BCS wait_read2
+	RTS
 	.endproc
 
 

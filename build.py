@@ -18,6 +18,9 @@ https://www.dafont.com/electric-toaster.font?text=LOW+TECH
 # Inspiration for my big scroller font
 https://www.dafont.com/alien-android.font?text=LOW+TECH
 
+
+/opt/wine-staging/bin/wine ~/Downloads/VT1.0beta19Plus/VT.exe
+
 """
 import sys
 import numpy as np
@@ -389,14 +392,15 @@ disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
 # ####################################################################
 # Creating the boot sector and boot loader
 
-TUNE_ORIGINAL = f"{DATA_DIR}/2UNLIM2.pt3"
+#TUNE_ORIGINAL = f"{DATA_DIR}/2UNLIM2.pt3"
 #TUNE_ORIGINAL = f"{DATA_DIR}/FC.PT3"
+TUNE_ORIGINAL = f"{DATA_DIR}/BH_FAST.pt3"
 crunch(TUNE_ORIGINAL)
 
 # lzsa -r -f2 data\2UNLIM.pt3 data\2UNLIM.lzsa
 TUNE_ADDRESS = 0xFD00 - (((os.path.getsize(TUNE_ORIGINAL) + 256) >> 8) << 8)
 
-assert TUNE_ADDRESS >= 0xF000, "over 3D file load area"
+assert TUNE_ADDRESS >= 0xF000, "Tune too big ! over 3D file load area"
 
 # TUNE = TUNE_ORIGINAL
 
@@ -469,12 +473,13 @@ run(f"{LD65} {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_loader.o
 
 
 # Use this to optimize for space (in case the loader is small enough)
+loader_pages = (os.path.getsize(f"{BUILD_DIR}/LOADER") + 255) // 256
 loader_page_base = (0x2000 - os.path.getsize(f"{BUILD_DIR}/LOADER")) >> 8
 loader_page_base = 0x08
 
 print(f"loader_page_base = {loader_page_base:02X}")
 #assert loader_page_base > 0x08, f"Loader space will conflict (start page {loader_page_base}) with FSTBT ROM calls to $801"
-assert loader_page_base == 0x8, "You must update the link.cfg file"
+assert loader_page_base == 0x08, "You must update the link.cfg file"
 
 
 # Now that the loader is built (with incomplete TOC data but correct
@@ -503,19 +508,17 @@ assert end_of_code  < mem_limit, "Too big ! {:4X} > {:4X}".format(end_of_code, m
 toc_disk.update_file( f"{BUILD_DIR}/THREED.lzsa", td_start_page, "threed")
 
 
-run(f"{CA65} -o {BUILD_DIR}/checkdisk.o -t apple2 --listing {BUILD_DIR}/chkdsk.txt {additional_options} checkdisk.s")
-run(f"{LD65} -o {BUILD_DIR}/CHKDSK {BUILD_DIR}/checkdisk.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
-
-
+payload_page = 0x62
 
 with open(f"{BUILD_DIR}/fstbt_pages.s","w") as fout:
     configure_boot_code( fout,
                          os.path.getsize(f"{BUILD_DIR}/LOADER"),
-                         loader_page_base)
+                         payload_page)
 
 # Now we know the loader size, we can build the
 # fastboot sector correctly.
-run(f"{ACME} -DJUMP_ADDRESS=${loader_page_base:02X}00 -o {BUILD_DIR}/fstbt.o fstbt.s")
+
+run(f"{ACME} -DPAYLOAD_ADDR=${payload_page:02X}00 -DPAYLOAD_NB_PAGES={loader_pages} -DJUMP_ADDRESS=${loader_page_base:02X}00 -o {BUILD_DIR}/fstbt.o fstbt.s")
 
 toc_disk.set_boot_sector(f"{BUILD_DIR}/fstbt.o")
 
@@ -530,6 +533,10 @@ toc_disk.update_file( f"{BUILD_DIR}/LOADER", loader_page_base, "loader")
 toc_disk.generate_disk(f"{BUILD_DIR}/loader_toc.s")
 
 toc_disk.save()
+
+
+run(f"./dsk2woz {BUILD_DIR}/NEW.DSK {BUILD_DIR}/NEW.WOZ")
+
 
 # ####################################################################
 
@@ -610,9 +617,9 @@ print("Running emulator")
 if (args.mame or platform.system() == "Linux") and (not args.awin):
     # -resolution 1200x900
     # -sound none
-    run(f"{MAME} apple2e -volume -12 -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.DSK")
+    run(f"{MAME} apple2e -volume -12 -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.WOZ")
 else:
-    dsk = os.path.join( BUILD_DIR_ABSOLUTE, "NEW.DSK")
+    dsk = os.path.join( BUILD_DIR_ABSOLUTE, "NEW.WOZ")
     if platform.system() == "Linux":
         dsk = dsk.replace("/",r"\\")
-    run(f"{APPLEWIN} -d1 {dsk}")
+    run(f"{APPLEWIN} -d1 {dsk} -conf ~/applewin.ini")

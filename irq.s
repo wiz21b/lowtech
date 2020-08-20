@@ -20,6 +20,8 @@ no_clear:
 
 	.endmacro
 
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 interrupt_handler:
 interrupt_handler_music:
 
@@ -30,13 +32,15 @@ interrupt_handler_music:
 	tya
 	pha			; save Y
 
+	inc $402
+
 	;; FIXME this must be SMC'ed to handle MockingBoard
 	;; on another port.
 	LDA	$C404		; Allow the next IRQ from the 6522
 
 	;; When in "simulation mode", it means that the timer
 	;; has been set to wait for the time it takes to read
-	;; a sector. So we spend times just like if a secot
+	;; a sector. So we spend time just like if a sector
 	;; was read. We do that to maintain sector synchronisation
 	;; with the disk while making sure the 6502 can do useful
 	;; things during that time. The simulation mode is used
@@ -45,6 +49,13 @@ interrupt_handler_music:
 	LDA #0
 	CMP read_sector_simulation
 	BEQ regular_operation
+
+	LDX read_sector_simulation ; FIXME Remove this, it's for diagnostics only
+	CPX #$FF
+	BNE not_check_disk
+	JMP pt3_interrupt_hook
+not_check_disk:
+
 	STA read_sector_simulation
 	JMP sector_was_read
 
@@ -146,17 +157,18 @@ pt3_interrupt_hook:
 	.include "pt3_lib/pt3_lib_irq_handler.s"
 skip_music:
 	.else
-	.include "pt3_lib/pt3_lib_irq_handler.s"
+	JSR pt3_irq_handler
+	;.include "pt3_lib/pt3_lib_irq_handler.s"
 	.endif
 
 	jmp exit_interrupt
 
-quiet_exit:
-	stx	DONE_PLAYING
-	jsr	clear_ay_both
+;; quiet_exit:
+;; 	stx	DONE_PLAYING
+;; 	jsr	clear_ay_both
 
-	ldx	#$ff		; also mute the channel
-	stx	AY_REGISTERS+7	; just in case
+;; 	ldx	#$ff		; also mute the channel
+;; 	stx	AY_REGISTERS+7	; just in case
 
 exit_interrupt:
 
@@ -177,6 +189,22 @@ interrupt_smc:
 	;; LDA $45
 	plp
 	RTI
+
+
+
+	.ifdef MUSIC
+;pt3_irq_handler:
+	.include "pt3_lib/pt3_lib_irq_handler.s"
+	RTS
+quiet_exit:
+	stx	DONE_PLAYING
+	jsr	clear_ay_both
+
+	ldx	#$ff		; also mute the channel
+	stx	AY_REGISTERS+7	; just in case
+	RTS
+	.endif
+
 
 sector_shift:
 	.byte 0
@@ -209,17 +237,22 @@ wait_sector_zero:
 	;; MOCK_6522_ACR = C40B
 	;; bits 7 and 6 controls the timer1 operating mode
 	lda	#%01000000 	; Generate continuous interrupts, PB7 is disabled.
-	sta	MOCK_6522_ACR	; ACR register
+	ldy #$0B		; MOCK_6522_ACR
+	STA (MB_Base),Y
+	;sta	MOCK_6522_ACR	; ACR register
 
+	ldy #$0E		; IER Register
 	lda	#%01111111	; clear all interrupt "enables"
-	sta	MOCK_6522_IER	; IER register (interrupt enable)
+	;sta	MOCK_6522_IER	; IER register (interrupt enable)
+	STA (MB_Base),Y
 
 	lda	#%11000000	; set timer1 IRQ enable
-	sta	MOCK_6522_IER	; IER register (interrupt enable)
+	;sta	MOCK_6522_IER	; IER register (interrupt enable)
+	STA (MB_Base),Y
 
 
 	;lda	#$7F		; clear all interrupt flags
-	set_timer_const $FFFE
+	set_timer_to_const $FFFE
 	CLI
 
 	RTS

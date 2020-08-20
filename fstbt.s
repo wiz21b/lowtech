@@ -100,6 +100,7 @@ setsector
         lda     #$5B            ;read-1
         pha
 
+
 !if enable_banked > 0 {
 writeenable
         lda     $C093-(enable_banked*8)
@@ -133,7 +134,25 @@ jmpoep
         jsr     writeenable     ;bank in our RAM, write-enabled
 }
 
-        jmp     JUMP_ADDRESS+1+3           ;arbitrary entry-point to use after read completes
+	!if PAYLOAD_NB_PAGES > 0 {
+	LDY #PAYLOAD_NB_PAGES
+copy_all_pages:
+	LDX #0
+copy_one_page:
+smc_page1:
+	LDA PAYLOAD_ADDR,X
+smc_page2:
+	STA JUMP_ADDRESS, X
+	DEX
+	BNE copy_one_page
+	INC smc_page1 + 2
+	INC smc_page2 + 2
+	DEY
+	BNE copy_all_pages
+	}
+
+
+        jmp     JUMP_ADDRESS ;+1+3           ;arbitrary entry-point to use after read completes
                                 ;set to the value that you need
 
 adrtable

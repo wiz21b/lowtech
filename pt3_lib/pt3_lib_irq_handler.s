@@ -3,7 +3,7 @@
 pt3_irq_handler:
 
 pt3_irq_smc1:
-	;bit	MOCK_6522_T1CL	; clear 6522 interrupt by reading T1C-L	; 4
+	bit	MOCK_6522_T1CL	; clear 6522 interrupt by reading T1C-L	; 4
 
 	lda	DONE_PLAYING						; 3
 	beq	pt3_play_music	; if song done, don't play music	; 3/2nt
@@ -22,7 +22,7 @@ pt3_play_music:
 	beq	mb_write_frame		; if not done, continue
 
 	lda	LOOP			; see if looping
-	beq	move_to_next
+	;beq	move_to_next ; WIZ always loop
 
 pt3_loop_smc:
 	lda	#$d1			; looping, move to loop location
@@ -36,10 +36,20 @@ pt3_loop_smc:
 
 	beq	done_pt3_irq_handler	; branch always
 
-move_to_next:
-	; same as "press right"
-	ldx	#$20
-	jmp	quiet_exit
+	;; WIZ : I always loop so this is not needed anymore
+
+;; move_to_next:
+;; 	; same as "press right"
+	;; 	ldx	#$20
+
+;; These 4 lines added by WIZ
+;; 	stx	DONE_PLAYING
+;; 	jsr	clear_ay_both
+;; 	ldx	#$ff		; also mute the channel
+;; 	stx	AY_REGISTERS+7	; just in case
+
+
+;; 	jmp	quiet_exit
 
 	;======================================
 	; Write frames to Mockingboard
@@ -114,3 +124,4 @@ mb_skip_13:
 	;=================================
 
 done_pt3_irq_handler:
+	RTS

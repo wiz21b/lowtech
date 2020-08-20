@@ -166,6 +166,9 @@ clear_ay_left_loop:
 clear_ay_end:
 ;.assert >clear_ay_both = >clear_ay_end, error, "clear_ay_both crosses page"
 
+
+	.if 0
+
 	;=============================
 	; Setup
 	;=============================
@@ -265,3 +268,5 @@ setup_irq_smc6:
 				; clear interrupt and start counting
 
 	rts
+
+	.endif

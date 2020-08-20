@@ -250,7 +250,7 @@ if SHAPE == "Cube2":
 
 if SHAPE == "Ogon":
     ATTENUATION = 1*math.pi
-    ZOOM = 500 # 170
+    ZOOM = 600 # 170
     HIDDEN_FACES = True
 
     NB_FRAMES = 300*3

@@ -39,6 +39,7 @@
 	LDY #$20
 	jsr mem_copy
 
+
 	.ifdef DEBUG
 	LDA $C053
 	.else
@@ -57,9 +58,8 @@
 	.endif
 
 freeze:
-	;; LDA #0
-	;; JSR clear_hgr
 
+;infiniloop:	JMP infiniloop
 
 	store_16 text_pointer, m2_the_message
 	JSR draw_text_line_animated
@@ -92,11 +92,11 @@ big_loop:
 
 loop2:
 
-	INC frame_trigger
-wait_frame_trigger:
-	LDA frame_trigger
-	CMP #0
-	BEQ wait_frame_trigger
+;; 	INC frame_trigger
+;; wait_frame_trigger:
+;; 	LDA frame_trigger
+;; 	CMP #0
+;; 	BEQ wait_frame_trigger
 
 	;; LDA ticks
 	;; AND #1
@@ -188,7 +188,7 @@ reset:
 	BEQ reset2
 	jmp loop2
 reset2:
-	store_16  ticks, 0
+	;store_16  ticks, 0
 
 	;jmp big_loop
 

@@ -29,392 +29,370 @@ phaseoff         =        $c080                     ;stepper phase off.
 unitnum          =        $43
 
 
-	.export distance_to_next_sector, read_sector_status, sector_status
-	.export rdadr16, seek, current_track, read16, buf, curtrk
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-	.proc locate_drive_head
-
-	; Restart the motor
-
-	ldx #SLOT_SELECT
-.if ::DRIVE_SELECT = $80
-	LDA DRV2_SLCT, X
-.endif
-	LDA MOTOR_ON, X
-
-	LDA #SLOT_SELECT
-	STA slotz
-	CLC
-notyet:
-	ldx #SLOT_SELECT
-	jsr rdadr16
-	bcs notyet
-
-	;; Now we know where it is, set up the seek routine to go
-	;; to our destinatiob
-
-	LDA track
-	ASL
-	STA curtrk
-
-	RTS
-	.endproc
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-	IGNORE = 0		; sector must be ignored
-	;; any other values is the page where the sector was read
-	ALL_TRACKS_READ = $FF
-
-read_in_pogress:	.byte 0
-	.export  read_in_pogress
-
-sectors_read:	.byte 0
-sectors_to_read:	.byte 0
-old_sect:	.byte 0
-sectors_passed:	.byte 0
-
-first_page:	.byte $20
-first_sector:	.byte 0
-first_track:	.byte 0
-last_sector:	.byte 0
-last_track:	.byte 0
-current_track:	.byte 0
-
-track_first_sector:	.byte 0
-track_last_sector:	.byte 0
-
-	.export sector_status
-sector_status:	.repeat SECTORS_PER_TRACK
-	.byte IGNORE
-	.endrepeat
-
-sector_retries:	.repeat SECTORS_PER_TRACK
-	.byte 0
-	.endrepeat
+	;.export distance_to_next_sector, read_sector_status ;, sector_status
+	.export rdadr16, seek, read16, buf, curtrk ; current_track,
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-	.proc distance_to_next_sector
+;; ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-	;; 0123456789ABCDEF
-	;; .HX.............  .HX.............
-	;; H = current sector
-	;; X = sector to read
-	;; We start at H+2 => 3, we'll go until we reach position 2
-	;; (with wrapping), so Y = 17 :-)
+;; 	IGNORE = 0		; sector must be ignored
+;; 	;; any other values is the page where the sector was read
+;; 	ALL_TRACKS_READ = $FF
 
-	LDY #3
-loop:
-	INY
-	TYA
-	CLC
-	ADC sect
-	AND #15			; (sect + Y) % 15 with Y in [1:..]
-	TAX
-	LDA sector_status,X	; 0 = sector not interesting
-	BEQ loop
+;; read_in_pogress:	.byte 0
+;; 	.export  read_in_pogress
 
-	;;  Y = distance to next unread sector
-	;; A = number of waits
-	TYA
-	AND #15
-	TAX
-	LDA wait_table,X
-	RTS
-	.endproc
-wait_table:
-	.byte 0
-	;;  Handcrafted for applewin
-	;;.byte 0,0,0,6,12,12,16,18,21,21,22,28,29,28,36,36,36,35,35
+;; sectors_read:	.byte 0
+;; sectors_to_read:	.byte 0
+;; old_sect:	.byte 0
+;; sectors_passed:	.byte 0
 
-	;;    1  2  3  4   5   6  7  8  9 10(a)
-	.byte 0, 29, 3, 5, 7,  9,10,15,14,16
-	;;    11(b),12(c),13,14,15,16
-	.byte 19,   21,   22,25,22,29
-	.byte 0,0,0,0
-	;; Deduced from calibration on Mame
-	;; .byte 2,4,7,9,11,15,17,19,21,24
-	;; .byte 27, 29, 32, 34, 37, 37, 37, 37
+;; first_page:	.byte $20
+;; first_sector:	.byte 0
+;; first_track:	.byte 0
+;; last_sector:	.byte 0
+;; last_track:	.byte 0
+;; current_track:	.byte 0
 
-	;; Just an arbitrary
-	;; .byte 0,0,0,0,10,10,10,10
-	;; .byte 25,25,25,25,35,35,35,35
-	;; .byte 35,35,35,35
+;; track_first_sector:	.byte 0
+;; track_last_sector:	.byte 0
 
-	;; .byte 0,0,0,0,0,1,2,3,3
-	;; .byte 3,3,3,3,4,5
-	;; .byte 5,5,5,5,5
+;; 	.export sector_status
+;; sector_status:	.repeat SECTORS_PER_TRACK
+;; 	.byte $E0
+;; 	.endrepeat
 
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; sector_retries:	.repeat SECTORS_PER_TRACK
+;; 	.byte 0
+;; 	.endrepeat
 
-	.proc prepare_track_read
-
-	;; Are we still reading some sectors ?
-
-	LDA sectors_to_read
-	CMP #0
-	BNE do_nothing		; Yes, so no need to set up a new track read
-
-	;; Is the current track_s_ read still ongoing or are
-	;; we done ith it ?
-
-	LDA current_track
-	CMP last_track
-	BMI still_track_to_read
-	BEQ still_track_to_read
-do_nothing:
-
-	CLC
-	RTS
-
-still_track_to_read:
-
-	;; So we set up to be able to read a new track
-	;; The idea is to determine which sectors must
-	;; be read on the current track
-
-	;; A = current track. At this point, we have
-	;; first_track <= current_track <= last_track
-
-	CMP first_track
-	BEQ on_first_track
-
-not_on_first_track:
-	CMP last_track
-	BEQ on_last_track
-
-not_on_last_track:
-	;; neither on first track nor on last track
-	;; (so on a track between)
-
-	LDA #0
-	STA track_first_sector
-	LDA #SECTORS_PER_TRACK - 1
-	STA track_last_sector
-	JMP done_config
-
-on_last_track:
-	;; on last track and not on first track
-	LDA #0
-	STA track_first_sector
-	LDA last_sector
-	STA track_last_sector
-	JMP done_config
-
-on_first_track:
-
-	CMP last_track
-	BEQ first_and_last_track_equal
-
-	;;  on first track and not on last track
-
-	LDA first_sector
-	STA track_first_sector
-	LDA #SECTORS_PER_TRACK - 1
-	STA track_last_sector
-	JMP done_config
+;; ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-first_and_last_track_equal:
-	;;  on first track and on last track
-	LDA first_sector
-	STA track_first_sector
-	LDA last_sector
-	STA track_last_sector
+;; 	.proc distance_to_next_sector
 
-done_config:
+;; 	;; 0123456789ABCDEF
+;; 	;; .HX.............  .HX.............
+;; 	;; H = current sector
+;; 	;; X = sector to read
+;; 	;; We start at H+2 => 3, we'll go until we reach position 2
+;; 	;; (with wrapping), so Y = 17 :-)
 
-	;; Clear previous data (much easier this way
-	;; than to compute what is zero and what is not)
+;; 	LDY #3
+;; loop:
+;; 	INY
+;; 	TYA
+;; 	CLC
+;; 	ADC sect
+;; 	AND #15			; (sect + Y) % 15 with Y in [1:..]
+;; 	TAX
+;; 	LDA sector_status,X	; 0 = sector not interesting
+;; 	BEQ loop
 
-	LDX #16
-	LDA #0
-clear_status:
-	DEX
-	STA sector_status,X
-	STA sector_retries,X
-	BNE clear_status
+;; 	;;  Y = distance to next unread sector
+;; 	;; A = number of waits
+;; 	TYA
+;; 	AND #15
+;; 	TAX
+;; 	LDA wait_table,X
+;; 	RTS
+;; 	.endproc
+;; wait_table:
+;; 	.byte 0
+;; 	;;  Handcrafted for applewin
+;; 	;;.byte 0,0,0,6,12,12,16,18,21,21,22,28,29,28,36,36,36,35,35
 
-	;; Compute how many sectors we'll need to read in this track
+;; 	;;    1  2  3  4   5   6  7  8  9 10(a)
+;; 	.byte 0, 29, 3, 5, 7,  9,10,15,14,16
+;; 	;;    11(b),12(c),13,14,15,16
+;; 	.byte 19,   21,   22,25,22,29
+;; 	.byte 0,0,0,0
+;; 	;; Deduced from calibration on Mame
+;; 	;; .byte 2,4,7,9,11,15,17,19,21,24
+;; 	;; .byte 27, 29, 32, 34, 37, 37, 37, 37
 
-	LDA track_last_sector
-	SEC
-	SBC track_first_sector
-	CLC
-	ADC #1
-	STA sectors_to_read
+;; 	;; Just an arbitrary
+;; 	;; .byte 0,0,0,0,10,10,10,10
+;; 	;; .byte 25,25,25,25,35,35,35,35
+;; 	;; .byte 35,35,35,35
 
-	;; Configure one track read
-loop_start:
-	LDX track_first_sector
-	LDA first_page
-set_page_loop:
-	STA sector_status,X
-	INX
-	CLC
-	ADC #1
-;smc0:
-	CPX track_last_sector	; did we just fill the last sector ?
-	BMI set_page_loop
-	BEQ set_page_loop	; nope
+;; 	;; .byte 0,0,0,0,0,1,2,3,3
+;; 	;; .byte 3,3,3,3,4,5
+;; 	;; .byte 5,5,5,5,5
 
-	;;  Be ready for next track
+;; ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-	STA first_page
+;; 	.proc prepare_track_read
+
+;; 	;; Are we still reading some sectors in the current track ?
+
+;; 	LDA sectors_to_read
+;; 	CMP #0
+;; 	BNE do_nothing		; Yes, so no need to set up a new track read
+
+;; 	;; Is the current track_s_ read still ongoing or are
+;; 	;; we done with it ?
 
 ;; 	LDA current_track
+;; 	CMP last_track
+;; 	BMI still_track_to_read
+;; 	BEQ still_track_to_read
+;; do_nothing:
+
+;; 	;; At this point, either you have sectors still left
+;; 	;; to be read in the current track, either there are
+;; 	;; more tracks to read. IOW, you're not done with loading
+;; 	;; your data.
+
+;; 	CLC
+;; 	RTS
+
+;; still_track_to_read:
+
+;; 	;; So we set up to be able to read a new track
+;; 	;; The idea is to determine which sectors must
+;; 	;; be read on the current track
+
+;; 	;; A = current track. At this point, we have
+;; 	;; first_track <= current_track <= last_track
+
 ;; 	CMP first_track
-;; 	BEQ no_advance
-;; 	JSR advance_drive_latch
-;; 	INC latch_advanced
-;; no_advance:
+;; 	BEQ on_first_track
+
+;; not_on_first_track:
+;; 	CMP last_track
+;; 	BEQ on_last_track
+
+;; not_on_last_track:
+;; 	;; neither on first track nor on last track
+;; 	;; (so on a track between)
+
+;; 	LDA #0
+;; 	STA track_first_sector
+;; 	LDA #SECTORS_PER_TRACK - 1
+;; 	STA track_last_sector
+;; 	JMP done_config
+
+;; on_last_track:
+;; 	;; on last track and not on first track
+;; 	LDA #0
+;; 	STA track_first_sector
+;; 	LDA last_sector
+;; 	STA track_last_sector
+;; 	JMP done_config
+
+;; on_first_track:
+
+;; 	CMP last_track
+;; 	BEQ first_and_last_track_equal
+
+;; 	;;  on first track and not on last track
+
+;; 	LDA first_sector
+;; 	STA track_first_sector
+;; 	LDA #SECTORS_PER_TRACK - 1
+;; 	STA track_last_sector
+;; 	JMP done_config
+
+
+;; first_and_last_track_equal:
+;; 	;;  on first track and on last track
+;; 	LDA first_sector
+;; 	STA track_first_sector
+;; 	LDA last_sector
+;; 	STA track_last_sector
+
+;; done_config:
+
+;; 	;; Clear previous data (much easier this way
+;; 	;; than to compute what is zero and what is not)
+
+;; 	LDX #16
+;; 	LDA #0
+;; clear_status:
+;; 	DEX
+;; 	STA sector_status,X
+;; 	STA sector_retries,X
+;; 	BNE clear_status
+
+;; 	;; Compute how many sectors we'll need to read in this track
+
+;; 	LDA track_last_sector
+;; 	SEC
+;; 	SBC track_first_sector
+;; 	CLC
+;; 	ADC #1
+;; 	STA sectors_to_read
+
+;; 	;; Configure one track read
+;; loop_start:
+;; 	LDX track_first_sector
+;; 	LDA first_page
+;; set_page_loop:
+;; 	STA sector_status,X
+;; 	INX
+;; 	CLC
+;; 	ADC #1
+;; ;smc0:
+;; 	CPX track_last_sector	; did we just fill the last sector ?
+;; 	BMI set_page_loop
+;; 	BEQ set_page_loop	; nope
+
+;; 	;;  Be ready for next track
+
+;; 	STA first_page
+
+;; ;; 	LDA current_track
+;; ;; 	CMP first_track
+;; ;; 	BEQ no_advance
+;; ;; 	JSR advance_drive_latch
+;; ;; 	INC latch_advanced
+;; ;; no_advance:
+;; ;; 	INC current_track
+
+;; 	SEC
+;; 	RTS
+;; 	.endproc
+
+;; ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; skip_sectors:	.byte 0
+;; 	LATCH_ADVANCED_STATUS = 1
+;; 	SECTOR_READ = 2
+;; 	SECTOR_SEEK = 4
+;; 	SECTOR_RDADR = 8
+
+;; 	.macro set_read_sector_status p
+;; 	LDA read_sector_status
+;; 	ORA #p
+;; 	STA read_sector_status
+;; 	.endmacro
+
+;; read_sector_status:	.byte 0
+
+;; .export  read_sector_in_track
+
+;; .proc read_sector_in_track
+
+;; 	LDA #0
+;; 	STA read_sector_status
+
+;; 	LDA sectors_to_read
+;; 	BNE work_to_do
+;; 	JMP prepare_more_load
+
+;; work_to_do:
+;; 	LDA current_track
+;; 	TAX
+;; 	LDA #'+'
+;; 	STA $500,X
+;; 	LDA curtrk
+;; 	CLC
+;; 	ROR
+;; 	TAX
+;; 	LDA #'/'
+;; 	STA $480,X
+
+;; 	LDX current_track
+;; 	INX
+;; 	INX
+;; 	LDA #'*'+$80
+;; 	STA $750,X
+
+;; 	LDA current_track
+;; 	ASL
+;; 	CMP curtrk
+;; 	BEQ no_seek
+;; 	;; curtrk != current_track
+;; 	LDX #SLOT_SELECT
+;; 	JSR seek
+;; 	set_read_sector_status SECTOR_SEEK
+
+;; 	SEC
+;; 	RTS
+;; no_seek:
+;; 	ldx #SLOT_SELECT
+;; 	jsr rdadr16
+;; 	bcs ras_error
+;; 	set_read_sector_status SECTOR_RDADR
+
+;; 	ldx sect
+;; 	inc $450,X
+
+;; 	;; LDA #2
+;; 	;; STA useless_sector
+
+;; 	;; At this point, interrupts are stopped, it must
+;; 	;; be kept like this so that the next sector read
+;; 	;; works as expected. So don't CLI !
+
+;; 	;; Is the sector alreay read ?
+;; 	ldx sect
+;; 	cpx #16
+;; 	bmi good_sector
+;; 	sec
+;; 	rts
+;; good_sector:
+;; 	lda sector_status,X	;A = sector's destination page (still to read) or zero
+;; 	bne read_any_sector1
+;; 	;; sector already read. We will wait for another one.
+
+;; 	SEC
+;; 	rts
+;; read_any_sector1:
+
+;; 	; Prepare RWTS buffer
+;; 	STA buf + 1
+;; 	lda #0
+;; 	sta buf
+
+;; 	;; LDA #0
+;; 	;; STA useless_sector
+;; 	;; STA skip_sectors
+
+;; 	; Read the sector
+
+;; 	ldx #SLOT_SELECT
+;; 	jsr read16
+;; 	bcs ras_error
+;; 	set_read_sector_status SECTOR_READ
+
+;; 	;;  Remember we have read the sector
+;; 	LDX sect
+;; 	LDA #0
+;; 	STA sector_status,X
+
+;; 	DEC sectors_to_read
+;; 	BNE ras_error
+;; 	;; We have finsihed the current track, so we
+;; 	;; move to the next one
+
 ;; 	INC current_track
 
-	SEC
-	RTS
-	.endproc
+;; 	ldx sectors_to_read
+;; 	inc $4D0,X
+;; 	;jsr debug_disk
 
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 	;; Caller will have to restore interrupts with CLI
+;; ras_error:
+;; 	SEC
+;; 	RTS
 
-skip_sectors:	.byte 0
-	LATCH_ADVANCED_STATUS = 1
-	SECTOR_READ = 2
-	SECTOR_SEEK = 4
-	SECTOR_RDADR = 8
+;; prepare_more_load:
+;; 	JSR prepare_track_read
+;; 	;; Carry was set above
 
-	.macro set_read_sector_status p
-	LDA read_sector_status
-	ORA #p
-	STA read_sector_status
-	.endmacro
+;; 	;; Carry will be returned
+;; 	BCC all_done
+;; 	RTS
+;; all_done:
+;; 	LDA #0
+;; 	STA read_in_pogress
+;; 	RTS
 
-read_sector_status:	.byte 0
-
-.export  read_sector_in_track
-
-.proc read_sector_in_track
-
-	LDA #0
-	STA read_sector_status
-
-	LDA sectors_to_read
-	BNE work_to_do
-	JMP prepare_more_load
-
-work_to_do:
-	LDA current_track
-	TAX
-	LDA #'+'
-	STA $500,X
-	LDA curtrk
-	CLC
-	ROR
-	TAX
-	LDA #'/'
-	STA $480,X
-
-	LDX current_track
-	INX
-	INX
-	LDA #'*'+$80
-	STA $750,X
-
-	LDA current_track
-	ASL
-	CMP curtrk
-	BEQ no_seek
-	;; curtrk != current_track
-	LDX #SLOT_SELECT
-	JSR seek
-	set_read_sector_status SECTOR_SEEK
-
-	SEC
-	RTS
-no_seek:
-	ldx #SLOT_SELECT
-	jsr rdadr16
-	bcs ras_error
-	set_read_sector_status SECTOR_RDADR
-
-	ldx sect
-	inc $450,X
-
-	;; LDA #2
-	;; STA useless_sector
-
-	;; At this point, interrupts are stopped, it must
-	;; be kept like this so that the next sector read
-	;; works as expected. So don't CLI !
-
-	;; Is the sector alreay read ?
-	ldx sect
-	cpx #16
-	bmi good_sector
-	sec
-	rts
-good_sector:
-	lda sector_status,X	;A = sector's destination page (still to read) or zero
-	bne read_any_sector1
-	;; sector already read. We will wait for another one.
-
-	SEC
-	rts
-read_any_sector1:
-
-	; Prepare RWTS buffer
-	STA buf + 1
-	lda #0
-	sta buf
-
-	;; LDA #0
-	;; STA useless_sector
-	;; STA skip_sectors
-
-	; Read the sector
-
-	ldx #SLOT_SELECT
-	jsr read16
-	bcs ras_error
-	set_read_sector_status SECTOR_READ
-
-	;;  Remember we have read the sector
-	LDX sect
-	LDA #0
-	STA sector_status,X
-
-	DEC sectors_to_read
-	BNE ras_error
-	;; We have finsihed the current track, so we
-	;; move to the next one
-
-	INC current_track
-
-	ldx sectors_to_read
-	inc $4D0,X
-	;jsr debug_disk
-
-	;; Caller will have to restore interrupts with CLI
-ras_error:
-	SEC
-	RTS
-
-prepare_more_load:
-	JSR prepare_track_read
-	;; Carry was set above
-
-	;; Carry will be returned
-	BCC all_done
-	RTS
-all_done:
-	LDA #0
-	STA read_in_pogress
-	RTS
-
-.endproc
+;; .endproc
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -555,7 +533,7 @@ trkn:	.REPEAT 1
 	.BYTE 0
 .ENDREP
 
-	.export sect, old_sect
+	.export sect ;, old_sect
 
 ; **************************
 ; *                          *
@@ -608,7 +586,7 @@ step2: jsr             setphase
                 inc             trkcnt                        ; 'tracks moved' count.
                 bne             seek2                         ;(always taken)
 seekend:
-		;jsr             mswait                        ;settle 25 msec
+		jsr             mswait                        ;settle 25 msec
                 clc                                           ;set for phase off
 
 setphase: lda             curtrk                        ;get current track
@@ -748,7 +726,7 @@ rdadr16:
         sty          count                           ;'must find' count.
 
         lda sect
-        sta old_sect
+        ;sta old_sect
 
 rdasyn: iny
         bne          rda1                            ;low order of count.
@@ -778,7 +756,7 @@ rda3: 	lda          q6l,x
         cmp          #$96                            ;adr mark 3?
         bne          rdasn1                          ; (if not, is it am1?)
 
-	sty count2                                         ; WIZ !!!
+	;sty count2                                         ; WIZ !!!
 
 	sei                                          ;no interupts until address is tested.(carry is set)
 
@@ -1080,56 +1058,56 @@ rdok: pla                                          ;place last byte into user bu
 
 
 
-sector_zero:
-        STA slotz
+;; sector_zero:
+;;         STA slotz
 
-        ldx slotz
-        LDA MOTOR_ON, x
+;;         ldx slotz
+;;         LDA MOTOR_ON, x
 
-        LDA #$FF
-        JSR mswait
+;;         LDA #$FF
+;;         JSR mswait
 
-        ;; On which track are we right now ?
+;;         ;; On which track are we right now ?
 
-        ldx slotz
-s0_retry_locate:
-        jsr rdadr16
-        bcs s0_retry_locate
+;;         ldx slotz
+;; s0_retry_locate:
+;;         jsr rdadr16
+;;         bcs s0_retry_locate
 
-        ;; Inform 'seek' of the current sector
+;;         ;; Inform 'seek' of the current sector
 
-        lda track                ; set by rdadr16
-        asl
-        sta curtrk                ; half track
+;;         lda track                ; set by rdadr16
+;;         asl
+;;         sta curtrk                ; half track
 
-        ldx slotz
-        lda #0
-        asl
-        jsr seek
+;;         ldx slotz
+;;         lda #0
+;;         asl
+;;         jsr seek
 
-        LDA #$FF
-        JSR mswait
+;;         LDA #$FF
+;;         JSR mswait
 
-        rts
+;;         rts
 
 ; ----------------------------------------------------------------------------
-advance_drive_latch:
-        LDA curtrk
-        CMP #((TRACKS_PER_SIDE-1)*2)        ; Are we on the last track
-        BEQ disk_end                        ; yes, don't go any further
-        CLC
-        ADC #2        ; A = desired halftrack; curtrk = current track
-        ldx #SLOT_SELECT
-        JSR seek
-disk_end:
-        CLC
-        RTS
+;; advance_drive_latch:
+;;         LDA curtrk
+;;         CMP #((TRACKS_PER_SIDE-1)*2)        ; Are we on the last track
+;;         BEQ disk_end                        ; yes, don't go any further
+;;         CLC
+;;         ADC #2        ; A = desired halftrack; curtrk = current track
+;;         ldx #SLOT_SELECT
+;;         JSR seek
+;; disk_end:
+;;         CLC
+;;         RTS
+;; count2:	.byte 0
 
 ;; rs_sectors_to_read: .byte 104
 ;; target_track: .byte 28
 ;; target_sector: .byte 0
 ;; target_bank: .byte $40
-count2:	.byte 0
 
 ;; read_sect:
 

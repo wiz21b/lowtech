@@ -13,7 +13,6 @@
 
 
 
-	Temp = $FF
 	debug_ptr = $86
 	debug_ptr2 = $88
 	dummy_ptr2	= $8A
@@ -93,11 +92,10 @@ disk_toc:
 	.include "pt3_lib/pt3_lib_core.s"
 	.include "pt3_lib/pt3_lib_init.s"
 	.include "pt3_lib/pt3_lib_mockingboard_setup.s"
-	.include "pt3_lib/interrupt_handler.s"
-	; if you're self patching, detect has to be after
-	; interrupt_handler.s
-	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
+	;; .include "pt3_lib/interrupt_handler.s"
+	.include "pt3_lib/pt3_lib_irq_handler.s"
 	.include "file_load.s"
+
 
 
 	;.include "irq.s"
@@ -960,3 +958,13 @@ no_good_key:
 	LDA #$0
 	RTS
 	.endproc
+
+
+	;.segment "RAM_A000"
+
+	;; Approx 1256 bytes
+
+	; if you're self patching, detect has to be after
+	; interrupt_handler.s
+	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
+	.include "file_load_init.s"

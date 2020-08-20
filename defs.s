@@ -15,7 +15,9 @@
 
 	LC_RAM_SELECT	= $C08B	; 4K Bank A, RAM read, Write enabled
 
-	MB_Base = $F0		; Base addres of MockingBoard
+	MB_Base = $5E		; WORD ! Base addres of MockingBoard
+				; $60-$7F = PT3 player ZP addresses
+
 	;; FIXME Reuse the on efrom the PT3 player
 
 .macro store_8 target, const

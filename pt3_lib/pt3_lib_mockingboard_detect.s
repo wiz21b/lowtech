@@ -130,12 +130,14 @@ mockingboard_patch:
 	sta	write_ay_smc6+2		; 32
 	sta	write_ay_smc6+5		; 33
 
+	.if 0
 	sta	setup_irq_smc1+2	; 34
 	sta	setup_irq_smc2+2	; 35
 	sta	setup_irq_smc3+2	; 36
 	sta	setup_irq_smc4+2	; 37
 	sta	setup_irq_smc5+2	; 38
 	sta	setup_irq_smc6+2	; 39
+	.endif
 
 	rts
 .endif
