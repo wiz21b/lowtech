@@ -78,12 +78,13 @@
 	.align 256
 	PT3_LOC = *
 	.incbin "data/2UNLIM2.pt3" ;FR.PT3"
-	.align 256
+	;.align 256
 
 disk_toc:
 	;; 1st track, 1st sector, last track, last sector, 1st memory page
 	.byte 3,9,4,11,$E0
 	.byte 6,4,7,2,$E0
+	.byte 0,0,0,3,$04
 
 	.include "read_sector.s" ; RWTS code
 
@@ -157,6 +158,7 @@ start_point:
 mocking_not_found:
 
 
+	JSR check_load_file_without_irq
 
 	JSR clear_txt
 
@@ -189,8 +191,17 @@ all_tests_loop:
 
 	BRK
 
+;;; ==================================================================
 
-
+	.proc check_load_file_without_irq
+	JSR locate_drive_head	; Motor on !
+	LDA #2
+	JSR load_file_no_irq
+no_key:
+	JSR read_keyboard
+	BEQ no_key
+	RTS
+	.endproc
 
 ;;; ==================================================================
 

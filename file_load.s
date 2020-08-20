@@ -46,6 +46,41 @@ first_track_iteration:	.byte 0
 
 	.endproc
 
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	.proc load_file
+	;; A = file index
+
+	JSR init_file_load
+still_stuff_to_read:
+	JSR handle_track_progress
+	BCS still_stuff_to_read
+
+	RTS
+	.endproc
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	.proc load_file_no_irq
+	;; A = file index
+
+	JSR init_file_load
+
+	;; Init the first track load
+	JSR handle_track_progress
+
+still_stuff_to_read:
+sector_already_read:
+	JSR read_any_sector_in_track
+	BCC sector_already_read
+
+	JSR handle_track_progress
+	BCS still_stuff_to_read
+
+	RTS
+	.endproc
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	TOLERANCE = $180
 
@@ -189,35 +224,10 @@ sector_already_read:
 	JMP exit_interrupt
 
 read_sector:
-	;; The process is this :
-	;; 1. We read whatever sector is below the R/W head.
-	;; 2. Then we figure out if we've already read it or not.
+	JSR read_any_sector_in_track
+	BCC sector_already_read
 
-	ldx #SLOT_SELECT
-	JSR rdadr16
-
-	;; Errors should not happen.If they do, that'll screw
-	;; the reading "choregraphy" completely.
-
-	BCC no_rdadr16_error
-
-	;INC $500 + 39
-no_rdadr16_error:
-	ldx sect
-	lda sector_status, X
-	beq sector_already_read
-	STA buf + 1
-	lda #0
-	sta buf
-
-	ldx #SLOT_SELECT
-	JSR read16
-	BCC no_read16_error
-	;INC $500 + 36
-
-no_read16_error:
-
-	;; This is tricky ! Doing a pause rught after a disk read
+	;; This is tricky ! Doing a pause right after a disk read
 	;; ensures that the next PT3 beat will be played
 	;; at the right time but also it makes sure we
 	;; resync our timings on the disk speed. This way
@@ -226,12 +236,6 @@ no_read16_error:
 
 	set_timer_to_const TOLERANCE
 
-	;; Mark sector as read
-	LDX sect
-	LDA #0
-	STA sector_status, X
-
-	DEC sectors_to_read
 
 	;; DEBUG -----------------------------------------------------
 
@@ -256,6 +260,55 @@ full_sector_time_minus_twice_tolerance:	.word 0
 data_time_plus_tolerance:	.word 0
 
 	.endproc
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	.proc read_any_sector_in_track
+	;; The process is this :
+	;; 1. We read whatever sector address is below the R/W head.
+	;; 2. Then we figure out if we've already read it or not.
+	;; 3. If not already read, we actually loads its data
+
+	LDA #0			; We do it here to minimize the time
+	STA buf			; between rdadr16 and read16
+
+	ldx #SLOT_SELECT
+	JSR rdadr16
+
+	;; Errors should not happen.If they do, that'll screw
+	;; the reading "choregraphy" completely.
+
+	BCC no_rdadr16_error
+
+	;INC $500 + 39
+no_rdadr16_error:
+	ldx sect
+	lda sector_status, X
+	beq sector_already_read
+	STA buf + 1
+
+	ldx #SLOT_SELECT
+	JSR read16
+	BCC no_read16_error
+	;INC $500 + 36
+
+no_read16_error:
+
+	;; Mark sector as read
+	LDX sect
+	LDA #0
+	STA sector_status, X
+
+	DEC sectors_to_read
+
+	SEC			; Carry set = sector read
+	RTS
+sector_already_read:
+	CLC
+	RTS
+
+	.endproc
+
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -317,7 +370,7 @@ still_stuff_to_read:
 
 all_tracks_read:
 	;; If current_track > last_track, it means we're done
-	;; reading the tracks
+	;; reading the tracks (ie. done reading the file)
 
 	CLC
 	RTS
