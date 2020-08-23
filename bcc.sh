@@ -23,6 +23,7 @@ java -jar ../bad_apple/AppleCommander-1.3.5.13-ac.jar -p NEW.DSK CHKDSK BIN 0x60
 # Generate listing (you can print in firefox, 2 pages side by side)
 source-highlight --src-lang asm -f html --doc -c=asm-style.css  --lang-def asm.lang vline.s
 
+echo "Making WOZ"
 ./dsk2woz NEW.DSK NEW.WOZ
 
 # \PORT-STC\opt\applewin\Applewin.exe -d1 NEW.DSK

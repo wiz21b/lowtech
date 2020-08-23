@@ -112,6 +112,8 @@ smc1:
 	RTS
 not_end:
 	CLC
+	;; ASCII is : $20 = space ! " # ... 0 (= $30) 1 2 3 ... A (= $41)
+	;; Apple :    $A0 = space,...       0 (= $B0),...       A (= $C1)
 	ADC #$80
 smc2:
 	STA $0000,Y
@@ -121,9 +123,9 @@ smc2:
 
 hexa_apple:
 	.byte $30,$31,$32,$33,$34,$35,$36,$37,$38,$39
-	.byte $1,$2,$3,$4,$5,$6
-	.byte $7,$8,$9,$A,$B,$C,$D,$E,$F,$10,$11,$12,$13
-	.byte $14,$15,$16,$17,$18,$19,$1A,$1B,$1C,$1D,$1E,$1F
+	.byte $41,$42,$43,$44,$45,$46
+	;; .byte $7,$8,$9,$A,$B,$C,$D,$E,$F,$10,$11,$12,$13
+	;; .byte $14,$15,$16,$17,$18,$19,$1A,$1B,$1C,$1D,$1E,$1F
 
 txt_ofs:
 	.word $400,$480,$500,$580,$600,$680,$700,$780
@@ -195,10 +197,30 @@ all_tests_loop:
 	JSR locate_drive_head	; Motor on !
 	LDA #2
 	JSR load_file_no_irq
+
+	print_str space_line, $680
+	print_str space_line, $700
+	print_str space_line, $780
+	print_str blank_line, $428
+	print_str message1, $4A8
+	print_str message2, $528
+	print_str message3, $5A8
+	print_str message4, $628
+	print_str blank_line, $6A8
+	print_str space_line, $728
+	print_str space_line, $7A8
+	print_str space_line, $450
+
 no_key:
 	JSR read_keyboard
 	BEQ no_key
 	RTS
+space_line:	.byte "                                        ",0
+blank_line:	.byte "########################################",0
+message1:	.byte "--- IF THE SCREEN IS GARBLED AND IF  ---",0
+message2:	.byte "--- YOU CAN READ THIS THEN THE FIRST ---",0
+message3:	.byte "--- TEST IS O.K.                     ---",0
+message4:	.byte "---                      HIT A KEY ! ---",0
 	.endproc
 
 ;;; ==================================================================
@@ -209,6 +231,7 @@ no_key:
 	TIMES_YPOS = $700
 	TIMES2_YPOS = $780
 
+	print_str wait, $400
 
 	JSR calibration
 
@@ -289,10 +312,11 @@ no_key:
 
 sector_time:	.word 0
 
+wait:			.byte "WAIT...",0
 calibration_header:	.byte "CALIBRATION",0
 mire:	.byte "--------------------!-------------------",0
 times_txt:	.byte "AVG DATA READ:   $.... CYCLES",0
-times2_txt:	.byte "AVG SECTOR READ: $.... CYCLES",0
+times2_txt:	.byte "AVG SECTOR READ: $.... CYCLES, EXP:$31E7",0
 
 	.endproc
 
@@ -433,7 +457,7 @@ exit_interrupt:
 	.proc check_basic_irq_plus_disk_replay2
 
 	print_str irq_disk_replay_header, $400
-	print_str track_message, $480
+	print_str track_message, $500
 
 	JSR start_player
 
@@ -712,6 +736,8 @@ first_col:
 	TAX
 
 	LDA hexa_apple,X
+	CLC
+	ADC #$80
 	LDY #0
 	sta (debug_ptr),Y
 	INC debug_ptr
@@ -849,6 +875,22 @@ clear:
 	print_str lang_card_text, $750 + 20 + 7 + 2
 
 no_lang_card:
+
+	LDX #40
+flash:
+	LDA $750-1,X
+	CMP #$C0
+	BPL letters
+	SEC
+	SBC #$80
+	BCS donesub
+letters:
+	SEC
+	SBC #$C0
+donesub:
+	STA $750-1,X
+	DEX
+	BNE flash
 
 	RTS
 
