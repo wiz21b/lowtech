@@ -14,6 +14,9 @@ sector_times:	.repeat CALIBRATION_RUNS
 
 	JSR locate_drive_head	; Motor on !
 
+	;; We'll read garbage data, so make sure we don't put them
+	;; in a unsafe place.
+
 	lda #$B0
 	sta buf + 1
 	lda #$00
@@ -21,6 +24,7 @@ sector_times:	.repeat CALIBRATION_RUNS
 
 	LDA #0
 	STA sector_count
+
 
 	STA total_sector_time
 	STA total_sector_time+1
@@ -31,6 +35,15 @@ sector_times:	.repeat CALIBRATION_RUNS
 	STA total_data_time+2
 
 
+	store_16 total_sector_time, $7FFF
+	store_16 total_data_time, $7FFF
+
+	;; The first step is to gather timing
+	;; We'll read 128 sectors (in the same track)
+	;; The hypothesis is that the way we read sectors
+	;; is fast enough so that we can read address field and
+	;; data fields without ever missing any of those.
+
 	ldx #SLOT_SELECT
 	JSR rdadr16
 
@@ -39,7 +52,7 @@ calibration_loop:
 
 	ldx #SLOT_SELECT
 	JSR read16
-	read_timer2 data_times
+	read_timer2 data_times	; sector_count will be used as an index
 
 	ldx #SLOT_SELECT
 	JSR rdadr16
@@ -50,6 +63,8 @@ calibration_loop:
 	ADC #2
 	STA sector_count
 	BCC calibration_loop
+
+	;; Now that the timings are gathered, we compute their average.
 
 	LDA #0
 sum_loop:
@@ -79,30 +94,40 @@ sum_loop:
 
 	;; Remove the time it took to measure the time :-)
 
-	sub_const_to_16 sector_time, CYCLES_FOR_READING_TIMER
+	sub_const_to_16 sector_time, 2*CYCLES_FOR_READING_TIMER
 	sub_const_to_16 data_time, CYCLES_FOR_READING_TIMER
 
-	CLC
-	LDA data_time
-	ADC total_data_time
-	STA total_data_time
-	LDA data_time + 1
-	ADC total_data_time + 1
-	STA total_data_time + 1
-	LDA #0
-	ADC total_data_time + 2
-	STA total_data_time + 2
+	;; CLC
+	;; LDA data_time
+	;; ADC total_data_time
+	;; STA total_data_time
+	;; LDA data_time + 1
+	;; ADC total_data_time + 1
+	;; STA total_data_time + 1
+	;; LDA #0
+	;; ADC total_data_time + 2
+	;; STA total_data_time + 2
 
-	CLC
-	LDA sector_time
-	ADC total_sector_time
-	STA total_sector_time
-	LDA sector_time + 1
-	ADC total_sector_time + 1
-	STA total_sector_time + 1
-	LDA #0
-	ADC total_sector_time + 2
-	STA total_sector_time + 2
+	;; CLC
+	;; LDA sector_time
+	;; ADC total_sector_time
+	;; STA total_sector_time
+	;; LDA sector_time + 1
+	;; ADC total_sector_time + 1
+	;; STA total_sector_time + 1
+	;; LDA #0
+	;; ADC total_sector_time + 2
+	;; STA total_sector_time + 2
+
+	cmp_16 data_time, total_data_time
+	bcs no_new_mini_data_time
+	copy_16 total_data_time, data_time
+no_new_mini_data_time:
+
+	cmp_16 sector_time, total_sector_time
+	bcs no_new_mini_sector_time
+	copy_16 total_sector_time, sector_time
+no_new_mini_sector_time:
 
 	PLA
 	CMP #CALIBRATION_RUNS - 1
@@ -110,39 +135,47 @@ sum_loop:
 	CLC
 	ADC #1
 	JMP sum_loop
+
+
 done_loop:
 
 	;; ROL because we have 128 measurements.
 	;; so 128 measurements x 2 = 256 and then
 	;; I leaf the LSByte out => 128 x 2 / 256 = 1 :-)
 
-	CLC
-	ROL total_data_time
-	ROL total_data_time + 1
-	ROL total_data_time + 2
+	;; CLC
+	;; ROL total_data_time
+	;; ROL total_data_time + 1
+	;; ROL total_data_time + 2
 
-	CLC
-	ROL total_sector_time
-	ROL total_sector_time + 1
-	ROL total_sector_time + 2
+	;; CLC
+	;; ROL total_sector_time
+	;; ROL total_sector_time + 1
+	;; ROL total_sector_time + 2
 
 
 	;; Now the calibration is complete, we compute various
 	;; timings for the IRQ handler.
 
-	LDA total_sector_time + 1
+	;; full sector time
+
+	LDA total_sector_time
 	STA disk_irq_handler2::full_sector_time
-	LDA total_sector_time + 2
+	LDA total_sector_time + 1
 	STA disk_irq_handler2::full_sector_time + 1
 
 
+	;; total data time + TOLERANCE
+
 	CLC
-	LDA total_data_time + 1
+	LDA total_data_time
 	ADC #<TOLERANCE
 	STA disk_irq_handler2::data_time_plus_tolerance
-	LDA total_data_time + 2
+	LDA total_data_time + 1
 	ADC #>TOLERANCE
 	STA disk_irq_handler2::data_time_plus_tolerance + 1
+
+	;; 2 x full sector time
 
 	CLC
 	LDA disk_irq_handler2::full_sector_time
@@ -152,6 +185,8 @@ done_loop:
 	ROL
 	STA disk_irq_handler2::twice_full_sector_time + 1
 
+
+	;; full sector time - 2 x tolerance
 
 	SEC
 	LDA disk_irq_handler2::full_sector_time

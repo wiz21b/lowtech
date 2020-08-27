@@ -11,9 +11,11 @@ print(pygame.font.get_default_font())
 pygame.font.init()
 FONT = pygame.font.Font("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",32)
 
+SMALL_FONT = pygame.font.Font("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",16)
+
 class Commands(Enum):
     READ_SECTOR = 1
-    MUSIC = 2
+    MUSIC_REGULAR = 2
     MUSIC_LONG = 3
     MUSIC_SHORT = 4
 
@@ -26,14 +28,23 @@ def x_y( s):
 def rx_to_x( rx):
     return (rx/16)*1600
 
+top_num = 1
 def top( screen, rx_top, y):
+    global top_num
+
+    # Draw an IRQ
     pygame.draw.line( screen, RED, (rx_top,y), (rx_top,y+50), 8 )
 
-def draw_vert( screen, s, c = BLACK ):
+    snum = SMALL_FONT.render( str(top_num) + commands[-1].name.replace("MUSIC_",""), True, BLACK, WHITE)
+    screen.blit(snum, (rx_top,y+50) )
+
+    top_num += 1
+
+def draw_vert( screen, s, base_sector, c = BLACK ):
     rx, y = x_y(s)
     x = rx_to_x(rx)
 
-    snum = FONT.render( str(s), True, BLACK, WHITE)
+    snum = FONT.render( f"{s}/{base_sector:02X}", True, BLACK, WHITE)
     screen.blit(snum, (x,y-60) )
     #print(f"{s} x={x} rx={rx} y={y}")
     pygame.draw.line( screen, c, (x,y), (x,y-60) )
@@ -49,7 +60,8 @@ def read_sect( screen, s):
     rx_end = rx_to_x( s+1 )
     rx_top = rx_to_x( s-0.1)
 
-    rx_plan = rx_to_x( s)
+    #rx_plan = rx_to_x( s)
+    rx_plan = rx_end
     rx_plan_next = rx_to_x( s+1+0.1)
 
     pygame.draw.rect( screen, (205,205,205), (rx,y-20,rx_end-rx,20) )
@@ -61,7 +73,7 @@ def read_sect( screen, s):
 
 def music( screen, s):
     global commands
-    commands.append( Commands.MUSIC)
+    commands.append( Commands.MUSIC_SHORT)
 
     s, y = x_y(s)
 
@@ -91,7 +103,7 @@ def music_far( screen, s):
 
 def music_half( screen, s):
     global commands
-    commands.append( Commands.MUSIC_SHORT)
+    commands.append( Commands.MUSIC_REGULAR)
 
     s, y = x_y(s)
 
@@ -109,7 +121,7 @@ screen = pygame.display.set_mode((1600,900))
 screen.fill( WHITE)
 
 for s in range( 64):
-    draw_vert( screen, s)
+    draw_vert( screen, s, (0x6 + s) % 16)
 
 for s in range(0,64,16):
     rx, y = x_y(s)

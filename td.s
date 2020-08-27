@@ -474,7 +474,9 @@ end_of_block:	.byte 255
 	.proc wait_disk_read
 wait_read2:
 	inc $2000
+	inc $2002
 	inc $4000
+	inc $4002
 	JSR handle_track_progress
 	BCS wait_read2
 	RTS

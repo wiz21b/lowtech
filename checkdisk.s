@@ -82,6 +82,9 @@
 disk_toc:
 	;; 1st track, 1st sector, last track, last sector, 1st memory page
 	.byte 3,9,4,11,$E0
+	.byte 6,0,6,15,$E0
+
+	.byte 0,0,0,3,$04
 	.byte 6,4,7,2,$E0
 	.byte 0,0,0,3,$04
 
@@ -121,9 +124,18 @@ smc2:
 	JMP loop
 	.endproc
 
+	.proc print_text
+	.endproc
+
+	;; ASCII is : $20 = space ! " # ... 0 (= $30) 1 2 3 ... A (= $41)
+	;; Apple :    $A0 = space,...       0 (= $B0),...       A (= $C1)
 hexa_apple:
 	.byte $30,$31,$32,$33,$34,$35,$36,$37,$38,$39
 	.byte $41,$42,$43,$44,$45,$46
+hexa_apple_inverse:
+	.byte $30,$31,$32,$33,$34,$35,$36,$37,$38,$39
+	.byte $01,$02,$03,$04,$05,$06
+
 	;; .byte $7,$8,$9,$A,$B,$C,$D,$E,$F,$10,$11,$12,$13
 	;; .byte $14,$15,$16,$17,$18,$19,$1A,$1B,$1C,$1D,$1E,$1F
 
@@ -145,6 +157,11 @@ lang_card_text:	.byte "LANG. CARD",0
 ;;; ==================================================================
 
 start_point:
+	JSR show_screen
+no_key:
+	JSR read_keyboard
+	BEQ no_key
+
 	JSR detect_apple
 
 	JSR clear_txt
@@ -156,6 +173,11 @@ start_point:
 	bcc	mocking_not_found
 	jsr	mockingboard_patch
 mocking_not_found:
+
+	nop
+	nop
+	nop
+	JSR check_cycles
 
 
 	JSR check_load_file_without_irq
@@ -191,6 +213,81 @@ all_tests_loop:
 
 	BRK
 
+;;; ==================================================================
+	.proc check_cycles
+
+	print_str hardware_detect_txt, $400
+	print_str cycles_to_read_timer_txt, $500
+	print_str version_txt, $550
+
+	.ifdef APPLEWIN_FIX
+	print_str applewinfix_in_place, $580
+	.endif
+
+	;; See https://github.com/AppleWin/AppleWin/issues/701
+
+	LDA MB_Base + 1
+	STA smc1
+	STA smc2
+
+	LDY #5
+	LDA #$01
+	smc1 = * + 2
+	STA $C504
+	LDA #$F0
+	smc2 = * + 2
+	STA $C505
+
+	;; I pick a 5 cycles instructions to read the MSB
+	;; I expect the MSB to change from $F0 to $EF during
+	;; the LDA cycles, just before it actually fetches the
+	;; MSB value (on the last of its cycles).
+
+	LDA (MB_Base),Y		; On AppleWin, here, A == $F0 (***)
+
+	CMP #$F0
+	BNE not_applewin
+
+	print_str applewin_detected, $600
+	jmp done_awin_detect
+not_applewin:
+	print_str applewin_not_detected, $600
+
+done_awin_detect:
+
+	store_16 debug_ptr, $500
+	set_timer_to_const $FFFF
+	read_timer2 dummy
+
+	LDA dummy+1
+	JSR byte_to_text
+	INC debug_ptr
+	INC debug_ptr
+	LDA dummy
+	JSR byte_to_text
+
+
+	print_str hitakey_txt, $650
+
+no_key:
+	JSR read_keyboard
+	BEQ no_key
+
+	RTS
+
+	.include "build/version.inc"
+applewinfix_in_place:	.byte "APPLEWIN FIX COMPILED IN",0
+applewin_detected:	.byte "APPLEWIN WAS DETECTED !",0
+applewin_not_detected:	.byte "APPLEWIN NOT DETECTED !",0
+cycles_to_read_timer_txt:	.byte "???? CYCLES TO READ TIMER",0
+hardware_detect_txt:	.byte "HARDWARE DETECTION",0
+hitakey_txt:	.byte "HIT A KEY TO CONTINUE",0
+
+	.align 256		; Avoid page boundary crossing penalty
+dummy:	.word 0
+sector_count:	.byte 0
+
+	.endproc
 ;;; ==================================================================
 
 	.proc check_load_file_without_irq
@@ -231,7 +328,8 @@ message4:	.byte "---                      HIT A KEY ! ---",0
 	TIMES_YPOS = $700
 	TIMES2_YPOS = $780
 
-	print_str wait, $400
+	print_str calibration_header, $400
+	print_str wait, $500
 
 	JSR calibration
 
@@ -291,32 +389,31 @@ draw_loop:
 	JMP draw_loop
 done_loop:
 
-	print_str calibration_header, $400
 	print_str mire, $500
 	print_str mire, $600
 	print_str times_txt, TIMES_YPOS
 	print_str times2_txt, TIMES2_YPOS
 
 	store_16 debug_ptr, TIMES_YPOS + 18
-	print_timer2 total_data_time + 1
+	print_timer2 total_data_time
 	store_16 debug_ptr, TIMES2_YPOS + 18
-	print_timer2 total_sector_time + 1
+	print_timer2 total_sector_time
 
+	print_str hitakey_txt, $650
 no_key:
 	JSR read_keyboard
 	BEQ no_key
-
-
 
 	RTS
 
 sector_time:	.word 0
 
-wait:			.byte "WAIT...",0
+wait:			.byte "PLEASE WAIT...",0
 calibration_header:	.byte "CALIBRATION",0
 mire:	.byte "--------------------!-------------------",0
-times_txt:	.byte "AVG DATA READ:   $.... CYCLES",0
-times2_txt:	.byte "AVG SECTOR READ: $.... CYCLES, EXP:$31E7",0
+times_txt:	.byte "MIN DATA READ:   $.... CYCLES",0
+times2_txt:	.byte "MIN SECTOR READ: $.... CYCLES, EXP:$31E7",0
+hitakey_txt:	.byte "HIT A KEY TO CONTINUE",0
 
 	.endproc
 
@@ -456,8 +553,24 @@ exit_interrupt:
 
 	.proc check_basic_irq_plus_disk_replay2
 
+	LDA #0
+	STA big_loops
+	STA loaded_file
+
 	print_str irq_disk_replay_header, $400
 	print_str track_message, $500
+
+	print_str constants_message, $650
+	store_16 debug_ptr, $6D0
+	print_timer the_tolerance
+	inc debug_ptr
+	print_timer disk_irq_handler2::full_sector_time
+	inc debug_ptr
+	print_timer disk_irq_handler2::data_time_plus_tolerance
+	inc debug_ptr
+	print_timer disk_irq_handler2::twice_full_sector_time
+	inc debug_ptr
+	print_timer disk_irq_handler2::full_sector_time_minus_twice_tolerance
 
 	JSR start_player
 
@@ -465,24 +578,43 @@ exit_interrupt:
 
 	set_irq_vector disk_irq_handler2
 
-	LDA #0
+	LDA loaded_file
 	JSR init_file_load
+
+	;; Make the test reproducible
+wait_sector_zero:
+	ldx #SLOT_SELECT
+	JSR rdadr16
+	LDA sect
+	BNE wait_sector_zero
 
 	JSR start_interrupts
 	;set_timer_to_const 1022000/40
 
-	JSR read_keyboard
 infiniloop:
 	JSR display_track_info
 
 	LDA sectors_to_read
 	BNE still_stuff_to_read
 
+	INC big_loops
+	LDA big_loops
+	ADC #'A'+$80
+	STA $400 + 39
+
 	JSR display_track_info
+	JSR display_timings_info
+
 	JSR handle_track_progress
 	BCS still_stuff_to_read
 
-	LDA #1
+
+	LDA loaded_file
+	CLC
+	ADC #1
+	AND #1
+	STA loaded_file
+
 	JSR init_file_load
 
 still_stuff_to_read:
@@ -496,7 +628,10 @@ still_stuff_to_read:
 	jsr	clear_ay_both
 	RTS
 
+
+
 display_track_info:
+
 	lda current_track
 	clc
 	adc #3
@@ -517,7 +652,11 @@ display_track_info:
 	ldy #15
 show_sector_status:
 	lda sector_status_debug,y
-	bne was_read
+	beq to_read
+	tax
+	dex
+	lda hexa_apple_inverse,X
+	jmp was_read
 to_read:
 	lda #'.'+$80
 was_read:
@@ -527,8 +666,111 @@ was_read:
 
 	RTS
 
+
+display_timings_info:
+	LDA #0
+	STA counter
+loop1:
+	;; Counter & 15 == row
+	lda counter
+	and #15
+	clc
+	ADC #4
+	asl
+	tax
+	lda txt_ofs,x
+	sta debug_ptr
+	lda txt_ofs+1,x
+	sta debug_ptr+1
+
+	LDA counter
+	LSR
+	LSR
+	LSR
+	LSR
+	mul_a_by_5
+
+	CLC
+	ADC #21
+
+	ADC debug_ptr
+	STA debug_ptr
+	LDA #0
+	ADC debug_ptr+1
+	STA debug_ptr+1
+
+	LDX counter
+	LDA disk_times_hi,X
+	STA dummy + 1
+	LDA disk_times_lo,X
+	STA dummy
+
+	LDA #$0
+	CMP dummy + 1
+	BNE not_zero
+	CMP dummy
+	BNE not_zero
+
+	LDA #'.'+$80
+	LDY #0
+	STA (debug_ptr),Y
+	INC debug_ptr
+
+	LDA counter
+	JSR byte_to_text
+
+	LDY #2
+	LDA #'.'+$80
+	STA (debug_ptr),Y
+	INY
+	LDA #' ' + $80
+	STA (debug_ptr),Y
+
+	JMP display_done
+
+not_zero:
+	;fix_6522_read_value dummy
+	sub_16_to_const dummy, $FFFF
+
+	LDA dummy + 1
+	JSR byte_to_text
+	INC debug_ptr
+	INC debug_ptr
+	LDA dummy
+	JSR byte_to_text
+
+	INC debug_ptr
+	INC debug_ptr
+	LDX counter
+	LDA disk_times_sect,X
+	TAX
+	LDA hexa_apple_inverse,X
+	LDY #0
+	STA (debug_ptr),Y
+
+display_done:
+	LDY counter
+	LDA #$00
+	STA disk_times_hi,Y
+	STA disk_times_lo,Y
+
+	INC counter
+	LDA counter
+	CMP #48
+	BEQ done_looping
+	JMP loop1
+done_looping:
+	RTS
+
+the_tolerance:	.word TOLERANCE
+loaded_file:	.byte 0
+big_loops:	.byte 0
+counter:	.byte 0
+dummy:	.word 0
+
 irq_disk_replay_header:	.byte "ADVANCED IRQ + DISK READ REPLAY",0
-track_message:	.byte "TR 0123456789ABCDEF",0
+track_message:	.byte "TR 0123456789ABCDEF  IDLE TIME",0
+constants_message:	.byte "T... S... D+T. 2*S. S-2*T",0
 	.endproc
 
 
@@ -581,32 +823,64 @@ all_tracks_loop:
 
 	print_str blank_line_header, $480
 
-	.align 256, $EA		; NOP opcode
+	;.align 256, $EA		; NOP opcode
 track_loop:
-	LDA #0
+
+	LDA #256-2 ;; Go back one iteration (see timer init below)
 	STA sector_count
 
-sector_loop:
+	;; Stabilize the read process. This way, all the
+	;; sectors are read in the same conditions.
 
-	set_timer_to_const TIMER_START
-
-	;; How much time to readaddr
-
-read_addr_error:
 	ldx #SLOT_SELECT
 	jsr rdadr16
-	bcs read_addr_error
+	ldx #SLOT_SELECT
+	jsr read16
+
+
+	;; A dummy read to make sure the first timer read will be
+	;; done at the same moment as the other iterations
+
+	;; NOTE 1 : At this point, it'll write its results in
+	;; read_sectors + 254 so make sure to have enough
+	;; dummy buffer
+
+	read_timer2 read_sectors
+
+	;; Dive there to make sure we time the first iteration just
+	;; like the others.
+
+	jmp end_loop
+
+sector_loop:
+	;; How much time to readaddr
+
+	;; Be careful ! We start measuring at an unknown place here.
+	;; It is expected to be right after the data portion of the
+	;; sector. But between the enf of that portion and the
+	;; beginning of the addr field, remember there's a small gap.
+	;; So what we measure here is the time to read that gap plus
+	;; the time to read the addr field.
+
+	ldx #SLOT_SELECT
+	jsr rdadr16
+	;bcs read_addr_error
+
+;; 	ldx #25
+;; read_addr_error:
+;; 	dex
+;; 	bne read_addr_error
 
 	read_timer2 addr_times
 
 	;; Remember what we have read (so we can verify that
 	;; we actually read what we expect to read)
 
-	LDX sector_count
-	LDA sect
-	STA read_sectors,X
-	LDA track
-	STA read_tracks,X
+	LDX sector_count	; 4 cycles
+	LDA sect		; 4 cycles
+	STA read_sectors,X	; 5 cycles
+	LDA track		; 4 cycles
+	STA read_tracks,X	; 5 cycles => total = 22 cycles
 
 	;; How much time to read data
 
@@ -614,7 +888,6 @@ read_data_error:
 	ldx #SLOT_SELECT
 	jsr read16
 	bcs read_data_error
-
 	read_timer2 data_times
 
 end_loop:
@@ -622,6 +895,10 @@ end_loop:
 	CLC
 	ADC #2
 	STA sector_count
+
+	set_timer_to_const TIMER_START
+
+	LDA sector_count
 	CMP #SECTORS_PER_TRACK*2
 	BNE sector_loop
 
@@ -778,13 +1055,19 @@ has_mb:
 	sub_const_to_16 addr_time, CYCLES_FOR_READING_TIMER
 	sub_const_to_16 data_time, CYCLES_FOR_READING_TIMER
 
-	sub16 data_time, addr_time
+	;; Compute sector time
+	copy_16 sector_time, data_time
+
+	sub16 sector_time, addr_time
+
+	;; Adjust for timer code
+	sub_const_to_16 sector_time, CYCLES_FOR_READING_TIMER+22
 
 	print_timer2 addr_time
 	INC debug_ptr
-	print_timer2 data_time
+	print_timer2 sector_time
 
-	add16 data_time, addr_time
+	;add16 data_time, addr_time
 
 	INC debug_ptr
 	print_timer data_time
@@ -820,14 +1103,30 @@ timer:	.word 0
 timer2:	.word 0
 timer3:	.word 0
 
+sector_time:	.word 0
 data_time:	.word 0
 addr_time:	.word 0
 
-read_sectors:	.word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	;; The timer read functions will put their result here
+	;; If we have page cros boundaries, then the timer
+	;; function will be a cycle off. Since we "fix" the LSB
+	;; once it is read and that fix is based on the number of cycles
+	;; it took to read the MSB, a page boundary crossing can
+	;; change the way the fix works. This could lead for example
+	;; a fix that instead of turing a LSB=9 into a 0 to a LSB=9
+	;; into a $FF, a 255 cycles difference !
+
+	.align 256
+read_sectors:	.word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ; 16 words
 read_tracks:	.word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 addr_times:	.word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 data_times:	.word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 total_times:	.word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+
+	;; See NOTE 1 above (and don't move read_sectors)
+	.word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	.word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+	.word 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
 header:	.byte "TR S ADDR DATA SUM  TR S ADDR DATA SUM",0
 seek_header:	.byte "TRACK SEEK TIME:",0
@@ -1010,3 +1309,32 @@ no_good_key:
 	; interrupt_handler.s
 	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
 	.include "file_load_init.s"
+
+
+
+
+	.proc show_screen
+
+	store_16 smc1+1, $400
+	store_16 smc2+1, intro_screen
+
+	LDY #4
+copy_screen:
+	LDX #0
+copy_block:
+smc2:
+	LDA intro_screen,X
+smc1:
+	STA $400,X
+	DEX
+	BNE copy_block
+
+	INC smc1 + 2
+	INC smc2 + 2
+	DEY
+	BNE copy_screen
+	RTS
+	.endproc
+
+intro_screen:
+	.incbin "build/introtext.bin"

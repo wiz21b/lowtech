@@ -106,6 +106,17 @@ j:
 	STA target + 1
 .endmacro
 
+	;; target := mem_b - target
+.macro	sub16inv target, mem_b
+	SEC
+	LDA mem_b
+	SBC target
+	STA target
+	LDA mem_b + 1
+	SBC target + 1
+	STA target + 1
+.endmacro
+
 ; 16 bit word := 16 bit word - 16 bit const
 .macro sub_const_to_16 target, const
 	SEC
@@ -118,7 +129,7 @@ j:
 	STA target+1
 .endmacro
 
-; 16 bit word := 16 bit word - 16 bit const
+; 16 bit word := 16 bit const - 16 bit word
 .macro sub_16_to_const target, const
 	SEC
 	LDA #<(const)     ; low byte
@@ -190,7 +201,21 @@ smc:
 
 
 
-	TIMER_START = $FFFF - 32
+	.macro cmp_16 pa, pb
+	.scope
+
+	;; A becomes A and than CMP b
+	LDA pa + 1
+	CMP pb + 1
+	BNE done
+	LDA pa
+	CMP pb
+done:
+	.endscope
+	.endmacro
+
+
+	TIMER_START = $FFFF - 32 - 5
 
 	.macro set_timer_to_const value
 
@@ -212,9 +237,25 @@ smc:
 
 	INY
 	lda	value + 1
-	sta	(MB_Base),Y	; write into high-order latch
+	sta	(MB_Base),Y	; write into high-order latch, start counting
 
 	.endmacro
+
+
+
+	.macro read_timer_direct target
+
+	LDY #4			; 2 cycles
+	LDA (MB_Base),Y 	; 5 cycles; read MOCK_6522_T1CH
+	sta target		; (*) 4 cycles
+	INY			; (*) 2 cycles
+	LDA (MB_Base),Y		; (*) 5 cycles; read MOCK_6522_T1CL
+	sta target+1		; 4 cycles
+
+	.endmacro
+
+
+
 
 
 	CYCLES_FOR_READING_TIMER = 28 	; not entirely exact !
@@ -232,36 +273,43 @@ smc:
 
 	;; Read LSB *first* (See 6522 counter fix macro below)
 
-	LDA (MB_Base),Y 	; 5 cycles; read MOCK_6522_T1CH
+	;; The read will occur on the fifth cycle of the LDA.
+	;; LDA : cycle | CPU
+	;;       ------+------------------------
+	;;         1   | fetch opcode LDA
+	;;         2   | fetch ZP address
+	;;         3   | add Y to address-lo
+	;;         4   | add C to address-hi
+	;;         5   | fetch data from address
+
+	;; Make sure you don't cross a page boundary else
+	;; the "timer read fix" (see below) will be one cycle off !
+
+	LDA (MB_Base),Y 	; 5+ cycles; read MOCK_6522_T1CL
+
 	sta target, X		; (*) 5 cycles
 
 	;; Read MSB
 	INY			; (*) 2 cycles
-	LDA (MB_Base),Y		; (*) 5 cycles; read MOCK_6522_T1CL
+	LDA (MB_Base),Y		; (*) 5+ cycles; read MOCK_6522_T1CH
 	sta target+1,X		; 5 cycles
 
 	;; (*) cycles that count as "time between reading
 	;; LSB and MSB)
 
+	;; Total cycles : 28
 	.endmacro
-
-
-	.macro read_timer_direct target
-
-	LDY #4			; 2 cycles
-	LDA (MB_Base),Y 	; 5 cycles; read MOCK_6522_T1CH
-	sta target		; (*) 4 cycles
-	INY			; (*) 2 cycles
-	LDA (MB_Base),Y		; (*) 5 cycles; read MOCK_6522_T1CL
-	sta target+1		; 4 cycles
-
-	.endmacro
-
 
 
 	;; Number of cycles betwwen the moment we read the
 	;; LSB of the 6522 counter and the MSB.
+
+	.ifdef APPLEWIN_FIX
+	CYCLES_BETWEEN_LSB_MSB_6522_READ = 12 - 3
+	.else
 	CYCLES_BETWEEN_LSB_MSB_6522_READ = 12
+	.endif
+
 
 	.macro fix_6522_read_value read_value_6522
 	.scope
@@ -277,7 +325,39 @@ smc:
 	;; the 6522 counter. This must have been read LSB
 	;; first and MSB second.
 
-	LDA read_value_6522
+	;; Assuming MSB was read second, we determine the
+	;; value of the 6522 at the time the MSB was read.
+	;; Therefore the value of the MSB is always right.
+
+	;; First example :
+
+	;; t | 6522   | LSB  | MSB  | Final read value
+	;; 0 | 0x1000 |      |      |
+	;; 1 | 0x0FFF | 0xFF |      |
+	;; 2 | 0x0FFE |      |      |
+	;; 3 | 0x0FFD |      |      |
+	;; 4 | 0x0FFC |      | 0x0F | 0x0F (FF - 3) = 0x0FFC
+
+	;; Second example :
+
+	;; t | 6522   | LSB  | MSB  | Final read value
+	;; 0 | 0x1001 |      |      |
+	;; 1 | 0x1000 | 0x00 |      |
+	;; 2 | 0x0FFF |      |      |
+	;; 3 | 0x0FFE |      |      |
+	;; 4 | 0x0FFD |      | 0x0F | 0x0F (00 - 3) = 0x0FFD
+
+	;;  But AppleWin does things a little differently
+
+	;; t | 6522   | LSB  | MSB  | Final read value
+	;; 0 | 0x1001 |      |      |
+	;; 1 | 0x1000 | 0x00 |      | 0x00 - 3  = 0xFD !!! (see AWin's MB code)
+	;; 2 | 0x0FFF |      |      |
+	;; 3 | 0x0FFE |      |      |
+	;; 4 | 0x0FFD |      | 0x0F | 0x0F (FD - 3) = 0x0FFB
+
+
+	LDA read_value_6522	; LSB of 6522 counter
 	SEC
 	SBC #CYCLES_BETWEEN_LSB_MSB_6522_READ
 	STA read_value_6522

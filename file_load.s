@@ -1,3 +1,12 @@
+	TOLERANCE = $80	; $100 OK on AWin, bugs on Mame
+
+	;; Demo :
+	;; $80, $110, $180 ok mame
+	;; $80 almost OK on AWin
+
+	;; Checkdisk:
+	;; $80 ends up freezing on Mame
+
 
 	Temp = $FF
 
@@ -43,6 +52,8 @@ first_track_iteration:	.byte 0
 
 	LDA #1
 	STA first_track_iteration
+	LDA #0
+	STA sectors_to_read
 
 	RTS
 
@@ -84,9 +95,6 @@ sector_already_read:
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-	TOLERANCE = $180
-
-
 	READ_SECTOR = 1
 	MUSIC_LONG = 2
 	MUSIC_REGULAR = 3
@@ -98,54 +106,116 @@ read_sector_states:
 
 .byte READ_SECTOR
 .byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
 .byte MUSIC_SHORT
-.byte MUSIC_REGULAR
 .byte READ_SECTOR
 .byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
 .byte MUSIC_SHORT
-.byte MUSIC_REGULAR
 .byte READ_SECTOR
 .byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_REGULAR
-.byte READ_SECTOR
 .byte MUSIC_SHORT
+.byte READ_SECTOR
 .byte MUSIC_REGULAR
+.byte MUSIC_SHORT
 .byte READ_SECTOR
 .byte MUSIC_LONG
-.byte MUSIC_REGULAR
+.byte MUSIC_SHORT
 .byte READ_SECTOR
 .byte MUSIC_LONG
-.byte MUSIC_REGULAR
+.byte MUSIC_SHORT
 .byte READ_SECTOR
 .byte MUSIC_LONG
+.byte MUSIC_SHORT
+.byte READ_SECTOR
 .byte MUSIC_REGULAR
+.byte MUSIC_SHORT
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_SHORT
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_SHORT
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_SHORT
+.byte READ_SECTOR
+.byte MUSIC_REGULAR
+.byte MUSIC_SHORT
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_SHORT
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_SHORT
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_SHORT
 .byte READ_SECTOR
 .byte MUSIC_LONG
 .byte MUSIC_LONG
 .byte MUSIC_LONG
-.byte LOOP_STATES
+
+
+
+
+
+
+
+
+
+
+
+
+
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_REGULAR
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_REGULAR
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_REGULAR
+;; .byte READ_SECTOR
+;; .byte MUSIC_SHORT
+;; .byte MUSIC_REGULAR
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_REGULAR
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_REGULAR
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_REGULAR
+;; .byte READ_SECTOR
+;; .byte MUSIC_SHORT
+;; .byte MUSIC_REGULAR
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_REGULAR
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_REGULAR
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_REGULAR
+;; .byte READ_SECTOR
+;; .byte MUSIC_SHORT
+;; .byte MUSIC_REGULAR
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_REGULAR
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_REGULAR
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_REGULAR
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_LONG
+;; .byte MUSIC_LONG
+;; .byte LOOP_STATES
 STAND_BY_STATE_NDX = * - read_sector_states
 	.byte STAND_BY_STATE
 
@@ -158,10 +228,26 @@ sector_status:
 	.byte $0
 	.endrepeat
 
+	.ifdef DEBUG
 sector_status_debug:
 	.repeat ::SECTORS_PER_TRACK
 	.byte $0
 	.endrepeat
+disk_times_lo:
+	.repeat 64
+	.byte $0
+	.endrepeat
+disk_times_hi:
+	.repeat 64
+	.byte $0
+	.endrepeat
+disk_times_sect:
+	.repeat 64
+	.byte $0
+	.endrepeat
+dummy:	.word 0
+
+	.endif
 
 	;; -----------------------------------------------------------
 	;; INTERRUPT HANDLER
@@ -175,7 +261,6 @@ sector_status_debug:
 	pha			; save X
 	tya
 	pha			; save Y
-
 
 	LDY #$04	; Allow the next IRQ from the 6522
 	LDA (MB_Base),Y
@@ -219,6 +304,9 @@ music_short:
 	;set_timer_to_const DISK_READ_TIME - 2*TOLERANCE
 	set_timer_to_target full_sector_time_minus_twice_tolerance
 	JSR pt3_irq_handler
+
+	;JSR measure_pt3_speed
+
 	JMP exit_interrupt
 
 music_long:
@@ -228,10 +316,12 @@ music_long:
 	JMP exit_interrupt
 
 sector_already_read:
+
 	set_timer_to_target data_time_plus_tolerance
 	JMP exit_interrupt
 
 read_sector:
+
 	JSR read_any_sector_in_track
 	BCC sector_already_read
 
@@ -244,14 +334,8 @@ read_sector:
 
 	set_timer_to_const TOLERANCE
 
-
-	;; DEBUG -----------------------------------------------------
-
-	LDY sect
-	LDA #'R'+$80
-	STA sector_status_debug,Y
-
 exit_interrupt:
+
 	pla
 	tay			; restore Y
 	pla
@@ -261,6 +345,37 @@ exit_interrupt:
 	plp
 
 	RTI
+
+	.ifdef DEBUG
+
+	;; My measurements give up to $C00 cycles per IRQ for PT3 play.
+	;; Well below what I need.
+
+measure_pt3_speed:
+	LDY #4			; 2 cycles
+	LDA (MB_Base),Y 	; 5 cycles; read MOCK_6522_T1CL
+	TAX
+	INY			; (*) 2 cycles
+	LDA (MB_Base),Y		; (*) 5 cycles; read MOCK_6522_T1CH
+
+	STX dummy
+	STA dummy+1
+
+	;; dummy := fst - dummy
+	sub16inv dummy, full_sector_time_minus_twice_tolerance
+	;; dummy := $FFFF - dummy = $FFFF - (fst - dummy)
+	sub_16_to_const dummy, $FFFF
+
+	LDY stepper
+	LDA dummy + 1
+	STA disk_times_hi,Y
+	LDA dummy
+	STA disk_times_lo,Y
+
+	RTS
+
+	.endif
+
 
 timer_read:	.word 0
 full_sector_time:	.word 0
@@ -278,6 +393,10 @@ data_time_plus_tolerance:	.word 0
 	;; 2. Then we figure out if we've already read it or not.
 	;; 3. If not already read, we actually loads its data
 
+	.ifdef DEBUG
+	set_timer_to_const $FFFF
+	.endif
+
 	LDA #0			; We do it here to minimize the time
 	STA buf			; between rdadr16 and read16
 
@@ -287,32 +406,79 @@ data_time_plus_tolerance:	.word 0
 	;; Errors should not happen.If they do, that'll screw
 	;; the reading "choregraphy" completely.
 
-	BCC no_rdadr16_error
+	;BCC no_rdadr16_error
 
 	;INC $500 + 39
-no_rdadr16_error:
+;no_rdadr16_error:
+
+
 	ldx sect
 	lda sector_status, X
 	beq sector_already_read
-	STA buf + 1
 
+	STA buf + 1
 	ldx #SLOT_SELECT
 	JSR read16
-	BCC no_read16_error
+	;BCC no_read16_error
 	;INC $500 + 36
+;no_read16_error:
 
-no_read16_error:
+
 
 	;; Mark sector as read
 	LDX sect
 	LDA #0
 	STA sector_status, X
 
+	.ifdef DEBUG
+
+	LDY #4			; 2 cycles
+	LDA (MB_Base),Y 	; 5 cycles; read MOCK_6522_T1CL
+	TAX
+	INY			; (*) 2 cycles
+	LDA (MB_Base),Y		; (*) 5 cycles; read MOCK_6522_T1CH
+
+	LDY stepper
+	STA disk_times_hi,Y
+	TXA
+	STA disk_times_lo,Y
+	LDA sect
+	STA disk_times_sect, Y
+
+	SEC
+	LDA #$11
+	SBC sectors_to_read
+	LDY sect
+	STA sector_status_debug,Y
+
+	.endif
+
 	DEC sectors_to_read
 
 	SEC			; Carry set = sector read
 	RTS
+
 sector_already_read:
+
+
+	.ifdef DEBUG
+
+	LDY #4			; 2 cycles
+	LDA (MB_Base),Y 	; 5 cycles; read MOCK_6522_T1CL
+	TAX
+	INY			; (*) 2 cycles
+	LDA (MB_Base),Y		; (*) 5 cycles; read MOCK_6522_T1CH
+
+	LDY stepper
+	STA disk_times_hi,Y
+	TXA
+	STA disk_times_lo,Y
+	LDA sect
+	STA disk_times_sect, Y
+
+	.endif
+
+
 	CLC
 	RTS
 
@@ -364,8 +530,8 @@ read_more_tracks:
 	BNE first_iteration
 	INX
 	CPX last_track
-	BEQ first_iteration
-	BCS all_tracks_read
+	BEQ first_iteration	; track to read == last_track
+	BCS all_tracks_read	; track to read > last_track
 
 first_iteration:
 	LDA #0
@@ -470,7 +636,9 @@ clear_status:
 	DEX
 	STA sector_status,X
 	;; DEBUG --------------------------------------------------
+	.ifdef DEBUG
 	STA sector_status_debug, X
+	.endif
 	;; --------------------------------------------------------
 	BNE clear_status
 

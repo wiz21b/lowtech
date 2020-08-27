@@ -314,6 +314,7 @@ parser.add_argument("--no-precalc", action="store_true")
 parser.add_argument("--precalc", action="store_true")
 parser.add_argument("--music", action="store_true")
 parser.add_argument("--build", action="store_true")
+parser.add_argument("--dsk", action="store_true")
 args = parser.parse_args()
 
 if args.precalc:
@@ -332,6 +333,8 @@ if args.music:
 else:
     additional_options = ""
 
+if args.awin:
+    additional_options += " -D APPLEWIN_FIX"
 
 
 
@@ -535,7 +538,6 @@ toc_disk.generate_disk(f"{BUILD_DIR}/loader_toc.s")
 toc_disk.save()
 
 
-run(f"./dsk2woz {BUILD_DIR}/NEW.DSK {BUILD_DIR}/NEW.WOZ")
 
 
 # ####################################################################
@@ -614,12 +616,20 @@ if args.build:
     exit()
 
 print("Running emulator")
+
+if args.dsk:
+    final_disk = "NEW.DSK"
+else:
+    run(f"./dsk2woz {BUILD_DIR}/NEW.DSK {BUILD_DIR}/NEW.WOZ")
+    final_disk = "NEW.WOZ"
+
+final_disk = os.path.join(BUILD_DIR_ABSOLUTE, final_disk)
+
 if (args.mame or platform.system() == "Linux") and (not args.awin):
     # -resolution 1200x900
     # -sound none
-    run(f"{MAME} apple2e -volume -12 -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {BUILD_DIR}/NEW.WOZ")
+    run(f"{MAME} apple2e -volume -12 -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {final_disk}")
 else:
-    dsk = os.path.join( BUILD_DIR_ABSOLUTE, "NEW.WOZ")
     if platform.system() == "Linux":
-        dsk = dsk.replace("/",r"\\")
-    run(f"{APPLEWIN} -d1 {dsk} -conf ~/applewin.ini")
+        final_disk = final_disk.replace("/",r"\\")
+    run(f"{APPLEWIN} -d1 {final_disk} -conf ~/applewin.ini")
