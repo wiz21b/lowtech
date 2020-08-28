@@ -264,10 +264,6 @@ done:
 
 	.macro read_timer2 target
 
-	;; Total : 28 cycles. Don't forget to remove those
-	;; from the total measurements, else you'll time
-	;; the chronometer time as well !
-
 	LDY #4			; 2 cycles
 	LDX sector_count	; 4 cycles
 
@@ -297,7 +293,15 @@ done:
 	;; (*) cycles that count as "time between reading
 	;; LSB and MSB)
 
-	;; Total cycles : 28
+	;; Total cycles to read the timer (and storing
+	;; the value): 28 cycles.
+
+	;; Don't forget to remove those cycles
+	;; from the total measurements, else you'll time
+	;; the chronometer time as well !
+
+	;; Note : the last STA may be counted out though...
+
 	.endmacro
 
 

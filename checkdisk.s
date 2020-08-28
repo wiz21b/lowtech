@@ -1,5 +1,4 @@
 
-
 ;;; This code is (c) 2019 Stéphane Champailler
 ;;; It is published under the terms of the
 ;;; GNU GPL License Version 3.
@@ -163,7 +162,6 @@ no_key:
 	BEQ no_key
 
 	JSR detect_apple
-
 	JSR clear_txt
 
 	JSR detect_mocking_board
@@ -174,17 +172,10 @@ no_key:
 	jsr	mockingboard_patch
 mocking_not_found:
 
-	nop
-	nop
-	nop
 	JSR check_cycles
 
-
 	JSR check_load_file_without_irq
-
 	JSR clear_txt
-
-
 
 all_tests_loop:
 
@@ -199,15 +190,15 @@ all_tests_loop:
 	JSR clear_txt
 	JSR check_music_disk_based_replay
 
+	JSR clear_txt
+	JSR check_basic_irq_plus_disk_replay2
+
 	;; JSR clear_txt
 	;; JSR check_basic_irq_replay
-
 
 	;; JSR clear_txt
 	;; JSR check_basic_irq_plus_disk_replay
 
-	JSR clear_txt
-	JSR check_basic_irq_plus_disk_replay2
 
 	JMP all_tests_loop
 
@@ -421,6 +412,11 @@ hitakey_txt:	.byte "HIT A KEY TO CONTINUE",0
 
 	.proc check_music_disk_based_replay
 
+	lda #$07
+	sta buf + 1
+	lda #$D0
+	sta buf
+
 	print_str disk_replay_header, $400
 
 	;; LDX #$FF
@@ -428,6 +424,7 @@ hitakey_txt:	.byte "HIT A KEY TO CONTINUE",0
 
 	JSR locate_drive_head	; Motor on !
 	JSR start_player
+
 
 infiniloop2:
 
@@ -593,6 +590,7 @@ wait_sector_zero:
 
 infiniloop:
 	JSR display_track_info
+	JSR display_timings_info
 
 	LDA sectors_to_read
 	BNE still_stuff_to_read
@@ -751,8 +749,9 @@ not_zero:
 display_done:
 	LDY counter
 	LDA #$00
-	STA disk_times_hi,Y
-	STA disk_times_lo,Y
+	;; STA disk_times_hi,Y
+	;; STA disk_times_lo,Y
+
 
 	INC counter
 	LDA counter
@@ -760,6 +759,12 @@ display_done:
 	BEQ done_looping
 	JMP loop1
 done_looping:
+
+	LDY #1
+	LDA disk_times_lo,Y
+	ADC #1
+	STA disk_times_lo,Y
+
 	RTS
 
 the_tolerance:	.word TOLERANCE

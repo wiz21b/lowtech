@@ -1,4 +1,4 @@
-	TOLERANCE = $80	; $100 OK on AWin, bugs on Mame
+	TOLERANCE = $100	; $100 OK on AWin, bugs on Mame
 
 	;; Demo :
 	;; $80, $110, $180 ok mame
@@ -52,8 +52,12 @@ first_track_iteration:	.byte 0
 
 	LDA #1
 	STA first_track_iteration
+
+	;; Make sure the IRQ doesn't start reading any leftovers.
+
 	LDA #0
 	STA sectors_to_read
+	STA stepper
 
 	RTS
 
@@ -96,8 +100,8 @@ sector_already_read:
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	READ_SECTOR = 1
-	MUSIC_LONG = 2
-	MUSIC_REGULAR = 3
+	MUSIC_REGULAR = 2
+	MUSIC_LONG = 3
 	MUSIC_SHORT = 4
 	LOOP_STATES = 5
 	STAND_BY_STATE = 6
@@ -155,67 +159,6 @@ read_sector_states:
 .byte MUSIC_LONG
 
 
-
-
-
-
-
-
-
-
-
-
-
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_REGULAR
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_REGULAR
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_REGULAR
-;; .byte READ_SECTOR
-;; .byte MUSIC_SHORT
-;; .byte MUSIC_REGULAR
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_REGULAR
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_REGULAR
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_REGULAR
-;; .byte READ_SECTOR
-;; .byte MUSIC_SHORT
-;; .byte MUSIC_REGULAR
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_REGULAR
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_REGULAR
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_REGULAR
-;; .byte READ_SECTOR
-;; .byte MUSIC_SHORT
-;; .byte MUSIC_REGULAR
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_REGULAR
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_REGULAR
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_REGULAR
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_LONG
-;; .byte MUSIC_LONG
-;; .byte LOOP_STATES
 STAND_BY_STATE_NDX = * - read_sector_states
 	.byte STAND_BY_STATE
 
@@ -279,6 +222,7 @@ read_sector_state:
 	INY
 	CMP #LOOP_STATES
 	BNE dont_loop_states
+loop_states:
 	LDY #0
 	BEQ read_sector_state	; Always taken
 dont_loop_states:
@@ -292,6 +236,10 @@ dont_loop_states:
 	BEQ music_short
 	CMP #READ_SECTOR
 	BEQ read_sector
+
+	;; STAND_BY_STATE
+	;; DEBUG
+	;JMP loop_states
 
 music_regular:
 	;set_timer_to_const DISK_READ_TIME
@@ -407,14 +355,19 @@ data_time_plus_tolerance:	.word 0
 	;; the reading "choregraphy" completely.
 
 	;BCC no_rdadr16_error
-
 	;INC $500 + 39
 ;no_rdadr16_error:
 
 
 	ldx sect
 	lda sector_status, X
+
+	;; DEBUG !
+	;; lda #$E0
+	;; JMP sector_already_read
+
 	beq sector_already_read
+
 
 	STA buf + 1
 	ldx #SLOT_SELECT

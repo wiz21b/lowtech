@@ -23,7 +23,7 @@ sector_times:	.repeat CALIBRATION_RUNS
 	sta buf
 
 	LDA #0
-	STA sector_count
+	STA sector_count	; make sure read_timer2 macro behaves well
 
 
 	STA total_sector_time
@@ -46,16 +46,26 @@ sector_times:	.repeat CALIBRATION_RUNS
 
 	ldx #SLOT_SELECT
 	JSR rdadr16
+	ldx #SLOT_SELECT
+	JSR read16
 
 calibration_loop:
+	;; When we start timing things here, we're just behind
+	;; the sector data part. It means we'll time the reading
+	;; of the ADDR field as well as the gap between that field
+	;; and the sector data preceding it.
+	;; Actually the gap time will be reduced by the few
+	;; cycles it takes to execute the instruction that controls
+	;; the loop.
+
 	set_timer_to_const TIMER_START
 
 	ldx #SLOT_SELECT
-	JSR read16
+	JSR rdadr16
 	read_timer2 data_times	; sector_count will be used as an index
 
 	ldx #SLOT_SELECT
-	JSR rdadr16
+	JSR read16
 	read_timer2 sector_times
 
 	LDA sector_count
@@ -94,8 +104,8 @@ sum_loop:
 
 	;; Remove the time it took to measure the time :-)
 
-	sub_const_to_16 sector_time, 2*CYCLES_FOR_READING_TIMER
 	sub_const_to_16 data_time, CYCLES_FOR_READING_TIMER
+	sub_const_to_16 sector_time, 2*CYCLES_FOR_READING_TIMER
 
 	;; CLC
 	;; LDA data_time
@@ -118,6 +128,9 @@ sum_loop:
 	;; LDA #0
 	;; ADC total_sector_time + 2
 	;; STA total_sector_time + 2
+
+	;; data_time := sector - data time
+	sub16inv data_time, sector_time
 
 	cmp_16 data_time, total_data_time
 	bcs no_new_mini_data_time
@@ -156,6 +169,9 @@ done_loop:
 
 	;; Now the calibration is complete, we compute various
 	;; timings for the IRQ handler.
+
+	;; add_const_to_16 total_data_time, $200
+	;; add_const_to_16 total_sector_time, $200
 
 	;; full sector time
 

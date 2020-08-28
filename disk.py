@@ -5,6 +5,7 @@ WHITE = (255,255,255)
 BLACK = (0,0,0)
 RED = (255,64,64)
 BLUE = (0,0,255)
+DARK_GREEN = (0,192,0)
 
 print(pygame.font.get_default_font())
 
@@ -20,7 +21,7 @@ class Commands(Enum):
     MUSIC_SHORT = 4
 
 commands = []
-
+tops = dict()
 
 def x_y( s):
     return s % 16 + 0.1, (s // 16) * 200 + 150
@@ -30,15 +31,31 @@ def rx_to_x( rx):
 
 top_num = 1
 def top( screen, rx_top, y):
-    global top_num
+    global top_num, tops
+
+    tops[top_num] = (rx_top,y)
 
     # Draw an IRQ
     pygame.draw.line( screen, RED, (rx_top,y), (rx_top,y+50), 8 )
 
-    snum = SMALL_FONT.render( str(top_num) + commands[-1].name.replace("MUSIC_",""), True, BLACK, WHITE)
+    snum = SMALL_FONT.render( f"{top_num:X}", True, BLACK, WHITE)
     screen.blit(snum, (rx_top,y+50) )
 
+    stype = SMALL_FONT.render( commands[-1].name.replace("MUSIC_",""), True, BLACK, WHITE)
+    screen.blit(stype, (rx_top,y+70) )
+
     top_num += 1
+
+
+def draw_exp_delay( screen, top, size, offset):
+    global tops
+
+    x, y = tops[ top]
+
+    o = offset * 10
+    s = (size - 0x400) // 8
+
+    pygame.draw.line( screen, DARK_GREEN, (x,y-60-o), (x + s,y-60-o),8)
 
 def draw_vert( screen, s, base_sector, c = BLACK ):
     rx, y = x_y(s)
@@ -67,6 +84,7 @@ def read_sect( screen, s):
     pygame.draw.rect( screen, (205,205,205), (rx,y-20,rx_end-rx,20) )
     #pygame.draw.line( screen, RED, (rx_top,y), (rx_top,y+50), 4 )
     top(screen,rx_top,y)
+
 
     pygame.draw.line( screen, BLUE, (rx_plan,y-20), (rx_plan,y+50),2 )
     pygame.draw.line( screen, BLUE, (rx_plan,y+50), (rx_plan_next,y+20),2 )
@@ -184,7 +202,57 @@ music_far(screen, 48+10)
 music_far(screen, 48+12)
 music_far(screen, 48+14)
 
+# Here I've recorded the time it takes to complete
+# the rdadr16 subroutine on various execution.
+# We can see that it's rather constant in function
+# of the steps before it (short step, mid-step, long
+# step).
+
+# Especially, given those two steps, we have those
+# wait times, very constant :
+
+# mid-wait :
+#   (Tolerance) + (Sector) +     (Sector -2 x Tol.)
+#   => rdadr16 wait time is +/- $4E0
+
+# long wait :
+#   (Tolerance) + (2 x Sector) + (Sector -2 x Tol.)
+#   => rdadr16 wait time is +/- $550
+
+# => we're adding $100 cycle wait if we have an
+# additional sector wait.
+# So it means that we under evaluate the duration of a sector
+# wait by $550-$4E0=$70 cycles (with tolerance == $100)
+
+
+
+RDADR_DELAYS = [ [ (0x4, 0x7e0), (0x7, 0x550),
+                   (0xa, 0x550), (0xd, 0x4e0),
+                   (0x10, 0x550)],
+                 [ (0x7, 0x7e0),
+                   (0xa, 0x550), (0xd, 0x4e0),
+                   (0x10, 0x550), (0x13,0x550)],
+                 [ (0x16, 0x7e0), (0x19, 0x4e0),
+                   (0x1c, 0x550), (0x1f, 0x550),
+                   (0x22, 0x550)],
+                 [ (0x19, 0x770), (0x1c, 0x556),
+                   (0x1f, 0x558), (0x22, 0x550),
+                   (0x25, 0x4e0)],
+                 [ (0x1f, 0x7e0), (0x22, 0x550),
+                   (0x25, 0x4E0), (0x28, 0x556),
+                   (0x2B, 0x558)],
+                 [ (0x22, 0x7e0), (0x25, 0x4f0),
+                   (0x28, 0x550), (0x2b, 0x556),
+                   (0x2e, 0x558)],
+                ]
+
+for offset, rdadr_delays in enumerate( RDADR_DELAYS):
+    for top, size in rdadr_delays:
+        draw_exp_delay( screen, top, size, offset)
+
 pygame.display.flip()
+
+
 
 # main loop
 running = True
@@ -196,5 +264,5 @@ while running:
             # change the value to False, to exit the main loop
             running = False
 
-for c in commands:
-    print( f"    .byte {c.name}")
+# for c in commands:
+#     print( f"    .byte {c.name}")
