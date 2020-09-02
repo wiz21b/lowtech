@@ -50,7 +50,7 @@ def top( screen, rx_top, y):
     # screen.blit(stype, (rx_top,y+70*SCALE) )
 
     c_short = commands[-1].name.replace("MUSIC_","")[0:4]
-    snum = SMALL_FONT.render( f"{top_num:X},{c_short}", True, BLACK, WHITE)
+    snum = SMALL_FONT.render( f"{top_num},{c_short}", True, BLACK, WHITE)
     screen.blit(snum, (rx_top,y+50*SCALE) )
 
     top_num += 1
@@ -319,28 +319,32 @@ def make_slow_load_choregraphy(screen):
         music_far(screen, base+5)
         music_short(screen, base+7)
 
-    def pattern2( base):
+    def pattern2( base, music=True):
         read_sect(screen, base)
         music_far(screen, base+1)
         music_far(screen, base+3)
         music_regular(screen, base+5)
-        silence_short(screen, base+6)
+
+        if music:
+            music_short(screen, base+6)
+        else:
+            silence_short(screen, base+6)
 
 
     pattern1( 0)
     pattern2( 8)
     pattern1( 15)
-    pattern2( 23)
+    pattern2( 23, False)
 
     pattern1( 30)
     pattern2( 38)
     pattern1( 45)
-    pattern2( 53)
+    pattern2( 53, False)
 
     pattern1( 60)
     pattern2( 68)
     pattern1( 75)
-    pattern2( 83)
+    pattern2( 83, False)
 
     pattern1( 90)
     pattern2( 98)
