@@ -217,15 +217,17 @@ done:
 
 	TIMER_START = $FFFF - 32 - 5
 
+	CYCLES_FOR_WRITING_TIMER_CONST = 18 	; not entirely exact !
+
 	.macro set_timer_to_const value
 
-	LDY #4
-	lda	#<(value)
-	sta	(MB_Base),Y	; write into low-order latch,
+	LDY #4			; 2 cycles
+	lda	#<(value)	; 2 cycles
+	sta	(MB_Base),Y	; 5 cycles; write into low-order latch,
 
-	INY
-	lda	#>(value)
-	sta	(MB_Base),Y	; write into high-order latch
+	INY			; 2 cycles
+	lda	#>(value)	; 2 cycles
+	sta	(MB_Base),Y	; 5 cycles; write into high-order latch
 
 	.endmacro
 
@@ -259,7 +261,7 @@ done:
 
 
 	CYCLES_FOR_READING_TIMER = 28 	; not entirely exact !
-					; the first read_timer shoul not
+					; the first read_timer should not
 					; include the last STA.
 
 	.macro read_timer2 target

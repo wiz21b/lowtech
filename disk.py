@@ -19,6 +19,7 @@ class Commands(Enum):
     MUSIC_REGULAR = 2
     MUSIC_LONG = 3
     MUSIC_SHORT = 4
+    SILENCE_SHORT = 7
 
 commands = []
 tops = dict()
@@ -89,7 +90,7 @@ def read_sect( screen, s):
     pygame.draw.line( screen, BLUE, (rx_plan,y-20), (rx_plan,y+50),2 )
     pygame.draw.line( screen, BLUE, (rx_plan,y+50), (rx_plan_next,y+20),2 )
 
-def music( screen, s):
+def music_short( screen, s):
     global commands
     commands.append( Commands.MUSIC_SHORT)
 
@@ -103,6 +104,21 @@ def music( screen, s):
     #pygame.draw.line( screen, RED, (rx,y), (rx,y+50),4 )
     top(screen,rx,y)
     pygame.draw.line( screen, BLUE, (rx,y+50), (rx_plan,y+20),2 )
+
+
+def silence_short( screen, s):
+    global commands
+    commands.append( Commands.SILENCE_SHORT)
+
+    s, y = x_y(s)
+
+    rx = rx_to_x(s+0.1)
+    rx_end = rx_to_x( s+0.1+0.2 )
+    rx_plan = rx_to_x( s+1-0.1)
+
+    top(screen,rx,y)
+    pygame.draw.line( screen, BLUE, (rx,y+50), (rx_plan,y+20),2 )
+
 
 def music_far( screen, s):
     global commands
@@ -119,7 +135,7 @@ def music_far( screen, s):
     pygame.draw.line( screen, BLUE, (rx,y+50), (rx_plan,y+20),2 )
 
 
-def music_half( screen, s):
+def music_regular( screen, s):
     global commands
     commands.append( Commands.MUSIC_REGULAR)
 
@@ -147,82 +163,108 @@ for s in range(0,64,16):
     pygame.draw.line( screen, BLACK, (0,y), (1600,y) )
 
 
-read_sect(screen,0)
+read_sect(screen,0) # 1
 music_far(screen, 1)
-music(screen, 3)
+music_short(screen, 3)
 read_sect(screen,4)
 music_far(screen, 5)
-music(screen, 7)
+music_short(screen, 7)
 read_sect(screen,8)
 music_far(screen, 9)
-music(screen, 11)
+music_short(screen, 11)
 read_sect(screen,12)
-music_half(screen, 13)
-music(screen, 14)
-read_sect(screen,15)
+music_regular(screen, 13)
+music_short(screen, 14)
+read_sect(screen,15) # D
 
-music_far(screen, 16+0)
-music(screen, 16+2)
+music_far(screen, 16+0) # E
+music_short(screen, 16+2)
 read_sect(screen, 16+3)
 music_far(screen, 16+4)
-music(screen, 16+6)
+music_short(screen, 16+6)
 read_sect(screen, 16+7)
 music_far(screen, 16+8)
-music(screen, 16+10)
+music_short(screen, 16+10)
 read_sect(screen, 16+11)
-music_half(screen, 16+12)
-music(screen, 16+13)
-read_sect(screen, 16+14)
-music_far(screen, 16+15)
+music_regular(screen, 16+12) # 17
 
-music(screen, 32+1)
+#music_short(screen, 16+13)
+# This to make sure we have the right number
+# of "top's" for the music (that is 8 tops
+# every 16 IRQ, no more, no less).
+silence_short(screen, 16+13)
+
+read_sect(screen, 16+14)
+music_far(screen, 16+15)  # 20
+
+music_short(screen, 32+1)
 read_sect(screen, 32+2)
 music_far(screen, 32+3)
-music(screen, 32+5)
+music_short(screen, 32+5)
 read_sect(screen, 32+6)
 music_far(screen, 32+7)
-music(screen, 32+9)
+music_short(screen, 32+9)
 read_sect(screen, 32+10)
-music_half(screen, 32+11)
-music(screen, 32+12)
+music_regular(screen, 32+11)
+music_short(screen, 32+12)
 read_sect(screen, 32+13)
 music_far(screen, 32+14)
 
 
-music(screen, 48+0)
+music_short(screen, 48+0)
 read_sect(screen, 48+1)
 music_far(screen, 48+2)
-music(screen, 48+4)
+music_short(screen, 48+4)
 read_sect(screen, 48+5)
 music_far(screen, 48+6)
-music(screen, 48+8)
+music_short(screen, 48+8)
 read_sect(screen, 48+9)
 
 music_far(screen, 48+10)
 music_far(screen, 48+12)
 music_far(screen, 48+14)
 
-# Here I've recorded the time it takes to complete
-# the rdadr16 subroutine on various execution.
-# We can see that it's rather constant in function
-# of the steps before it (short step, mid-step, long
-# step).
+# Here I've recorded the time it takes to complete the rdadr16
+# subroutine on various execution.  We can see that it's rather
+# constant in function of the steps before it (short step, mid-step,
+# long step).
 
-# Especially, given those two steps, we have those
-# wait times, very constant :
+# Especially, given those two steps, we have those wait times, very
+# constant :
 
 # mid-wait :
-#   (Tolerance) + (Sector) +     (Sector -2 x Tol.)
+#   (Tolerance) + (Sector) +     (Sector -2 x Tol.) = 2 x S - T
 #   => rdadr16 wait time is +/- $4E0
 
 # long wait :
-#   (Tolerance) + (2 x Sector) + (Sector -2 x Tol.)
+#   (Tolerance) + (2 x Sector) + (Sector -2 x Tol.) = 3 x S - T
 #   => rdadr16 wait time is +/- $550
 
-# => we're adding $100 cycle wait if we have an
-# additional sector wait.
-# So it means that we under evaluate the duration of a sector
-# wait by $550-$4E0=$70 cycles (with tolerance == $100)
+# => we're adding $550-$4E0=$70 cycle wait if we have an additional
+# sector wait. (remember, in both cases, we're meant to reach the same
+# point before the rdadr16 call. If we're not then either S or T is
+# too small)
+
+# So it means that we under evaluate the duration of a sector wait by
+# $70 cycles (with tolerance == $100)
+
+# In both cases, there are 2 interrupt calls to play the PT3.  So IRQ
+# processing should not have much incidence.
+
+# When we wait for 2 IRQ, we can count we add around $80 cycles for
+# entering the IRQ handler, doing some stuff, etc.  So say, $100
+# cycles. If T == $100, then we should be "late" by zero.
+
+# Calibration measures this :
+#
+# gap - ADDR - gap - DATA
+# |                     |
+# +---------------------+ == sector time
+# |        |
+# +--------+ == addr time
+#          |            |
+#          +------------+ == data time
+
 
 
 
@@ -264,5 +306,6 @@ while running:
             # change the value to False, to exit the main loop
             running = False
 
-# for c in commands:
-#     print( f"    .byte {c.name}")
+with open("build/choregraphy.inc","w") as fout:
+    for i,c in enumerate(commands):
+        fout.write( f"    .byte {c.name}\t;{i+1:X}\n")

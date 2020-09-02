@@ -590,9 +590,9 @@ wait_sector_zero:
 
 infiniloop:
 	JSR display_track_info
-	JSR display_timings_info
+	;JSR display_timings_info
 
-	LDA sectors_to_read
+	LDA sectors_to_read_in_track
 	BNE still_stuff_to_read
 
 	INC big_loops
@@ -681,6 +681,7 @@ loop1:
 	lda txt_ofs+1,x
 	sta debug_ptr+1
 
+	;; (counter >> 4) == column
 	LDA counter
 	LSR
 	LSR
@@ -688,6 +689,7 @@ loop1:
 	LSR
 	mul_a_by_5
 
+	;; The board is on the right side of the screen
 	CLC
 	ADC #21
 
@@ -760,10 +762,10 @@ display_done:
 	JMP loop1
 done_looping:
 
-	LDY #1
-	LDA disk_times_lo,Y
-	ADC #1
-	STA disk_times_lo,Y
+	;; LDY #1
+	;; LDA disk_times_lo,Y
+	;; ADC #1
+	;; STA disk_times_lo,Y
 
 	RTS
 

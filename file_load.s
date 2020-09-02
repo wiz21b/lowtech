@@ -56,7 +56,8 @@ first_track_iteration:	.byte 0
 	;; Make sure the IRQ doesn't start reading any leftovers.
 
 	LDA #0
-	STA sectors_to_read
+	STA sectors_to_read_in_track
+	LDA #$FF
 	STA stepper
 
 	RTS
@@ -105,9 +106,33 @@ sector_already_read:
 	MUSIC_SHORT = 4
 	LOOP_STATES = 5
 	STAND_BY_STATE = 6
+	SHORT_SILENCE = 7
 
 read_sector_states:
-
+.byte READ_SECTOR		; 1
+.byte MUSIC_LONG
+.byte MUSIC_SHORT
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_SHORT
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_SHORT
+.byte READ_SECTOR		; A
+.byte MUSIC_REGULAR
+.byte MUSIC_SHORT
+.byte READ_SECTOR
+.byte MUSIC_LONG
+.byte MUSIC_SHORT
+.byte READ_SECTOR		; $10
+.byte MUSIC_LONG
+.byte MUSIC_SHORT
+.byte READ_SECTOR
+.byte MUSIC_LONG		; $14
+.byte MUSIC_SHORT
+.byte READ_SECTOR
+.byte MUSIC_REGULAR		; $17
+.byte SHORT_SILENCE		; $18
 .byte READ_SECTOR
 .byte MUSIC_LONG
 .byte MUSIC_SHORT
@@ -130,41 +155,18 @@ read_sector_states:
 .byte MUSIC_LONG
 .byte MUSIC_SHORT
 .byte READ_SECTOR
-.byte MUSIC_REGULAR
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_REGULAR
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR
 .byte MUSIC_LONG
 .byte MUSIC_LONG
 .byte MUSIC_LONG
 
+	.byte LOOP_STATES
 
-STAND_BY_STATE_NDX = * - read_sector_states
-	.byte STAND_BY_STATE
+;; STAND_BY_STATE_NDX = * - read_sector_states
+;; 	.byte STAND_BY_STATE
 
 
-stepper:	.byte 0
-sectors_to_read:	.byte 0
+stepper:	.byte $FF	; Starts at $FF to ease loop count computation
+sectors_to_read_in_track:	.byte 0
 current_track:	.byte 0
 sector_status:
 	.repeat ::SECTORS_PER_TRACK
@@ -198,78 +200,84 @@ dummy:	.word 0
 
 	.proc disk_irq_handler2
 
-	php
-	pha
-	txa
-	pha			; save X
-	tya
-	pha			; save Y
+	php		; 3 cycles
+	pha		; 3 cycles
+	txa		; 2
+	pha		; 3 save X
+	tya		; 2
+	pha		; 3 save Y
 
-	LDY #$04	; Allow the next IRQ from the 6522
-	LDA (MB_Base),Y
+	LDY #$04	; 2 cycles Allow the next IRQ from the 6522
+	LDA (MB_Base),Y	; 5 cycles
 
-	;; --- DEBUG
-	;; set_timer_to_target twice_full_sector_time
-	;; JMP exit_interrupt
-	;; --- DEBUG
+	;; Total cycles so far : 23
 
-	LDA sectors_to_read
-	BEQ music_long
 
-	LDY stepper
+	;; sectors_to_read_in_track is our guardian. It is set from
+	;; within the IRQ => its meaning can be interpreted
+	;; safely. I.e. if no more sectors to read, then
+	;; we've got nothing to do. Now, it's perfectly
+	;; possible to have exhausted all the steps and
+	;; still have some work to do. That can happen
+	;; if for some reason we miss a sector (this should
+	;; be ultra rare).
+
+	CLV			; 2 For short jumps
+	LDA sectors_to_read_in_track	; 4
+	BEQ music_long		; 2/3 No more sectors to read => just play music
+
+	;; stepper will start at $FF. I do that tp make
+	;; sure the stepper value always reflect the
+	;; index of the current step.
+
+	INC stepper		; 6
+	LDY stepper		; 4
 read_sector_state:
-	LDA read_sector_states,Y
-	INY
-	CMP #LOOP_STATES
-	BNE dont_loop_states
-loop_states:
+	LDA read_sector_states,Y ; 4+
+
+	TAX			; 2
+	LDA jump_table,X	; 4+
+	STA jump_smc+1		; 4
+jump_smc:
+	;; It's rather important that timer set up occurs right
+	;; after this branch. That's because all durations' cycles
+	;; take into account the duration of the execution of the IRQ
+	;; up to this point. The less error we have, the less "drift"
+	;; we have in our computations (especially when the music plays
+	;; a long time without disk access).
+
+	BVC loop_state		; 3 loop_state is a dummy value, will be smc
+
+	;;  Total cycles = 35/36++
+loop_state:
 	LDY #0
-	BEQ read_sector_state	; Always taken
-dont_loop_states:
 	STY stepper
-
-	CMP #MUSIC_LONG
-	BEQ music_long
-	CMP #MUSIC_REGULAR
-	BEQ music_regular
-	CMP #MUSIC_SHORT
-	BEQ music_short
-	CMP #READ_SECTOR
-	BEQ read_sector
-
-	;; STAND_BY_STATE
-	;; DEBUG
-	;JMP loop_states
+ 	BVC read_sector_state
 
 music_regular:
-	;set_timer_to_const DISK_READ_TIME
 	set_timer_to_target full_sector_time
-
-	JSR pt3_irq_handler
-	JMP exit_interrupt
+	BVC pt3_and_exit_interrupt
 
 music_short:
-	;set_timer_to_const DISK_READ_TIME - 2*TOLERANCE
 	set_timer_to_target full_sector_time_minus_twice_tolerance
-	JSR pt3_irq_handler
+	BVC pt3_and_exit_interrupt
 
-	;JSR measure_pt3_speed
-
-	JMP exit_interrupt
+short_silence:
+	set_timer_to_target full_sector_time_minus_twice_tolerance
+	BVC exit_interrupt
 
 music_long:
-	;set_timer_to_const 2*DISK_READ_TIME
-	set_timer_to_target twice_full_sector_time
-	JSR pt3_irq_handler
-	JMP exit_interrupt
+	set_timer_to_target twice_full_sector_time ; Roughly 1/40th of a second
+	BVC pt3_and_exit_interrupt
 
 sector_already_read:
-
 	set_timer_to_target data_time_plus_tolerance
+	;; Because of preceding call,s I cannot guarantee
+	;; the the oVerflow flag is properly set for a
+	;; short branch... So I JMP.
 	JMP exit_interrupt
 
 read_sector:
-
 	JSR read_any_sector_in_track
 	BCC sector_already_read
 
@@ -281,6 +289,10 @@ read_sector:
 	;; interrupts.
 
 	set_timer_to_const TOLERANCE
+	JMP exit_interrupt
+
+pt3_and_exit_interrupt:
+	JSR pt3_irq_handler
 
 exit_interrupt:
 
@@ -293,6 +305,8 @@ exit_interrupt:
 	plp
 
 	RTI
+
+	;; -----------------------------------------------------------
 
 	.ifdef DEBUG
 
@@ -323,6 +337,16 @@ measure_pt3_speed:
 	RTS
 
 	.endif
+
+jump_table:
+	.byte 0			; 0
+	.byte read_sector - jump_smc - 2	; 1
+	.byte music_regular - jump_smc - 2	; 2
+	.byte music_long - jump_smc - 2
+	.byte music_short - jump_smc - 2
+	.byte loop_state - jump_smc - 2
+	.byte 0 ; stand_by_state
+	.byte short_silence - jump_smc - 2
 
 
 timer_read:	.word 0
@@ -392,21 +416,23 @@ data_time_plus_tolerance:	.word 0
 	LDA (MB_Base),Y		; (*) 5 cycles; read MOCK_6522_T1CH
 
 	LDY stepper
+	CPY #$FF
+	BEQ no_step
 	STA disk_times_hi,Y
 	TXA
 	STA disk_times_lo,Y
 	LDA sect
 	STA disk_times_sect, Y
-
+no_step:
 	SEC
 	LDA #$11
-	SBC sectors_to_read
+	SBC sectors_to_read_in_track
 	LDY sect
 	STA sector_status_debug,Y
 
 	.endif
 
-	DEC sectors_to_read
+	DEC sectors_to_read_in_track
 
 	SEC			; Carry set = sector read
 	RTS
@@ -423,12 +449,14 @@ sector_already_read:
 	LDA (MB_Base),Y		; (*) 5 cycles; read MOCK_6522_T1CH
 
 	LDY stepper
+	CPY #$FF
+	BEQ no_step2
 	STA disk_times_hi,Y
 	TXA
 	STA disk_times_lo,Y
 	LDA sect
 	STA disk_times_sect, Y
-
+no_step2:
 	.endif
 
 
@@ -460,7 +488,7 @@ sector_already_read:
 
 	;; Are we still reading some sectors in the current track ?
 
-	LDA sectors_to_read
+	LDA sectors_to_read_in_track
 	BNE still_stuff_to_read
 
 current_track_finished:
@@ -614,7 +642,7 @@ set_page_loop:
 	STA first_page
 
 	;; Restart the disk read/music play choregraphy
-	LDA #0
+	LDA #$FF
 	STA stepper
 
 	;; Compute how many sectors we'll need to read in this track
@@ -624,9 +652,9 @@ set_page_loop:
 	SBC track_first_sector
 	CLC
 	ADC #1
-	STA sectors_to_read
+	STA sectors_to_read_in_track
 
-	;; Right now, sectors_to_read guards the secto reading.
+	;; Right now, sectors_to_read_in_track guards the sector reading.
 	;; Therefore I set it last.
 
 	RTS
