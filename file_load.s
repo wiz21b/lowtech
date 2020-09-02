@@ -1,13 +1,4 @@
 	TOLERANCE = $100	; $100 OK on AWin, bugs on Mame
-
-	;; Demo :
-	;; $80, $110, $180 ok mame
-	;; $80 almost OK on AWin
-
-	;; Checkdisk:
-	;; $80 ends up freezing on Mame
-
-
 	Temp = $FF
 
 	;; All these values are globals because else we
@@ -109,55 +100,57 @@ sector_already_read:
 	SHORT_SILENCE = 7
 
 read_sector_states:
-.byte READ_SECTOR		; 1
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR		; A
-.byte MUSIC_REGULAR
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR		; $10
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG		; $14
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_REGULAR		; $17
-.byte SHORT_SILENCE		; $18
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_REGULAR
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_SHORT
-.byte READ_SECTOR
-.byte MUSIC_LONG
-.byte MUSIC_LONG
-.byte MUSIC_LONG
+	.include "build/choregraphy.inc"
+
+;; .byte READ_SECTOR		; 1
+;; .byte MUSIC_LONG
+;; .byte MUSIC_SHORT
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_SHORT
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_SHORT
+;; .byte READ_SECTOR		; A
+;; .byte MUSIC_REGULAR
+;; .byte MUSIC_SHORT
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_SHORT
+;; .byte READ_SECTOR		; $10
+;; .byte MUSIC_LONG
+;; .byte MUSIC_SHORT
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG		; $14
+;; .byte MUSIC_SHORT
+;; .byte READ_SECTOR
+;; .byte MUSIC_REGULAR		; $17
+;; .byte SHORT_SILENCE		; $18
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_SHORT
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_SHORT
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_SHORT
+;; .byte READ_SECTOR
+;; .byte MUSIC_REGULAR
+;; .byte MUSIC_SHORT
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_SHORT
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_SHORT
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_SHORT
+;; .byte READ_SECTOR
+;; .byte MUSIC_LONG
+;; .byte MUSIC_LONG
+;; .byte MUSIC_LONG
 
 	.byte LOOP_STATES
 
@@ -179,15 +172,15 @@ sector_status_debug:
 	.byte $0
 	.endrepeat
 disk_times_lo:
-	.repeat 64
+	.repeat 128
 	.byte $0
 	.endrepeat
 disk_times_hi:
-	.repeat 64
+	.repeat 128
 	.byte $0
 	.endrepeat
 disk_times_sect:
-	.repeat 64
+	.repeat 128
 	.byte $0
 	.endrepeat
 dummy:	.word 0
@@ -278,6 +271,8 @@ sector_already_read:
 	JMP exit_interrupt
 
 read_sector:
+	;; INC $2005
+	;; INC $4005
 	JSR read_any_sector_in_track
 	BCC sector_already_read
 

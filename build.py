@@ -91,7 +91,7 @@ MESSAGE = ["This demo was",
            "RWTS code",
            "",
            "   Apple Inc.",
-           ""
+           "",
            "Apple model detect",
            "",
            "   Grouik",
@@ -630,7 +630,7 @@ print("Running emulator")
 if args.dsk:
     final_disk = "NEW.DSK"
 else:
-    run(f"./dsk2woz {BUILD_DIR}/NEW.DSK {BUILD_DIR}/NEW.WOZ")
+    run(f"./dsk2woz_wiggles {BUILD_DIR}/NEW.DSK {BUILD_DIR}/NEW.WOZ")
     final_disk = "NEW.WOZ"
 
 final_disk = os.path.join(BUILD_DIR_ABSOLUTE, final_disk)

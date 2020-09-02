@@ -95,6 +95,12 @@ class AppleDisk:
         self._disk[dsk_ofs:dsk_ofs+SECTOR_SIZE] = data
 
 
+    def track(self):
+        return self._track
+
+    def sector(self):
+        return self._sector
+
     def set_track_sector( self, track, sector):
         self._track, self._sector = track, sector
 
@@ -210,6 +216,11 @@ class LoaderTOC:
         entry_ndx = 0
         for i, entry in enumerate(self._file_list):
             filepath, page_base, label = entry
+
+            if i == 5:
+                if self._disk.sector() != 0:
+                    self._disk.set_track_sector( self._disk.track() + 1, 0)
+
 
             with open( filepath,"rb") as fin:
                 data = fin.read()
