@@ -482,7 +482,7 @@ toc_disk.generate_unconfigured_toc( f"{BUILD_DIR}/loader_toc.s")
 
 
 run(f"{CA65} -o {BUILD_DIR}/loader.o -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
-run(f"{LD65} {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_loader.out")
+run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_loader.out")
 
 
 # Use this to optimize for space (in case the loader is small enough)
@@ -494,6 +494,18 @@ print(f"loader_page_base = {loader_page_base:02X}")
 #assert loader_page_base > 0x08, f"Loader space will conflict (start page {loader_page_base}) with FSTBT ROM calls to $801"
 assert loader_page_base == 0x08, "You must update the link.cfg file"
 
+with open(f"{BUILD_DIR}/LOADER","rb") as floader:
+    data = floader.read()
+    junk_mark = data.index("JUNK".encode())
+    assert junk_mark > 0, "I need a mark to find the code that can be overwritten"
+
+    loader_first_free_address = loader_page_base*256 + junk_mark
+
+    print(f"Loader's first free address = ${loader_first_free_address:X}.")
+    assert loader_first_free_address - 1 < 0x2000, "The part of the loader's code that can't be overwritten will be because it's on HGR pages !"
+
+    fb = 0x2000 - loader_first_free_address
+    print(f"Loader's free bytes = {fb}.")
 
 # Now that the loader is built (with incomplete TOC data but correct
 # size), we can build other modules which depends on its routines.

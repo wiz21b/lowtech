@@ -25,6 +25,13 @@ class Commands(Enum):
     SHORT_SILENCE = 7
 
 commands = []
+
+def write_commands( name):
+    with open(f"build/{name}.inc","w") as fout:
+        for i,c in enumerate(commands):
+            fout.write( f"    .byte {c.name}\t;{i+1:X}\n")
+
+
 tops = dict()
 
 
@@ -301,6 +308,8 @@ def make_fast_load_choregraphy(screen):
         for top, size in rdadr_delays:
             draw_exp_delay( screen, top, size, offset)
 
+    write_commands("choregraphy_fast")
+
 
 def make_slow_load_choregraphy(screen):
 
@@ -351,28 +360,30 @@ def make_slow_load_choregraphy(screen):
     pattern1( 105)
     read_sect( screen, 113)
 
+    write_commands("choregraphy_slow")
+
+
+def main_loop():
+    # main loop
+    running = True
+    while running:
+        # event handling, gets all event from the event queue
+        for event in pygame.event.get():
+            # only do something if the event is of type QUIT
+            if event.type == pygame.QUIT:
+                # change the value to False, to exit the main loop
+                running = False
+
 
 pygame.init()
 screen = pygame.display.set_mode((1600,900))
 screen.fill( WHITE)
-
+commands = []
 make_slow_load_choregraphy(screen)
-#make_fast_load_choregraphy(screen)
-
 pygame.display.flip()
+main_loop()
 
-
-
-# main loop
-running = True
-while running:
-    # event handling, gets all event from the event queue
-    for event in pygame.event.get():
-        # only do something if the event is of type QUIT
-        if event.type == pygame.QUIT:
-            # change the value to False, to exit the main loop
-            running = False
-
-with open("build/choregraphy.inc","w") as fout:
-    for i,c in enumerate(commands):
-        fout.write( f"    .byte {c.name}\t;{i+1:X}\n")
+commands = []
+make_fast_load_choregraphy(screen)
+pygame.display.flip()
+main_loop()

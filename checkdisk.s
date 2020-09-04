@@ -75,17 +75,16 @@
 
 	.align 256
 	PT3_LOC = *
-	.incbin "data/2UNLIM2.pt3" ;FR.PT3"
+	;.incbin "data/2UNLIM2.pt3" ;FR.PT3"
+	.incbin "data/BH_FAST.pt3" ;FR.PT3"
 	;.align 256
 
 disk_toc:
 	;; 1st track, 1st sector, last track, last sector, 1st memory page
 	.byte 3,9,4,11,$E0
 	.byte 6,0,6,15,$E0
-
-	.byte 0,0,0,3,$04
-	.byte 6,4,7,2,$E0
-	.byte 0,0,0,3,$04
+	.byte 8,1,8,14,$E0
+	.byte 10,0,10,15,$E0
 
 	.include "read_sector.s" ; RWTS code
 
@@ -610,8 +609,14 @@ infiniloop:
 	LDA loaded_file
 	CLC
 	ADC #1
-	AND #1
+	AND #3
 	STA loaded_file
+
+	AND #1
+	CLC
+	ROR
+	ROR
+	ORA loaded_file
 
 	JSR init_file_load
 

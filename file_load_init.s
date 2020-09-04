@@ -11,6 +11,7 @@
 
 	;; Global calibration variables to avoid .scope hell
 
+	.byte "JUNK"
 	CALIBRATION_RUNS = 128	;MUST BE 128 (hardcoded computations)
 
 total_data_time:	.byte 0,0,0

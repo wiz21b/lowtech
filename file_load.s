@@ -1,59 +1,4 @@
-	TOLERANCE = $100	; $100 OK on AWin, bugs on Mame
-	Temp = $FF
 
-	;; All these values are globals because else we
-	;; end up in a .scoe mangement nightmare (ca65 is
-	;; quite defective here :-( )
-first_page:	.byte $20
-first_sector:	.byte 0
-first_track:	.byte 0
-last_sector:	.byte 0
-last_track:	.byte 0
-track_last_sector:	.byte 0
-track_first_sector:	.byte 0
-first_track_iteration:	.byte 0
-
-
-	.proc init_file_load
-
-	;; Prepare the data structures to load a file.
-	;; A = file index in TOC (cf. disk_toc)
-
-	mul_a_by_5
-
-	TAX
-
-	LDA disk_toc,X
-	STA first_track
-	STA current_track
-
-	LDA disk_toc+1,X
-	STA first_sector
-	LDA disk_toc+2,X
-	STA last_track
-	LDA disk_toc+3,X
-	STA last_sector
-
-	;; Pages will be incremented, starting from first_page.
-	;; So if a file is 17 sectors long, then it will be
-	;; loaded from first_page to first_page + (17-1), inclusive.
-
-	LDA disk_toc+4,X
-	STA first_page
-
-	LDA #1
-	STA first_track_iteration
-
-	;; Make sure the IRQ doesn't start reading any leftovers.
-
-	LDA #0
-	STA sectors_to_read_in_track
-	LDA #$FF
-	STA stepper
-
-	RTS
-
-	.endproc
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -91,6 +36,21 @@ sector_already_read:
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+	TOLERANCE = $100	; $100 OK on AWin, bugs on Mame
+	Temp = $FF
+
+	;; All these values are globals because else we
+	;; end up in a .scope mangement nightmare (ca65 is
+	;; quite defective here :-( )
+first_page:	.byte $20
+first_sector:	.byte 0
+first_track:	.byte 0
+last_sector:	.byte 0
+last_track:	.byte 0
+track_last_sector:	.byte 0
+track_first_sector:	.byte 0
+first_track_iteration:	.byte 0
+
 	READ_SECTOR = 1
 	MUSIC_REGULAR = 2
 	MUSIC_LONG = 3
@@ -99,59 +59,12 @@ sector_already_read:
 	STAND_BY_STATE = 6
 	SHORT_SILENCE = 7
 
-read_sector_states:
-	.include "build/choregraphy.inc"
-
-;; .byte READ_SECTOR		; 1
-;; .byte MUSIC_LONG
-;; .byte MUSIC_SHORT
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_SHORT
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_SHORT
-;; .byte READ_SECTOR		; A
-;; .byte MUSIC_REGULAR
-;; .byte MUSIC_SHORT
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_SHORT
-;; .byte READ_SECTOR		; $10
-;; .byte MUSIC_LONG
-;; .byte MUSIC_SHORT
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG		; $14
-;; .byte MUSIC_SHORT
-;; .byte READ_SECTOR
-;; .byte MUSIC_REGULAR		; $17
-;; .byte SHORT_SILENCE		; $18
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_SHORT
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_SHORT
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_SHORT
-;; .byte READ_SECTOR
-;; .byte MUSIC_REGULAR
-;; .byte MUSIC_SHORT
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_SHORT
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_SHORT
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_SHORT
-;; .byte READ_SECTOR
-;; .byte MUSIC_LONG
-;; .byte MUSIC_LONG
-;; .byte MUSIC_LONG
-
+choregraphy:
+choregraphy_fast:
+	.include "build/choregraphy_fast.inc"
+	.byte LOOP_STATES
+choregraphy_slow:
+	.include "build/choregraphy_slow.inc"
 	.byte LOOP_STATES
 
 ;; STAND_BY_STATE_NDX = * - read_sector_states
@@ -226,7 +139,7 @@ dummy:	.word 0
 	INC stepper		; 6
 	LDY stepper		; 4
 read_sector_state:
-	LDA read_sector_states,Y ; 4+
+	LDA choregraphy,Y ; 4+
 
 	TAX			; 2
 	LDA jump_table,X	; 4+
@@ -698,6 +611,75 @@ wait_sector_zero:
 	;lda	#$7F		; clear all interrupt flags
 	set_timer_to_const $FFFE
 	CLI
+
+	RTS
+
+	.endproc
+
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	.proc init_file_load
+
+	;; A  = file index in the table of content
+
+	;; The table of content is made of bytes :
+	;; 1st track, 1st sector, last track, last sector, 1st memory page
+
+
+	;; Make sure the IRQ doesn't start reading any leftovers.
+
+	LDX #0
+	STX sectors_to_read_in_track
+	LDX #$FF
+	STX stepper
+
+	;; Configure the kind of loading we want
+
+	CMP #128		; N = bit 7 of A - 128
+	BPL slow_load
+	LDX #<choregraphy_fast
+	STX disk_irq_handler2::read_sector_state + 1
+	LDX #>choregraphy_fast
+	STX disk_irq_handler2::read_sector_state + 2
+	BNE done_config_choregraphy
+slow_load:
+	LDX #<choregraphy_slow
+	STX disk_irq_handler2::read_sector_state + 1
+	LDX #>choregraphy_slow
+	STX disk_irq_handler2::read_sector_state + 2
+
+done_config_choregraphy:
+	AND #127
+
+	;; Prepare the data structures to load a file.
+	;; A = file index in TOC (cf. disk_toc)
+
+	mul_a_by_5
+
+	TAX
+
+	LDA disk_toc,X
+	STA first_track
+	STA current_track
+
+	LDA disk_toc+1,X
+	STA first_sector
+	LDA disk_toc+2,X
+	STA last_track
+	LDA disk_toc+3,X
+	STA last_sector
+
+	;; Pages will be incremented, starting from first_page.
+	;; So if a file is 17 sectors long, then it will be
+	;; loaded from first_page to first_page + (17-1), inclusive.
+
+	LDA disk_toc+4,X
+	STA first_page
+
+	LDA #1
+	STA first_track_iteration
+
 
 	RTS
 
