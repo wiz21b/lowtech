@@ -647,11 +647,11 @@ else:
 
 final_disk = os.path.join(BUILD_DIR_ABSOLUTE, final_disk)
 
-if (args.mame or platform.system() == "Linux") and (not args.awin):
+if args.mame:
     # -resolution 1200x900
     # -sound none
     run(f"{MAME} apple2e -volume -12 -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {final_disk}")
-else:
+elif args.awin:
     if platform.system() == "Linux":
         final_disk = final_disk.replace("/",r"\\")
     run(f"{APPLEWIN} -d1 {final_disk} -conf ~/applewin.ini")

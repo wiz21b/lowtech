@@ -70,10 +70,10 @@ from gz3 import longest_paths_search
 
 
 
-#SHAPE = "Ogon"
+SHAPE = "Ogon"
 #SHAPE = "Tetrahedron"
 #SHAPE = "Cube"
-SHAPE = "Cube2"
+#SHAPE = "Cube2"
 #SHAPE="Grid"
 DEBUG = False
 TILE_SIZE = APPLE_HGR_PIXELS_PER_BYTE
@@ -182,7 +182,7 @@ axis2 = [-0.5,0.5,1]
 if SHAPE == "Tetrahedron":
 
     HIDDEN_FACES = True
-    NB_FRAMES = 240
+    NB_FRAMES = 2400
 
     ATTENUATION = math.pi
     ZOOM=600
@@ -354,6 +354,9 @@ def export_faces( faces, rot):
                 xv[v.vid] = Vtx( *rotate_quat( rot, [v.x,v.y,v.z])).grab_id(v)
             vp.append( xv[v.vid])
         face.xformed_vertices = vp
+
+
+    # Split a face in triangles if it has more than 3 vertices
 
     atriangles = []
     for face in faces:
@@ -1550,12 +1553,12 @@ def frame_draw( screen, paths):
 pygame.init()
 screen = pygame.display.set_mode( (APPLE_XRES, APPLE_YRES))
 
-# recorder_frames = animate_3D( screen)
-# with open( SHAPE,"wb") as f_out:
-#     pickle.dump( recorder_frames, f_out)
+recorder_frames = animate_3D( screen)
+with open( SHAPE,"wb") as f_out:
+    pickle.dump( recorder_frames, f_out)
 
-with open( SHAPE,"rb") as f_in:
-    recorder_frames = pickle.load( f_in)
+# with open( SHAPE,"rb") as f_in:
+#     recorder_frames = pickle.load( f_in)
 
 
 compute_vertical_tiles()
@@ -1644,6 +1647,8 @@ with open("build/lines.s","w") as fo:
 
         #print( "Bin: {} {}".format( len(frame_bin_data), frame_bin_data))
 
+        frame_mem_block = bytearray()
+
         for li,l in enumerate( paths_to_bytes( compressed_edges)):
 
             a = Vertex( l[0],l[1])
@@ -1659,7 +1664,7 @@ with open("build/lines.s","w") as fo:
 
             #if type(bin_data) == bytearray:
             if bin_data:
-                mem_block.extend(bin_data)
+                frame_mem_block.extend(bin_data)
 
             update_win_boundaries(a)
             update_win_boundaries(b)
@@ -1673,49 +1678,79 @@ with open("build/lines.s","w") as fo:
             #     npixels += int(abs(dy)) * 20
 
 
-        win_w = int(win_x_max - win_x_min)
-        win_h = int(win_y_max - win_y_min)
-        surf = int(win_w*win_h * APPLE_XRES*APPLE_YRES/40000)
-        nb_segments = len(frame)
-        print(f"Frame draws {npixels} cycles; {nb_segments} segments. Clearing woud cost {surf} cycles ({win_w}x{win_h}).")
+        # win_w = int(win_x_max - win_x_min)
+        # win_h = int(win_y_max - win_y_min)
+        # surf = int(win_w*win_h * APPLE_XRES*APPLE_YRES/40000)
+        # nb_segments = len(frame)
+        # print(f"Frame draws {npixels} cycles; {nb_segments} segments. Clearing woud cost {surf} cycles ({win_w}x{win_h}).")
 
-        if frame_ndx != len(recorder_frames)-1:
-            # not the last frame
+        # The whole thing here is to figure the byte mark to
+        # put at the end of the block
 
+        # def write_block( mark):
+        #     global nb_mem_blocks, mem_block
 
-            # One disk track = 4KB, memory above 0xD000 is 12 kb => 3
-            # tracks I just need to have two alternating tracks (I
-            # could use 1.5 tracks because 12kb / 2 = 6 kb = 1.5
-            # track).
+        #     mem_block.extend( bytes([ mark ]))
 
-            if len(mem_block) > 16*256 - 512:
-                mem_block.extend( bytes([5]))
+        #     n = f"build/xbin_lines{nb_mem_blocks:02d}"
+        #     print(f"Writing 3D block, {len(mem_block)} bytes in {n}")
+        #     with open( n, "wb") as fo_bin:
+        #         fo_bin.write(mem_block)
 
-
-
-                fo.write(f"; File split {nb_mem_blocks}\n")
-                assert len(mem_block) <= 16*256, "the threshold is too big, {}".format(len(mem_block))
-                with open(f"build/bin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
-                    fo_bin.write(mem_block)
-                    nb_mem_blocks += 1
-
-                mem_block = bytearray()
+        #     nb_mem_blocks += 1
+        #     mem_block = bytearray()
 
 
-            else:
-                if frame_ndx == 0:
-                    fo.write(f"\t.byte 3\t;; end of frame {frame_ndx}\n")
-                mem_block.extend( bytes([3]))
 
-        else:
-            if frame_ndx == 0:
-                fo.write("\t.byte 4\t;; end of animation\n")
-            mem_block.extend( bytes([4]))
+        # if frame_ndx == len(recorder_frames) - 1:
+        #     mem_block.extend( frame_mem_block)
+        #     write_block(4)
+        # else:
+        #     if len( frame_mem_block) + len( mem_block) < 16*256 - 2:
+        #         # Regular frame
+        #         mem_block.extend( frame_mem_block)
+        #         mem_block.extend( bytes([3])) # end of frame
+        #     else:
+        #         # Last frame of the block
+        #         write_block(5)
+        #         mem_block.extend( frame_mem_block)
 
 
-        if frame_ndx == 0:
-            l = len(mem_block)
-            fo.write(f"line_data_frame2:\t;Beginning of second frame; {l} bytes\n")
+        # if frame_ndx != len(recorder_frames)-1:
+        #     # not the last frame
+
+
+        #     # One disk track = 4KB, memory above 0xD000 is 12 kb => 3
+        #     # tracks I just need to have two alternating tracks (I
+        #     # could use 1.5 tracks because 12kb / 2 = 6 kb = 1.5
+        #     # track).
+
+        #     if len(mem_block) > 16*256 - 512:
+        #         mem_block.extend( bytes([5]))
+
+        #         fo.write(f"; File split {nb_mem_blocks}\n")
+        #         assert len(mem_block) <= 16*256, "the threshold is too big, {}".format(len(mem_block))
+        #         with open(f"build/bin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
+        #             fo_bin.write(mem_block)
+        #             nb_mem_blocks += 1
+
+        #         mem_block = bytearray()
+
+
+        #     else:
+        #         if frame_ndx == 0:
+        #             fo.write(f"\t.byte 3\t;; end of frame {frame_ndx}\n")
+        #         mem_block.extend( bytes([3]))
+
+        # else:
+        #     if frame_ndx == 0:
+        #         fo.write("\t.byte 4\t;; end of animation\n")
+        #     mem_block.extend( bytes([4]))
+
+
+        # if frame_ndx == 0:
+        #     l = len(mem_block)
+        #     fo.write(f"line_data_frame2:\t;Beginning of second frame; {l} bytes\n")
 
 
 
@@ -1727,9 +1762,11 @@ with open("build/lines.s","w") as fo:
     ndx = 0
     while ndx < len(cframes_bins):
 
+        print("New block")
         block = []
         while ndx < len(cframes_bins):
             frame_bin = cframes_bins[ndx]
+            print(f"Adding ? {len(frame_bin)} bytes")
             if len( frame_bin) + len(block) + 2 < 16*256:
                 block.extend( frame_bin)
                 ndx += 1
@@ -1737,6 +1774,7 @@ with open("build/lines.s","w") as fo:
                 break
 
         block.append( 0) # Dummy byte count (zero helps the code to be simpler)
+        print(f"Writing 3D block, {len(block)} bytes.")
 
         if ndx < len(cframes_bins):
             block.append( END_OF_TRACK)
@@ -1747,9 +1785,10 @@ with open("build/lines.s","w") as fo:
             fo_bin.write( bytearray( block))
         nb_mem_blocks += 1
 
-    if block:
-        with open(f"build/xbin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
-            fo_bin.write( bytearray( block))
+    # if block:
+    #     print(f"Writing 3D block, {len(block)} bytes.")
+    #     with open(f"build/xbin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
+    #         fo_bin.write( bytearray( block))
 
 
     TOTAL_ANIM_SECONDS = 6.74/2 # 14.6 with player
