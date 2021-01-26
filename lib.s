@@ -20,28 +20,28 @@ pause_count:	.word 0
 
 
 	.proc clear_hgr
+	;; A = color to clear with
 
 	sta smc + 1
-	store_16 dummy_pointer, (HGR_RAM + $4000)
+	store_16 dummy_pointer, HGR_RAM
+	ldx #$40
+
+	;; HGR memory is $4000 bytes => $40 x 256
 
 clear_hgr_loop:
-	dec16 dummy_pointer
 
 smc:
 	LDA #$00
+
 	LDY #0
+clear_block:
 	STA (dummy_pointer), Y
+	DEY
+	BNE clear_block
 
-
-	lda #$20
-	cmp dummy_pointer + 1
-	bne clear_hgr_loop
-
-	INC $650+36
-
-	lda #0
-	cmp dummy_pointer
-	bne clear_hgr_loop
+	INC dummy_pointer + 1
+	DEX
+	BNE clear_hgr_loop
 
 	RTS
 	.endproc

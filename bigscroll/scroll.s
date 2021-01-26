@@ -5,6 +5,8 @@
 	.segment "CODE"
 
 	.import ticks
+	.import init_file_load, load_file, handle_track_progress
+
 
 	.include "defs.s"
 	.include "precalc_def.s"
@@ -39,6 +41,8 @@
 	LDY #$20
 	jsr mem_copy
 
+	;JSR block_draw
+
 
 	.ifdef DEBUG
 	LDA $C053
@@ -59,7 +63,17 @@
 
 freeze:
 
-;infiniloop:	JMP infiniloop
+	FILE_THREED = 3
+	FILE_DATA_3D_0 = 4
+	FILE_DATA_3D_1 = 5
+
+	FILE1 = FILE_THREED
+	FILE2 = FILE_DATA_3D_0
+	FILE3 = FILE_DATA_3D_1
+
+
+	LDA #FILE1
+	JSR init_file_load
 
 	store_16 text_pointer, m2_the_message
 	JSR draw_text_line_animated
@@ -186,6 +200,15 @@ reset:
 	LDA count
 	CMP matrix_row_count
 	BEQ reset2
+
+;; 	CMP #130
+;; 	BNE dont_load
+;; 	LDA #FILE3
+;; 	JSR init_file_load
+;; dont_load:
+	BMI don_load2
+	JSR handle_track_progress
+don_load2:
 	jmp loop2
 reset2:
 	;store_16  ticks, 0
@@ -284,7 +307,7 @@ copy_block:
 	LDA #TEXT_PANE_START
 	STA x_pos
 
-	LDA #(192 - LINE_HEIGHT*8)/2
+	LDA #(192 - LINE_HEIGHT*8)/2 - LINE_HEIGHT
 	STA y_pos
 
 	LDY #0
@@ -331,6 +354,22 @@ not_a_space:
 
 continue_loop0:
 	INC message_ndx
+
+	LDA message_ndx
+
+	CMP #20
+	BNE not_file2
+	LDA #FILE2
+	JSR init_file_load
+	JMP just_load
+not_file2:
+	CMP #40
+	BNE not_file3
+	LDA #FILE3
+	JSR init_file_load
+not_file3:
+just_load:
+	JSR handle_track_progress
 	JMP show_message_loop0
 
 end_text:
@@ -741,5 +780,72 @@ RELd1:	sta $2000,x
 	dey
         bne RELs1
 	RTS
+
+	;; -----------------------------------------------------------
+
+block_draw:
+	LDA #100
+	STA ypos_start		; the block will be drawn from ypos_start
+	LDA #180
+	STA ypos_end		; to ypos_end
+	LDA #30			; it will start on X = 30 (measured in bytes)
+	STA xpos
+
+	LDA #5			; the width of the block, in bytes
+	STA row_width
+
+	;; dummy_ptr = src of data
+
+	LDA #$C0
+	STA dummy_ptr + 1
+	LDA #0
+	STA dummy_ptr
+
+	JMP block_draw_entry_point
+
+loop_row:
+	;; A = Y of current line
+	TAX
+
+	;; offset: dummy_ptr2 := hgr_offset[X] + h_pos
+	CLC
+	LDA hgr4_offsets_lo,X
+xpos = * + 1
+	ADC #0
+	STA dummy_ptr2
+	LDA hgr4_offsets_hi,X
+	ADC #0
+	STA dummy_ptr2+1
+
+row_width = * + 1
+	LDY #0
+
+byte_loop:
+	LDA (dummy_ptr),Y
+	STA (dummy_ptr2),Y
+	DEY
+	BPL byte_loop
+
+	;; Advance the source pointer
+	CLC
+	LDA dummy_ptr
+	ADC row_width
+	STA dummy_ptr
+	LDA dummy_ptr+1
+	ADC #0
+	STA dummy_ptr+1
+
+	INC ypos_start
+
+block_draw_entry_point:
+	ypos_start = * + 1
+	LDA #0
+
+	ypos_end = * + 1
+	CMP #0
+	BNE loop_row
+
+	RTS
+
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

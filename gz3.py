@@ -7,6 +7,14 @@ def _lp_search_helper( g, node, seen_edges = set()):
     # path possible in a graph g. We do a depth
     # first search, on all nodes of the graph.
 
+    # From wikipedia : Furthermore, the longest path problem is
+    # solvable in polynomial time on any class of graphs with bounded
+    # treewidth or bounded clique-width, such as the
+    # distance-hereditary graphs. Finally, it is clearly NP-hard on
+    # all graph classes on which the Hamiltonian path problem is
+    # NP-hard, such as on split graphs, circle graphs, and *** planar
+    # graphs. *** => so we're in deep troubles.
+
     #print(f"node : {node}, {seen_edges}")
     # print(seen_edges)
 

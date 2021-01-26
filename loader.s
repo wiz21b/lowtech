@@ -14,9 +14,9 @@ dummy_pointer = 254
 	.segment "LOADER"
 
 	.export first_page
-	.export init_file_load
+	.export init_file_load, load_file, handle_track_progress
 	.export start_player
-	.export handle_track_progress
+	.export FILE_ICEBERG_LOAD_ADDR
 
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -30,6 +30,10 @@ dummy_pointer = 254
 	;set_irq_vector disk_irq_handler2
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	FIRST_PART  = 1
+	THREED_PART = 1
+
 
 	;; Setting those up before activating language card RAM bank
 	;; seems important. Without that, things go totally wrong
@@ -60,6 +64,15 @@ dummy_pointer = 254
 
 	JSR DECOMPRESS_LZSA2_FAST
 
+	.if FIRST_PART = 0
+	LDA #FILE_THREED
+	JSR load_file_no_irq
+	LDA #FILE_DATA_3D_0
+	JSR load_file_no_irq
+	LDA #FILE_DATA_3D_1
+	JSR load_file_no_irq
+	.endif
+
 	.ifdef MUSIC
 	JSR start_player
 	.endif
@@ -69,7 +82,7 @@ dummy_pointer = 254
 
 	;; -----------------------------------------------------------
 
-	FIRST_PART = 1
+
 
 	.if FIRST_PART = 1
 	LDA #FILE_EARTH
@@ -88,13 +101,14 @@ dummy_pointer = 254
 
 	;; -----------------------------------------------------------
 
-	LDA #FILE_THREED
-	.ifdef MUSIC
-	JSR load_file;_no_irq
-	.else
-	JSR load_file_no_irq
-	.endif
+	;; LDA #FILE_THREED
+	;; .ifdef MUSIC
+	;; JSR load_file
+	;; .else
+	;; JSR load_file_no_irq
+	;; .endif
 
+	.if THREED_PART = 1
 	THREED_ADDRESS = $6000
 
 	LDA #<FILE_THREED_LOAD_ADDR
@@ -109,29 +123,20 @@ dummy_pointer = 254
 
 	JSR DECOMPRESS_LZSA2_FAST
 
-	LDA #FILE_DATA_3D_0
-	.ifdef MUSIC
-	JSR load_file;_no_irq
-	.else
-	JSR load_file_no_irq
-	.endif
-
-	LDA #FILE_DATA_3D_1
-	.ifdef MUSIC
-	JSR load_file;_no_irq
-	.else
-	JSR load_file_no_irq
-	.endif
-
 	LDA #FILE_DATA_3D_2
 	JSR $6000
+	.endif
 
 
 	;; -----------------------------------------------------------
 
 the_end:
-	LDA #FILE_PICTURE
+
+	.if THREED_PART = 0
+	LDA #FILE_ICEBERG
 	JSR load_file
+	.endif
+
 	LDA #FILE_VERTI_SCROLL
 	JSR load_file
 	JSR $6000
@@ -226,7 +231,9 @@ txt_ofs:
 	; if you're self patching, detect has to be after
 	; interrupt_handler.s
 	.byte "---FILE_LOAD"
-disk_toc: .include "build/loader_toc.s"
+disk_toc:
+	.include "build/toc_equs.inc"
+	.include "build/toc_data.inc"
 	.include "file_load.s"
 	.byte "---THROWABLE"
 	.include "pt3_lib/pt3_lib_mockingboard_detect.s"

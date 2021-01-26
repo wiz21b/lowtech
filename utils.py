@@ -1,7 +1,11 @@
-import portion
+import os
 import random
 import re
 import math
+import platform
+import subprocess
+
+import portion
 import colorama
 import numpy as np
 import pygame
@@ -176,15 +180,29 @@ class LoaderTOC:
         for line in d:
             self.add_file( *line)
 
+    def _make_toc_files( self, path, toc):
+        with open( os.path.join( path, "toc_equs.inc"),"w") as fout:
+            for l in toc:
+                if "=" in l:
+                    fout.write(f"{l}\n")
+
+        with open( os.path.join( path, "toc_data.inc"),"w") as fout:
+            for l in toc:
+                if "=" not in l:
+                    fout.write(f"{l}\n")
+
     def generate_unconfigured_toc( self, path):
-        with open( path, "w") as fout:
-            # The first file is expected to be the loader
-            for i, entry in enumerate( self._file_list[1:]):
-                filepath, page_base, label = entry
-                uplbl = label.upper()
-                fout.write( f"FILE_{uplbl} = {i}\n")
-                fout.write( f"FILE_{uplbl}_LOAD_ADDR = ${page_base:X}00\n")
-                fout.write( "\t.byte 0,0,0,0,0\n")
+        toc = []
+
+        # The first file is expected to be the loader
+        for i, entry in enumerate( self._file_list[1:]):
+            filepath, page_base, label = entry
+            uplbl = label.upper()
+            toc.append(f"FILE_{uplbl} = {i}")
+            toc.append(f"FILE_{uplbl}_LOAD_ADDR = ${page_base:X}00")
+            toc.append("\t.byte 0,0,0,0,0")
+
+        self._make_toc_files( path, toc)
 
     def update_file( self, path, start_page, nickname):
         success = False
@@ -203,7 +221,7 @@ class LoaderTOC:
             self._disk.write_data( fin.read(), 0x08)
 
 
-    def generate_disk( self, tocfile):
+    def generate_disk( self, path):
         # We write the loader once (it will be rewritten
         # when the TOC will be fully known). This is just to
         # position the other file (ie not the loader) correctly
@@ -245,9 +263,7 @@ class LoaderTOC:
                     toc.append( s)
                     entry_ndx += 1
 
-        with open( tocfile,"w") as fout:
-            fout.write("\n".join( toc))
-
+        self._make_toc_files( path, toc)
 
     def save( self):
 
@@ -407,6 +423,9 @@ class Edge:
     def points( self):
         return [self.v1, self.v2]
 
+    def length(self):
+        return (self.v1 - self.v2).norm()
+
     @property
     def ray( self):
         return self.v2 - self.v1
@@ -449,6 +468,9 @@ class Triangle:
 
     def __format__(self,fmt):
         return f"[Tri: {self.a} | {self.b} | {self.c}]"
+
+    def vertices( self):
+        return [self.a,self.b,self.c]
 
     def normal( self):
         ab = self.b - self.a
@@ -511,6 +533,40 @@ class Triangle:
         return ( t,u,v)
 
 
+
+def read_wavefront(fpath):
+    """ Reads a wave front .obj file (can be exported
+    by Blender easily.
+    """
+
+    vertices = []
+    faces = []
+
+    with open(fpath, "r") as fin:
+        for l in fin.readlines():
+            line = l.strip()
+
+            if line[0] == 'v':
+                v = [float(x) for x in line[2:].split()]
+                v = Vertex(v[0], v[1], v[2])
+                vertices.append(v)
+                print(v)
+            elif line[0] == 'f':
+                d = line[2:].split()
+                v = [vertices[int(t.split("//")[0]) - 1] for t in d]
+
+                t = Face(v[0], v[1], v[2], hidden=False)
+                faces.append(t)
+
+                print(t)
+
+            else:
+                print(line)
+
+    print(f"{len(vertices)} vertices, {len(faces)} faces")
+
+    return vertices, faces
+
 def all_edges_intersections( tri, edges):
 
     # print(f"all_edges_intersections : {tri}")
@@ -537,6 +593,29 @@ def all_edges_intersections( tri, edges):
 
 
 def intersect_triangle( view_tri, tri):
+
+    """The view triangle is the one defined by a vertex located at the
+    view point (A) and a segment of which we're interested in computing
+    the visibility (BC).
+
+    We'll intersect that view triangle with all other triangles in
+    the scene.
+
+    The intersection between view triangle and another triangle is
+    made of 0,1 or 2 points of intersection. 0 means no intersection,
+    1 means both triangle are just touching each other in a locus made
+    of one point, 2 means there's an intersection locus made of a
+    segment.
+
+    Given an intersection segment, I1-I2, we're interested in
+    knowing how much of BC is hidden. To to that we simply
+    project I1 on BC along A-I1 (let P1 that point)  and I2 on
+    BC along A-I2 (P2).
+
+    At this point we know that BC minus P1P2 is visible and
+    that BP1 an P2C are the visible parts (provided P1 is closer
+    to B than P2, which depends on the triangle positions).
+    """
 
     # print("---------- intersect_triangle")
 
@@ -637,7 +716,9 @@ def intersect_triangle( view_tri, tri):
         print("Intersections 1 : {}".format( [str(i) for i in intersections1]))
         print("Intersections 2 : {}".format( [str(i) for i in intersections2]))
 
-        raise Exception("")
+        # raise Exception("")
+
+        inter_ts = []
 
 
 
@@ -748,6 +829,9 @@ class EdgePool:
     def __init__( self):
         self._edges = []
 
+    def edges(self):
+        return self._edges
+
     def add_edge( self, edge):
         assert edge not in self._edges
         self._edges.append( edge)
@@ -830,6 +914,13 @@ def special_points( v):
     return top, v_left, v_right
 
 class Face:
+    def set_vertices( self, vert):
+        self.vertices = vert
+        a,b,c = vert[0],vert[1],vert[2]
+        self.normal = (b-a).cross(c-a)
+        self.edges = len( self.vertices)
+        return self
+
     def __init__( self, a, b, c = None, z = None, hidden=True):
 
 
@@ -917,6 +1008,32 @@ def cube( size=1, translate = Vertex(0,0,0), hidden=True):
              ]
 
     return faces
+
+
+def block( size=Vertex(1,1,1), translate = Vertex(0,0,0), hidden=True):
+    Vtx = Vertex
+
+    ap = Vtx(-size.x,-size.y,-size.z) + translate
+    bp = Vtx(+size.x,-size.y,-size.z) + translate
+    cp = Vtx(+size.x,+size.y,-size.z) + translate
+    dp = Vtx(-size.x,+size.y,-size.z) + translate
+
+    app = Vtx(-size.x,-size.y,size.z) + translate
+    bpp = Vtx(+size.x,-size.y,size.z) + translate
+    cpp = Vtx(+size.x,+size.y,size.z) + translate
+    dpp = Vtx(-size.x,+size.y,size.z) + translate
+
+    faces = [ Face( ap,bp,cp,dp,hidden), # front
+              Face( dpp,cpp,bpp,app,hidden),
+
+              Face( cp,cpp,dpp,dp,hidden),
+              Face( bp,bpp,cpp,cp,hidden),
+              Face( ap,app,bpp,bp,hidden),
+              Face( dp,dpp,app,ap,hidden),
+             ]
+
+    return faces
+
 
 
 def full_enum( v1, v2):
@@ -1596,8 +1713,16 @@ def image_to_ascii( pic, grid_size):
 
 
 def image_to_hgr( image):
-    """ image : a Pillow image
+    """ image : a Pillow image, resolution APPLE_XRES x APPLE_YRES
+
+    we merge pixels : 2 horizontal pixels of different colors
+    becomes 2 pixels of the same colour (I don't dither 'cos I find
+    it's better). I do that to avoid HGR artifacts.
+
     """
+
+    # 1 = 1 bit pixel; L = 8 bits pixels both back and white
+
     im = image.convert( mode="1").convert( mode="L")
 
     width, height = im.size
@@ -1672,6 +1797,55 @@ def image_to_hgr( image):
         hgr[ ofs : ofs + 40] = hgr_line
 
     return hgr
+
+
+
+def cut_image( img, block_path, x1,y1, x2,y2):
+
+    # x1,x2,y1,y2 : are inclusive
+    # Img path to a BIN hgr image
+
+    assert img
+    assert x1 < x2 and y1 < y2
+    assert (0 <= x1 < 40) and (0 <= x2 < 40), "bytes addresses only!"
+
+    with open(img, "rb") as fin:
+        data = fin.read()
+        block = []
+
+        for y in range( y1,y2+1):
+            ofs = hgr_address( y, page=0, format=None)
+            block += data[ofs+x1:ofs+x2+1]
+
+        with open( block_path, "wb") as fout:
+            fout.write( bytearray( block))
+
+
+REVERSED_BYTES = [ [(n//1)&1,  (n//2)&1,
+                    (n//4)&1, (n//8)&1,
+                    (n//16)&1, (n//32)&1,
+                    (n//64)&1 ]  for n in range(256)]
+
+
+def show_hgr( hgr):
+
+    data = []
+    for y in range( APPLE_YRES):
+        ofs = hgr_address( y, page=0, format=None)
+        for b in hgr[ofs:ofs+40]:
+            data += REVERSED_BYTES[b]
+
+    bdata = []
+    for i in range(0,len(data),8):
+        bits = data[i:i+8]
+        b = bits[0]*128 + bits[1]*64 +bits[2]*32 + bits[3]*16 +bits[4]*8 + bits[5]*4 + bits[6]*2 + bits[7]*1
+        bdata.append( b)
+
+    img = Image.frombytes( "1", (280, APPLE_YRES), bytes(bdata))
+    img = img.resize( (280*4,192*4), Image.NEAREST )
+
+    img.show()
+
 
 def array_to_hilo_asm( fo, a, label):
     assert label
@@ -2114,3 +2288,12 @@ if __name__ == "__main__":
     edge = Edge( Vertex(0,0,0), Vertex(1,2,3))
     print( f"{edge}")
     print( edge.orig + edge.ray * 3)
+
+
+def run(cmd, stdin=None):
+    print(cmd)
+    if platform.system() == "Linux":
+        cmd = cmd.replace("$",r"\$")
+    r = subprocess.run(cmd, shell=True, stdin=stdin)
+    r.check_returncode()
+    return r

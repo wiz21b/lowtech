@@ -1,6 +1,12 @@
 #!/usr/bin/python3
 
+
 """
+For the omxplayer, yuv420p and -profile... are needed.
+
+ffmpeg -i /mnt/data2/tmp/z.avi -pix_fmt yuv420p -vf "scale=1920:1080" -r 60 -profile:v baseline /mnt/data2/tmp/z.mp4
+
+
 White-white
 White-blue
 blue-blue
@@ -22,6 +28,12 @@ https://www.dafont.com/alien-android.font?text=LOW+TECH
 /opt/wine-staging/bin/wine ~/Downloads/VT1.0beta19Plus/VT.exe
 
 """
+import re
+import argparse
+import os
+import shutil
+import os.path
+import platform
 import sys
 import numpy as np
 from PIL import Image, ImageFilter, ImageFont, ImageDraw
@@ -30,7 +42,6 @@ from utils import *
 from bigscroll.make_logo import make_all
 
 PUSAB_ALPHABET="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-,.!"
-new_blocs = make_bitmap_font("data/8-bit-pusab.ttf", PUSAB_ALPHABET, 7)
 
 MESSAGE = ["IN 2020, 50M TONS",
            "OF E-WASTE WERE",
@@ -41,10 +52,6 @@ MESSAGE = ["IN 2020, 50M TONS",
            "",
            "HAIL THE AGE OF..."]
 
-with open("data/alphabet2.s","w") as fout:
-    generate_font_data( fout, "f2", new_blocs, PUSAB_ALPHABET, nb_ROLs=1)
-    message_to_font( fout, "m2_", MESSAGE, PUSAB_ALPHABET)
-
 
 #show_bitmap_font( new_blocs)
 # exit()
@@ -54,119 +61,128 @@ with open("data/alphabet2.s","w") as fout:
 
 #new_blocs = font_split("data/Alphabeta 7 pixels font.png")
 
-LITTLE_CONQUEST_ALPHABET= "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789,.!"
-new_blocs = make_bitmap_font("data/Little Conquest.ttf", LITTLE_CONQUEST_ALPHABET)
-MESSAGE = ["This demo was",
-           "written by Wiz of",
-           "Imphobia in 2020",
-           "",
-           "",
-           "Keeping the spirit",
-           "alive !",
-           "",
-           "",
-           "Greetings go to",
-           "",
-           "   Imphobia",
-           "   Fennarinarsa FT",
-           "   Grouik FT",
-           "   Apple France",
-           "   Peter Ferrie",
-           "   Deater",
-           "   Tom Greene",
-           "   Marc Golombeck",
-           "   Tom Harte",
-           "",
-           "",
-           "Additional Credits",
-           "",
-           "PT3 player",
-           "",
-           "   Vince Weaver",
-           "",
-           "LZSA, boot sector",
-           "",
-           "   Peter Ferrie",
-           "",
-           "RWTS code",
-           "",
-           "   Apple Inc.",
-           "",
-           "Apple model detect",
-           "",
-           "   Grouik",
-           "",
-           "Fonts",
-           "",
-           "   Little Conquest",
-           "   by Brixdee",
-           "",
-           "   Alien Android",
-           "   by Darrell Flood",
-           "",
-           "Iceberg picture",
-           "",
-           "   iStock free",
-           "",
-           "",
-           "",
-           "",
-           "",
-           "Except code of",
-           "others, this is",
-           "copyright Stephane",
-           "Champailler and is",
-           "distributed under",
-           "the GPLv3 license.",
-           "",
-           "",
-           "",
-           "",
-           "",
-]
-
-with open("data/alphabet.s","w") as fout:
-    generate_font_data( fout, "f1", new_blocs, LITTLE_CONQUEST_ALPHABET, nb_ROLs=4)
-    message_to_font( fout, "", MESSAGE, LITTLE_CONQUEST_ALPHABET)
-
-
-
-
-#append_images( [Image.fromarray(b).convert( mode="RGB") for b in new_blocs]).show()
-
-# im = im.filter(ImageFilter.FIND_EDGES)
-# im.show()
-#Image.fromarray(ar).show()
-#exit()
-
-# https://www.istockphoto.com/be/vectoriel/iceberg-main-illustration-dessin%C3%A9e-convertie-au-vecteur-gm1038069650-277863881
-# libre de droit
-
-im = Image.open("data/black_ice2.bmp")
-im = im.resize( (APPLE_XRES,APPLE_YRES) )
-# https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes
-
-# add some black horizontal lines for underwater part of the iceberg
-ar = np.array(im)
-for i in range( 85, APPLE_YRES, 2):
-    ar[i,:] = 0
-im = Image.fromarray(ar)
-
-hgr = image_to_hgr( im)
-
-with open("data/TITLEPIC.BIN","wb") as f_out:
-    f_out.write( bytearray(hgr))
-
-#im.show()
-im.close()
+LITTLE_CONQUEST_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789,.!"
+MESSAGE2 = ["This demo was",
+            "written by Wiz of",
+            "Imphobia in 2020",
+            "",
+            "",
+            "Keeping the spirit",
+            "alive !",
+            "",
+            "",
+            "Greetings go to",
+            "",
+            "   Imphobia",
+            "   Fennarinarsa FT",
+            "   Grouik FT",
+            "   Apple France",
+            "   Peter Ferrie",
+            "   Deater",
+            "   Tom Greene",
+            "   Marc Golombeck",
+            "   Tom Harte",
+            "",
+            "",
+            "Additional Credits",
+            "",
+            "PT3 player",
+            "",
+            "   Vince Weaver",
+            "",
+            "LZSA, boot sector",
+            "",
+            "   Peter Ferrie",
+            "",
+            "RWTS code",
+            "",
+            "   Apple Inc.",
+            "",
+            "Apple model detect",
+            "",
+            "   Grouik",
+            "",
+            "Fonts",
+            "",
+            "   Little Conquest",
+            "   by Brixdee",
+            "",
+            "   Alien Android",
+            "   by Darrell Flood",
+            "",
+            "Iceberg picture",
+            "",
+            "   iStock free",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "Except code of",
+            "others, this is",
+            "copyright Stephane",
+            "Champailler and is",
+            "distributed under",
+            "the GPLv3 license.",
+            "",
+            "schampailler at ",
+            "   skynet.be",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            ]
 
 
-im = Image.open("data/earth.png")
-im = im.resize( (APPLE_XRES,APPLE_YRES) )
-with open("build/earth.bin","wb") as f_out:
-    f_out.write( bytearray( image_to_hgr( im)))
+def make_data():
 
+    pusab_blocs = make_bitmap_font("data/8-bit-pusab.ttf", PUSAB_ALPHABET, 7)
+    with open("data/alphabet2.s","w") as fout:
+        generate_font_data( fout, "f2", pusab_blocs, PUSAB_ALPHABET, nb_ROLs=1)
+        message_to_font( fout, "m2_", MESSAGE, PUSAB_ALPHABET)
 
+    new_blocs = make_bitmap_font("data/Little Conquest.ttf", LITTLE_CONQUEST_ALPHABET)
+    with open("data/alphabet.s","w") as fout:
+        generate_font_data( fout, "f1", new_blocs, LITTLE_CONQUEST_ALPHABET, nb_ROLs=4)
+        message_to_font( fout, "", MESSAGE2, LITTLE_CONQUEST_ALPHABET)
+
+    #append_images( [Image.fromarray(b).convert( mode="RGB") for b in new_blocs]).show()
+
+    # im = im.filter(ImageFilter.FIND_EDGES)
+    # im.show()
+    #Image.fromarray(ar).show()
+    #exit()
+
+    # https://www.istockphoto.com/be/vectoriel/iceberg-main-illustration-dessin%C3%A9e-convertie-au-vecteur-gm1038069650-277863881
+    # libre de droit
+
+    im = Image.open("data/black_ice2.bmp")
+    im = im.resize( (APPLE_XRES,APPLE_YRES) )
+    # https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes
+
+    # add some black horizontal lines for underwater part of the iceberg
+    ar = np.array(im)
+    for i in range( 85, APPLE_YRES, 2):
+        ar[i,:] = 0
+    im = Image.fromarray(ar)
+
+    hgr = image_to_hgr( im)
+
+    with open("data/TITLEPIC.BIN","wb") as f_out:
+        f_out.write( bytearray(hgr))
+
+    #im.show()
+    im.close()
+
+    im = Image.open("data/earth.png")
+    im = im.resize( (APPLE_XRES,APPLE_YRES) )
+    with open("build/earth.bin","wb") as f_out:
+        f_out.write( bytearray( image_to_hgr( im)))
 
 
 def gen_code_vertical_scroll():
@@ -218,14 +234,6 @@ def gen_code_vertical_scroll():
 #exit()
 
 
-import re
-import argparse
-import subprocess
-import os
-import shutil
-import os.path
-import platform
-from utils import AppleDisk
 
 memory_maps = dict()
 segments = dict()
@@ -274,33 +282,6 @@ def memory_map():
     print()
 
 
-def run(cmd, stdin=None):
-    print(cmd)
-    if platform.system() == "Linux":
-        cmd = cmd.replace("$",r"\$")
-    r = subprocess.run(cmd, shell=True, stdin=stdin)
-    r.check_returncode()
-    return r
-
-if platform.system() == "Windows":
-    CA65 = r"\PORT-STC\opt\cc65\bin\ca65"
-    LD65 = r"\PORT-STC\opt\cc65\bin\ld65"
-    ACMDER = r"java -jar ..\bad_apple\AppleCommander-1.3.5.13-ac.jar"
-    ACME = r"\PORT-STC\opt\acme\acme"
-    APPLEWIN=r"\PORT-STC\opt\applewin\Applewin.exe"
-    MAME = r"c:\port-stc\opt\mame\mame64"
-    LZSA = "lzsa.exe"
-
-elif platform.system() == "Linux":
-    CA65 = r"ca65"
-    LD65 = r"ld65"
-    ACMDER = r"java -jar ../bad_apple/AppleCommander-1.3.5.13-ac.jar"
-    ACME = r"acme"
-    APPLEWIN=r"/opt/wine-staging/bin/wine /home/stefan/AppleWin1.29.13.0/Applewin.exe"
-    MAME = "mame"
-    LZSA = "lzsa/lzsa"
-else:
-    raise Exception("Unsupported system : {}".format(platform.system()))
 
 
 def crunch( filepath):
@@ -312,9 +293,31 @@ def crunch( filepath):
     print( f"Crunched {filepath} from {s} to {c}")
     return fname
 
+if platform.system() == "Windows":
+    CA65 = r"\PORT-STC\opt\cc65\bin\ca65"
+    LD65 = r"\PORT-STC\opt\cc65\bin\ld65"
+    ACMDER = r"java -jar ..\bad_apple\AppleCommander-1.3.5.13-ac.jar"
+    ACME = r"\PORT-STC\opt\acme\acme"
+    APPLEWIN = r"\PORT-STC\opt\applewin\Applewin.exe"
+    MAME = r"c:\port-stc\opt\mame\mame64"
+    LZSA = "lzsa.exe"
+
+elif platform.system() == "Linux":
+    CA65 = r"ca65"
+    LD65 = r"ld65"
+    ACMDER = r"java -jar ../bad_apple/AppleCommander-1.3.5.13-ac.jar"
+    ACME = r"acme"
+    APPLEWIN = r"/opt/wine-staging/bin/wine /home/stefan/AppleWin1.29.16.0/Applewin.exe"
+    MAME = "mame"
+    LZSA = "lzsa/lzsa"
+else:
+    raise Exception("Unsupported system : {}".format(platform.system()))
+
+
+
 BUILD_DIR = "build"
 DATA_DIR = "data"
-BUILD_DIR_ABSOLUTE = os.path.join( os.path.dirname(os.path.abspath(__file__)), BUILD_DIR)
+BUILD_DIR_ABSOLUTE = os.path.join(os.path.dirname(os.path.abspath(__file__)), BUILD_DIR)
 TUNE = "data/FR.PT3"
 
 parser = argparse.ArgumentParser()
@@ -325,7 +328,33 @@ parser.add_argument("--precalc", action="store_true")
 parser.add_argument("--music", action="store_true")
 parser.add_argument("--build", action="store_true")
 parser.add_argument("--dsk", action="store_true")
+parser.add_argument("--img")
 args = parser.parse_args()
+
+
+cut_image("data/forget_all_dreams.bin", "build/FORGET.BLK", 36,0,39,191)
+cut_image("data/new_dreams.bin", "build/NEW_DREAM.BLK", 36,0,39,191)
+cut_image("data/TITLEPIC.BIN", "build/ICEBERG.BLK", 0,20,17,170)
+
+#exit()
+
+
+if args.img:
+    im = Image.open( args.img)
+    im = im.resize( (APPLE_XRES,APPLE_YRES) )
+    hgr = image_to_hgr( im)
+    with open("/tmp/pic.BIN","wb") as fout:
+        fout.write(hgr)
+    im.close()
+
+    run("wine /home/stefan/Downloads/hgr2rgb.exe \\\\tmp\\\\pic.BIN")
+    im = Image.open("/tmp/pic.BIN.tga")
+    im.show()
+
+    # show_hgr( hgr)
+    exit()
+
+make_data()
 
 if args.precalc:
     import precalc
@@ -348,13 +377,10 @@ if args.awin:
 
 
 
-gen_code_vertical_scroll()
-run(f"{CA65} -o {BUILD_DIR}/vscroll.o -t apple2 --listing {BUILD_DIR}/vscroll.txt {additional_options} vscroll.s")
-run(f"{LD65} -o {BUILD_DIR}/VSCROLL {BUILD_DIR}/vscroll.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
 
 
-memory_map()
+# memory_map()
 
 
 
@@ -420,20 +446,17 @@ assert TUNE_ADDRESS >= 0xF000, "Tune too big ! over 3D file load area"
 td_files = []
 import glob
 
-for i,fn in enumerate( sorted( glob.glob(f"{BUILD_DIR}/xbin_lines*"))):
+for i,fn in enumerate( sorted( glob.glob(f"{BUILD_DIR}/xbin_lines[0-9]*"))):
     # if i == 0:
     #     continue # FIXME Debugging !
 
     if i % 2 == 0:
-        page= 0xD0
+        page = 0xD0
     else:
         page = 0xE0
 
     td_files.append( (fn, page, f"data_3d_{i}") )
 
-    if i > 20:
-        print("ERROR : too many files")
-        break
 
 
 
@@ -442,10 +465,10 @@ for i,fn in enumerate( sorted( glob.glob(f"{BUILD_DIR}/xbin_lines*"))):
 # when to stop reading sectors.
 # FIXME It wastes a sector on the disk :-(
 
-with open(f"{BUILD_DIR}/td_dummy","wb") as fout:
-    fout.write( bytes([4] * 256))
+# with open(f"{BUILD_DIR}/td_dummy","wb") as fout:
+#     fout.write( bytes([4] * 256))
 
-td_files.append( (f"{BUILD_DIR}/td_dummy", 0x02, "dummy") )
+# td_files.append( (f"{BUILD_DIR}/td_dummy", 0x02, "dummy") )
 
 
 # file_list = [
@@ -461,6 +484,13 @@ td_files.append( (f"{BUILD_DIR}/td_dummy", 0x02, "dummy") )
 
 
 toc_disk = LoaderTOC( f"{BUILD_DIR}/NEW.DSK")
+
+
+if td_files[-1][1] == 0xD0:
+    iceberg_page = 0xE0
+else:
+    iceberg_page = 0xD0
+
 toc_disk.add_files( [ (f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
                       (f"{TUNE_ORIGINAL}.lzsa",  0x60, "pt3"),
                       # (TUNE,  0xB8, "pt3"),
@@ -469,7 +499,7 @@ toc_disk.add_files( [ (f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
                       # (f"{BUILD_DIR}/CHKDSK",0x60,"check_disk"),
                       (f"{BUILD_DIR}/THREED.lzsa",0x9B,"threed") ] \
                     + td_files + \
-                    [ (f"{DATA_DIR}/TITLEPIC.BIN", 0x20, "picture"),
+                    [ (f"{BUILD_DIR}/ICEBERG.BLK", iceberg_page, "iceberg"),
                       (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")] )
 
 # We compile the loader first, not knowing
@@ -478,7 +508,7 @@ toc_disk.add_files( [ (f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
 # the loader final size !). The TOC is incomplete in the sense
 # that we miss track/sector locations of various files
 
-toc_disk.generate_unconfigured_toc( f"{BUILD_DIR}/loader_toc.s")
+toc_disk.generate_unconfigured_toc( f"{BUILD_DIR}")
 
 
 run(f"{CA65} -o {BUILD_DIR}/loader.o -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
@@ -511,6 +541,12 @@ with open(f"{BUILD_DIR}/LOADER","rb") as floader:
 # size), we can build other modules which depends on its routines.
 # (the linker will be able to do its job)
 
+
+gen_code_vertical_scroll()
+run(f"{CA65} -o {BUILD_DIR}/vscroll.o -t apple2 --listing {BUILD_DIR}/vscroll.txt {additional_options} vscroll.s")
+run(f"{LD65} -o {BUILD_DIR}/VSCROLL {BUILD_DIR}/vscroll.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
+
+
 run(f"{CA65} -I . -o {BUILD_DIR}/big_scroll.o --listing {BUILD_DIR}/bscroll.txt -t apple2 {additional_options} bigscroll/scroll.s")
 run(f"{LD65} -o {BUILD_DIR}/BSCROLL {BUILD_DIR}/big_scroll.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_bscroll.out")
 
@@ -525,12 +561,17 @@ f = crunch(f"{BUILD_DIR}/THREED")
 size = os.path.getsize(f)
 mem_limit = 0xBE00
 pages = (size + 255) // 256
+
+# Code will start at 0x6000 (right after HGR). It will end here :
 end_of_code = 0x6000 + (orig_size + 255)
+
+# Now we look a twhere the crunched code will start
+# Remeber that while decrunching, decrunched data will overwrite crunched data
 td_start_page = (mem_limit >> 8) - pages # BA is the best I can do
 print(f"Crunch {f} ({orig_size}), {pages} pages, crunched data start on page {td_start_page:X}")
 assert end_of_code  < mem_limit, "Too big ! {:4X} > {:4X}".format(end_of_code, mem_limit)
 
-toc_disk.update_file( f"{BUILD_DIR}/THREED.lzsa", td_start_page, "threed")
+toc_disk.update_file( f, td_start_page, "threed")
 
 
 payload_page = 0x62
@@ -547,7 +588,7 @@ run(f"{ACME} -DPAYLOAD_ADDR=${payload_page:02X}00 -DPAYLOAD_NB_PAGES={loader_pag
 
 toc_disk.set_boot_sector(f"{BUILD_DIR}/fstbt.o")
 
-toc_disk.generate_disk(f"{BUILD_DIR}/loader_toc.s")
+toc_disk.generate_disk(f"{BUILD_DIR}")
 
 # Now we have the correct TOC, we rebuild the loader with it.
 run(f"{CA65} -o {BUILD_DIR}/loader.o  -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader_final.txt {additional_options} loader.s")
@@ -555,7 +596,7 @@ run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {B
 
 toc_disk.update_file( f"{BUILD_DIR}/LOADER", loader_page_base, "loader")
 
-toc_disk.generate_disk(f"{BUILD_DIR}/loader_toc.s")
+toc_disk.generate_disk(f"{BUILD_DIR}")
 
 toc_disk.save()
 

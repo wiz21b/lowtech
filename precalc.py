@@ -68,11 +68,17 @@ from gz3 import longest_paths_search
 # t2 = Triangle( Vertex(-10,-1,0), Vertex(0,+1,0), Vertex(+1,-1,0) )
 # intersect_triangle( t, t2)
 
+PICTURE_LOAD = 0xFD
+END_OF_TRACK = 0xFE
+END_OF_MOVIE = 0xFF
 
+MAX_BLOCKS = 1000
 
-SHAPE = "Ogon"
+#SHAPE = "Iceberg"
+#SHAPE = "XWing"
+#SHAPE = "Ogon"
 #SHAPE = "Tetrahedron"
-#SHAPE = "Cube"
+SHAPE = "Cube"
 #SHAPE = "Cube2"
 #SHAPE="Grid"
 DEBUG = False
@@ -179,6 +185,112 @@ faces = []
 SPEED = math.pi / 50
 axis2 = [-0.5,0.5,1]
 
+if SHAPE == "Iceberg":
+    vertices, faces = read_wavefront("data/iceberg.obj")
+
+    T = Vertex(0,+2,0)
+    for v in vertices:
+        v.scale( 0.5)
+        v.translate( T)
+
+    NB_FRAMES = 2
+    MAX_BLOCKS = 3
+    ATTENUATION = math.pi
+    ZOOM=400
+    axis = [0,1,0]
+    axis2 = [0,1,0]
+
+
+if SHAPE == "XWing":
+
+    # See Inksacpe schematics
+
+
+    COCKPIT_WIDTH = 0.8
+
+    a = Vtx(-COCKPIT_WIDTH,.5,-.3)
+    b = Vtx(-COCKPIT_WIDTH,0.3,-.8)
+    g = Vtx(-COCKPIT_WIDTH,-.6,-.8)
+    e = Vtx(-COCKPIT_WIDTH,-.6,+2)
+    f = Vtx(-COCKPIT_WIDTH,.5,+2)
+
+    c = Vtx(-0.2,-0.1,-6.5)
+    d = Vtx(-0.2,-0.5,-6.5)
+
+    a2 = Vtx(COCKPIT_WIDTH,.5,-.3)
+    b2 = Vtx(COCKPIT_WIDTH,.3,-.8)
+    g2 = Vtx(COCKPIT_WIDTH,-.6,-.8)
+    e2 = Vtx(COCKPIT_WIDTH,-.6,+2)
+    f2 = Vtx(COCKPIT_WIDTH,.5,+2)
+
+    c2 = c + Vtx(0.4,0,0)
+    d2 = d + Vtx(0.4,0,0)
+
+    w1 = Vtx( COCKPIT_WIDTH+0.05, 0.2, +0.5)
+    w2 = Vtx( COCKPIT_WIDTH+0.05, 0.2, +2)
+    w3 = Vtx( COCKPIT_WIDTH+0.05+4, 0.8, +1.5)
+    w4 = Vtx( COCKPIT_WIDTH+0.05+4, 0.8, +0.5)
+
+    w5 = Vtx( COCKPIT_WIDTH+0.05+4, 0.8, -2)
+
+    wa1 = Vtx( COCKPIT_WIDTH+0.05, -0.2, +0.5)
+    wa2 = Vtx( COCKPIT_WIDTH+0.05, -0.2, +2)
+    wa3 = Vtx( COCKPIT_WIDTH+0.05+4, -0.8, +1.5)
+    wa4 = Vtx( COCKPIT_WIDTH+0.05+4, -0.8, +0.5)
+
+    wa5 = Vtx( COCKPIT_WIDTH+0.05+4, -0.8, -2)
+
+    rw1 = Vtx( -COCKPIT_WIDTH-0.05, 0.2, +0.5)
+    rw2 = Vtx( -COCKPIT_WIDTH-0.05, 0.2, +2)
+    rw3 = Vtx( -COCKPIT_WIDTH-0.05-4, 0.8, +1.5)
+    rw4 = Vtx( -COCKPIT_WIDTH-0.05-4, 0.8, +0.5)
+
+    rw5 = Vtx( -COCKPIT_WIDTH-0.05-4, 0.8, -2)
+
+    rwa1 = Vtx( -COCKPIT_WIDTH-0.05, -0.2, +0.5)
+    rwa2 = Vtx( -COCKPIT_WIDTH-0.05, -0.2, +2)
+    rwa3 = Vtx( -COCKPIT_WIDTH-0.05-4, -0.8, +1.5)
+    rwa4 = Vtx( -COCKPIT_WIDTH-0.05-4, -0.8, +0.5)
+
+    rwa5 = Vtx( -COCKPIT_WIDTH-0.05-4, -0.8, -2)
+
+    faces += [ Face( a,a,a, hidden=False).set_vertices([a,b,g,e,f]),
+               Face( a,a,a, hidden=False).set_vertices([b,c,d,g]),
+               Face( a,a,a, hidden=False).set_vertices([a2,b2,g2,e2,f2]),
+               Face( a,a,a, hidden=False).set_vertices([b2,c2,d2,g2]),
+
+               Face( a,a,a, hidden=False).set_vertices([d,d2,g2,e2,e,g]),
+               Face( a,a,a, hidden=False).set_vertices([c,c2,b2,b]),
+               Face( a,a,a, hidden=False).set_vertices([a,a2,f2,f]),
+               Face( a,a,a, hidden=False).set_vertices([a,a2,b2,b]),
+               Face( a,a,a, hidden=False).set_vertices([c,c2,d2,d]),
+               Face( a,a,a, hidden=False).set_vertices([e,e2,f2,f]),
+
+               Face( w3,w5, hidden=False),
+               Face( wa3,wa5, hidden=False),
+               Face( rw3,rw5, hidden=False),
+               Face( rwa3,rwa5, hidden=False),
+
+               Face( a,a,a, hidden=False).set_vertices([w1,w2,w3,w4]),
+               Face( a,a,a, hidden=False).set_vertices([wa1,wa2,wa3,wa4]),
+               Face( a,a,a, hidden=False).set_vertices([rw1,rw2,rw3,rw4]),
+               Face( a,a,a, hidden=False).set_vertices([rwa1,rwa2,rwa3,rwa4])
+              ]
+
+
+    # engines
+
+    faces.extend( block( Vtx(0.3,0.3,2),  Vtx(COCKPIT_WIDTH+0.2,0.51,0.9)))
+    faces.extend( block( Vtx(0.3,0.3,2),  Vtx(-COCKPIT_WIDTH-0.2,0.51,0.9)))
+    faces.extend( block( Vtx(0.3,0.3,2),  Vtx(COCKPIT_WIDTH+0.2,-0.51,0.9)))
+    faces.extend( block( Vtx(0.3,0.3,2),  Vtx(-COCKPIT_WIDTH-0.2,-0.51,0.9)))
+
+    NB_FRAMES = 200
+    MAX_BLOCKS = 3
+    ATTENUATION = math.pi
+    ZOOM=200
+    axis = [3,2,0.5]
+
 if SHAPE == "Tetrahedron":
 
     HIDDEN_FACES = True
@@ -203,7 +315,8 @@ if SHAPE == "Cube":
     ZOOM=500
     HIDDEN_FACES = True
 
-    NB_FRAMES = 220*6
+    NB_FRAMES = 500 # 700 # 220*6
+    MAX_BLOCKS = 4
     #NB_FRAMES = 220
 
     axis = [3,2,0.5]
@@ -233,8 +346,8 @@ if SHAPE == "Cube2":
     ATTENUATION = math.pi * 1.7
     ZOOM=400
     HIDDEN_FACES = True
-    NB_FRAMES = 900
-    SPEED = math.pi / 80
+    NB_FRAMES = 300 # 900
+    SPEED = math.pi / 120
 
     axis = [3,2,0.5]
     axis2 = [-0.5,0.5,1]
@@ -253,7 +366,7 @@ if SHAPE == "Ogon":
     ZOOM = 600 # 170
     HIDDEN_FACES = True
 
-    NB_FRAMES = 300*3
+    NB_FRAMES = 10 # 300*3
 
     axis = [3,2,0.5]
     axis2 = [-0.5,0.5,1]
@@ -320,7 +433,7 @@ if SHAPE == "Ogon":
 # axis = [0,0,1]
 
 # -----------------------------------------------------------
-Z_CAMERA = 10
+Z_CAMERA = 10 # 10
 
 
 
@@ -330,7 +443,7 @@ def fusion_edges( faces):
     for face in faces:
         for i in range( len(face.xformed_vertices)):
             a = face.xformed_vertices[i]
-            b = face.xformed_vertices[i-1]
+            b = face.xformed_vertices[i-1] # Will wrap !
 
             if a.vid < b.vid:
                 edge_id = (a.vid, b.vid)
@@ -360,9 +473,10 @@ def export_faces( faces, rot):
 
     atriangles = []
     for face in faces:
-        fv = face.xformed_vertices
-        for i in range(len(fv) - 3 + 1):
-            atriangles.append( Triangle( fv[0], fv[i+1],fv[i+2]))
+        if face.edges >= 3:
+            fv = face.xformed_vertices
+            for i in range(len(fv) - 3 + 1):
+                atriangles.append( Triangle( fv[0], fv[i+1],fv[i+2]))
 
     edges = fusion_edges( faces).values()
 
@@ -399,10 +513,19 @@ def export_faces( faces, rot):
                 for i in to_draw:
                     v0 = edge.orig + edge.ray * i.lower
                     v1 = edge.orig + edge.ray * i.upper
-                    draw_edge.append( Edge(v0,v1))
+
+                    if (v0 - v1).norm() > 0.001:
+                        draw_edge.append( Edge(v0,v1))
         else:
             # Nothing is invisble => everything is visible
-            draw_edge.append( edge)
+            if edge.length() > 0.001:
+                draw_edge.append( edge)
+
+    with open("/tmp/graph.txt","w") as fout:
+        min_id = min([min(e.v1.vid, e.v2.vid) for e in draw_edge])
+        for e in draw_edge:
+            fout.write(f"{e.v1.vid - min_id} {e.v2.vid - min_id}\n")
+            print(f"{e.v1.vid} - {e.v1}\t{e.v2}\t{e.length()}")
 
     return draw_edge
 
@@ -417,6 +540,42 @@ def persp( v, zoom = 350):
                 v.y / d + APPLE_YRES / 2,
                 v.z*100) # see Vertex construtor and round operation
 
+
+def object_to_graph( frame_lines):
+    points = dict()
+    edges = set()
+
+    print(frame_lines)
+    for ax, ay, bx, by in frame_lines:
+
+        if (ax,ay) not in points:
+            points[(ax,ay)] = len(points)
+        a = points[(ax,ay)]
+
+        if (bx,by) not in points:
+            points[(bx,by)] = len(points)
+        b = points[(bx,by)]
+
+        if a > b:
+            a,b=b,a
+
+        edges.add( (a,b) )
+
+    return edges
+
+
+def load_frame_segments():
+    frames_segments = []
+    with open("/tmp/edges.txt","r") as fin:
+        for line in fin.readlines():
+            frame_segments = []
+            for a in line.strip().split(",")[:-1]:
+                segments = [int(x) for x in a.strip().split(' ')]
+                frame_segments.append(tuple(segments))
+            frames_segments.append(frame_segments)
+
+    print(frames_segments)
+    return frames_segments
 
 def animate_3D( screen):
     recorder_frames = []
@@ -567,27 +726,6 @@ def animate_3D( screen):
 
         print( f"Frame {frame_ndx}/{NB_FRAMES} {len(faces)} faces, {drawn_edges} drawn edges")
 
-        # edge_pool = EdgePool()
-        # points = dict()
-        # edges = []
-        # for ax, ay, bx, by in frame_lines:
-        #     if (ax,ay) not in points:
-        #         a = Vertex(ax,ay)
-        #         points[(ax,ay)] = a
-        #     else:
-        #         a = points[(ax,ay)]
-
-        #     if (bx,by) not in points:
-        #         b = Vertex(bx,by)
-        #         points[(bx,by)] = b
-        #     else:
-        #         b = points[(bx,by)]
-
-        #     if id(a) > id(b):
-        #         a,b=b,a
-        #     edge = Edge(a,b)
-        #     edge_pool.add_edge( edge )
-        #     edges.append( (a,b) )
 
         # for x,y in points.keys():
         #     pygame.draw.line( screen, (255,255,255),
@@ -607,6 +745,7 @@ def animate_3D( screen):
 
         #zscreen.clear()
         pygame.display.flip()
+
 
     return recorder_frames
 
@@ -1444,6 +1583,20 @@ def paths_to_bytes( paths):
 
 def paths_to_bytes2( paths):
 
+    # A frame is made of paths. Each paths is edges.
+    # The edges are represented as two points A,B
+    # If two edges share a point, then they are represented
+    # as A,B,C (for two edges : A-B and B-C)
+
+    # later on a byte will be prepended with the number of bytes
+    # used to represent the frame + 1 (helpful to move around)
+
+    # Byte 0 : nb paths
+    # Byte 1 : nb edges in path
+    # Byte 2..N : points of edges
+    # Byte N+1 : nb edges in path
+    # ...
+
     def coord_to_bytes( pair):
         x,y = int(pair[0]),int(pair[1])
         assert 0 <= x <= 255 and 0 <= y <= 255
@@ -1466,6 +1619,27 @@ def paths_to_bytes2( paths):
         data.extend( pdata)
 
     return data
+
+
+
+
+def inject_picture_in_paths( path_data, pic_path):
+
+    with open( pic_path, "rb") as fin:
+        pic_bytes = fin.read()
+
+    pic_size = len(pic_bytes)
+
+    data = [0, PICTURE_LOAD, 0]
+    data.extend( path_data)
+    data.extend( pic_bytes)
+
+    total_size = len( data)
+    data[0] = total_size % 256
+    data[2] = total_size // 256
+
+    return data
+
 
 def stats_paths( g, paths, show=True):
     l_tot = 0
@@ -1518,6 +1692,7 @@ def frame_compress( frame):
     # Try several solutions randomly and pick the best.
 
     for i in range(20):
+        print(f"Compression attempt #{i}")
         paths = longest_paths_search( g,randomized=True)
 
         if not best_paths:
@@ -1532,6 +1707,7 @@ def frame_compress( frame):
             #print()
 
     stats_paths( g, best_paths)
+    print(best_paths)
     return best_paths
 
 
@@ -1550,16 +1726,36 @@ def frame_draw( screen, paths):
 
 
 
+
 pygame.init()
 screen = pygame.display.set_mode( (APPLE_XRES, APPLE_YRES))
 
-recorder_frames = animate_3D( screen)
+#recorder_frames = animate_3D( screen)
+recorder_frames = load_frame_segments()
+
+for fn in glob.glob(f"build/graphs_*.txt"):
+    os.remove(fn)
+
+for i,frame_lines in enumerate(recorder_frames):
+    edges = object_to_graph( frame_lines)
+    s = '\n'.join( [ f"{a} {b}" for a,b in edges])
+
+    with open(f"build/graphs_{i:02}.txt","w") as fout:
+        fout.write(s)
+
+
 with open( SHAPE,"wb") as f_out:
     pickle.dump( recorder_frames, f_out)
 
 # with open( SHAPE,"rb") as f_in:
 #     recorder_frames = pickle.load( f_in)
+# print(f"{len(recorder_frames)} frames loaded")
 
+# with open( "XWing","rb") as f_in:
+#     recorder_frames.extend( pickle.load( f_in))
+# print(f"{len(recorder_frames)} frames loaded")
+
+MAX_BLOCKS = 8
 
 compute_vertical_tiles()
 compute_vertical_tiles_right_left()
@@ -1587,6 +1783,11 @@ for fn in glob.glob(f"build/bin_lines*"):
     os.remove(fn)
 for fn in glob.glob(f"build/xbin_lines*"):
     os.remove(fn)
+
+frames_bytes = []
+with open("/tmp/cedges.txt","r") as finput:
+    for l in finput.readlines():
+        frames_bytes.append( [int(x) for x in l.strip().split(",")])
 
 
 cframes_bins = []
@@ -1621,7 +1822,9 @@ with open("build/lines.s","w") as fo:
         #for li,l in enumerate(frame):
             # if frame_ndx > 0 or 10 <= li <= 12:
 
-        compressed_edges = frame_compress( frame )
+        #compressed_edges = frame_compress( frame )
+        #path_bytes = paths_to_bytes2( compressed_edges)
+        path_bytes = frames_bytes[frame_ndx]
 
         screen.fill( (0,0,0) )
         for lx in range(40):
@@ -1629,7 +1832,25 @@ with open("build/lines.s","w") as fo:
                               (lx*7,0),
                               (lx*7,192), 1)
 
-        frame_draw( screen, compressed_edges)
+        # frame_draw( screen, compressed_edges)
+
+        d = 1
+        for i in range(path_bytes[0]):
+            print(d)
+            nv = path_bytes[d]
+            d += 1
+            for j in range(nv):
+                ax = path_bytes[d]
+                ay = path_bytes[d+1]
+                bx = path_bytes[d+2]
+                by = path_bytes[d+3]
+
+                d += 2
+                pygame.draw.line( screen, (255,0,0),
+                                  (ax,ay),
+                                  (bx,by), 1)
+            d += 2
+
         pygame.display.flip()
         if len( cframes_bins) == 2*10:
             #input("pause")
@@ -1637,45 +1858,58 @@ with open("build/lines.s","w") as fo:
 
 
 
-        frame_bin_data = paths_to_bytes2( compressed_edges)
-        frame_bin_data = [ len(frame_bin_data) + 1 ] + frame_bin_data
+        if frame_ndx == 10:
+            frame_bin_data = inject_picture_in_paths( path_bytes, "build/FORGET.BLK")
+
+        elif frame_ndx == 700:
+            frame_bin_data = inject_picture_in_paths( path_bytes, "build/NEW_DREAM.BLK")
+
+        else:
+            frame_bin_data = path_bytes
+            frame_bin_data = [ len(frame_bin_data) + 1 ] + frame_bin_data
+
         cframes_bins.append(frame_bin_data)
 
         if frame_ndx == 0:
             with open(f"build/xbin_lines_const.s","w") as fo_const:
                 fo_const.write(f"SECOND_FRAME_OFFSET = {len(frame_bin_data)}")
 
-        #print( "Bin: {} {}".format( len(frame_bin_data), frame_bin_data))
 
-        frame_mem_block = bytearray()
+            #fo.write("\t.byte {}\n".format(",".join(map("${:02X}".format,path_bytes))))
 
-        for li,l in enumerate( paths_to_bytes( compressed_edges)):
+            fo.write("threed_line_size_marker:\n")
 
-            a = Vertex( l[0],l[1])
-            b = Vertex( l[2],l[3])
+        # frame_mem_block = bytearray()
 
-            if frame_ndx == 0:
-                # Generate some source code
-                bin_data = gen_data_line( fo, a, b)
-                if li == 0:
-                    fo.write("threed_line_size_marker:\n")
-            else:
-                bin_data = gen_data_line( None, a, b)
+        # for li,l in enumerate( paths_to_bytes( compressed_edges)):
 
-            #if type(bin_data) == bytearray:
-            if bin_data:
-                frame_mem_block.extend(bin_data)
+        #     a = Vertex( l[0],l[1])
+        #     b = Vertex( l[2],l[3])
 
-            update_win_boundaries(a)
-            update_win_boundaries(b)
+        #     if frame_ndx == 0:
+        #         # Generate some source code
+        #         bin_data = gen_data_line( fo, a, b)
+        #         if li == 0:
+        #             fo.write("threed_line_size_marker:\n")
+        #     else:
+        #         bin_data = gen_data_line( None, a, b)
 
-            dx, dy = (b - a).x, (b - a).y
-            total_pixels += int(max( abs(dx), abs(dy)))
+        #     #if type(bin_data) == bytearray:
+        #     if bin_data:
+        #         frame_mem_block.extend(bin_data)
 
-            # if dx*dx > dy*dy:
-            #     npixels += int(abs(dx)) * 15
-            # else:
-            #     npixels += int(abs(dy)) * 20
+        #     update_win_boundaries(a)
+        #     update_win_boundaries(b)
+
+        #     dx, dy = (b - a).x, (b - a).y
+        #     total_pixels += int(max( abs(dx), abs(dy)))
+
+        #     # if dx*dx > dy*dy:
+        #     #     npixels += int(abs(dx)) * 15
+        #     # else:
+        #     #     npixels += int(abs(dy)) * 20
+
+
 
 
         # win_w = int(win_x_max - win_x_min)
@@ -1754,16 +1988,25 @@ with open("build/lines.s","w") as fo:
 
 
 
-    END_OF_TRACK = 0xFE
-    END_OF_MOVIE = 0xFF
 
     nb_mem_blocks = 1
 
     ndx = 0
-    while ndx < len(cframes_bins):
+    while ndx < len(cframes_bins) and nb_mem_blocks <= MAX_BLOCKS:
 
         print("New block")
         block = []
+
+        # 4 bytes :
+        #   1 for LSB of bytes count of frame,
+        #   1 for special command
+        #   1 for MSB of bytes count of frame,
+        #   1 for paths count
+        # block.extend([4, PICTURE_LOAD, 0, 0])
+        # block.extend([4, PICTURE_LOAD, 0, 0])
+        # block.extend([4, PICTURE_LOAD, 0, 0])
+        # block.extend([4, PICTURE_LOAD, 0, 0])
+
         while ndx < len(cframes_bins):
             frame_bin = cframes_bins[ndx]
             print(f"Adding ? {len(frame_bin)} bytes")
@@ -1776,10 +2019,10 @@ with open("build/lines.s","w") as fo:
         block.append( 0) # Dummy byte count (zero helps the code to be simpler)
         print(f"Writing 3D block, {len(block)} bytes.")
 
-        if ndx < len(cframes_bins):
-            block.append( END_OF_TRACK)
-        else:
+        if ndx >= len(cframes_bins) or nb_mem_blocks == MAX_BLOCKS:
             block.append( END_OF_MOVIE)
+        else:
+            block.append( END_OF_TRACK)
 
         with open(f"build/xbin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
             fo_bin.write( bytearray( block))

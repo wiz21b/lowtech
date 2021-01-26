@@ -2,7 +2,8 @@
 ;;; It is published under the terms of the
 ;;; GNU GPL License Version 3.
 
-;;; Part of this code (see below) is copied from the PT3 player by Vince "Deater" Weaver and is licensed accordingly
+;;; Part of this code (see below) is copied from the PT3 player by
+;;; Vince "Deater" Weaver and is licensed accordingly
 
 
 	.include "defs.s"
@@ -38,8 +39,12 @@ BYTES_PER_LINE	= 6
 	LDA $C052	     ; mix text and gfx (c052 = full text/gfx)
 	.endif
 
+	LDA #$FF
+	LDX #$20
+	JSR clear_hgr2
+
 	LDA $C054		; Page 1
-	;; LDA $C055		;Page 2
+	;LDA $C055		;Page 2
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
 
@@ -47,11 +52,25 @@ BYTES_PER_LINE	= 6
 	;; JSR start_player
 	;; .endif
 
+	LDA #$00
+	LDX #$40
+	JSR clear_hgr2
 
-	LDA #>$2000
-	LDX #>$4000
-	LDY #$20
-	jsr mem_copy
+	LDA #$20
+	STA block_page_select
+	JSR draw_iceberg
+
+	LDA $C055		; Page 2
+	LDA $C057
+	LDA $C050 ; display graphics; last for cleaner mode change (accord
+
+	LDA #$00
+	LDX #$20
+	JSR clear_hgr2
+
+	LDA #$00
+	STA block_page_select
+	JSR draw_iceberg
 
 
 	LDA #TEXT_X_MARGIN
@@ -85,26 +104,8 @@ BYTES_PER_LINE	= 6
 	;; JSR draw_text_line
 	;; .endrepeat
 
-last_pause:
-	;; jmp last_pause
-
-
-
-	LDX #20
-scroll_column_1line:
-	JSR vscroll_move_p0_1line
-	INX
-	CPX #39
-	BNE scroll_column_1line
-
-	jsr vscroll2
-;; 	LDX #39
-;; scroll_column2b:
-;; 	JSR vscroll_move_p2
-;; 	DEX
-;; 	BPL scroll_column2b
-
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 loop_infinite:
 
 	JSR pause_2_irq
@@ -600,21 +601,13 @@ letter_tables:
 
 
 
-	.include "lib.s"
-
 vscroll_move:
 	.include "data/vscroll.s"
 vscroll_move_p2:
 	.include "data/vscroll2.s"
-vscroll_move_p0_1line:
-	.include "data/vscroll3.s"
-
-
 
 	.align $100
 picture_data:
-	;.incbin "data/TITLEPIC.BIN"
-
 	.include "data/alphabet.s"
 	.include "build/hgr_ofs.s"
 
@@ -632,49 +625,6 @@ modulo3:
 message_ndx:	.byte 0
 scroll_count: .byte 0
 
-;; 	.include "pt3_lib/zp.inc"
-
-;; 	;; https://github.com/deater/dos33fsprogs/tree/master/pt3_lib
-;; start_player:
-;; 	lda	#0
-;; 	sta	DONE_PLAYING
-;; 	lda	#1
-;; 	sta LOOP
-
-;; 	;jsr	mockingboard_detect
-;; 	;jsr	mockingboard_patch
-;; 	jsr	mockingboard_init
-;; 	jsr	mockingboard_setup_interrupt
-
-;; 	;============================
-;; 	; Init the Mockingboard
-;; 	;============================
-
-;; 	jsr	reset_ay_both
-;; 	jsr	clear_ay_both
-
-;; 	;==================
-;; 	; init song
-;; 	;==================
-
-;; 	jsr	pt3_init_song
-
-;; 	;============================
-;; 	; Enable 6502 interrupts
-;; 	;============================
-;; 	cli ; clear interrupt mask
-
-;; 	RTS
-
-;; 	; some firmware locations
-;; 	.include "pt3_lib/hardware.inc"
-;; 	.include "pt3_lib/pt3_lib_core.s"
-;; 	.include "pt3_lib/pt3_lib_init.s"
-;; 	.include "pt3_lib/pt3_lib_mockingboard_setup.s"
-;; 	.include "pt3_lib/interrupt_handler.s"
-;; 	; if you're self patching, detect has to be after
-;; 	; interrupt_handler.s
-;; 	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
 
 read_any_sector:
 	inc irq_count
@@ -717,3 +667,61 @@ LVBL2:
 	;; .repeat 255
 	;; .byte 0
 	;; .endrepeat
+
+	.include "block_draw.s"
+	.include "build/toc_equs.inc"
+
+draw_iceberg:
+	LDA #20
+	STA ypos_start		; the block will be drawn from ypos_start
+	LDA #170
+	STA ypos_end		; to ypos_end
+	LDA #0			; it will start on X (measured in bytes)
+	STA xpos
+
+	LDA #18			; the width of the block, in bytes - 1
+	STA row_width
+
+	;; dummy_ptr = src of data
+
+	LDA #>FILE_ICEBERG_LOAD_ADDR
+	STA dummy_ptr + 1
+	LDA #<FILE_ICEBERG_LOAD_ADDR
+	STA dummy_ptr
+
+	JMP block_draw_entry_point
+	RTS
+
+
+	;; ------------------------------------------------------------
+
+	.proc clear_hgr2
+	;; A = color to clear with
+	;; X = page : $20 or $40
+
+	sta smc + 1
+	STX dummy_pointer + 1
+	LDX #0
+	STX dummy_pointer
+
+	ldx #$20
+
+	;; HGR memory is $4000 bytes => $40 x 256
+
+clear_hgr_loop:
+
+smc:
+	LDA #$00
+
+	LDY #0
+clear_block:
+	STA (dummy_pointer), Y
+	DEY
+	BNE clear_block
+
+	INC dummy_pointer + 1
+	DEX
+	BNE clear_hgr_loop
+
+	RTS
+	.endproc

@@ -1,5 +1,7 @@
 	END_OF_TRACK = $FE
 	END_OF_MOVIE = $FF
+	PICTURE_LOAD = $FD
+
 ;;; This code is (c) 2019-2020 Stéphane Champailler
 ;;; It is published under the terms of the
 ;;; GNU GPL License Version 3.
@@ -116,7 +118,13 @@ loop_infinite:
 	;; STA DONE_PLAYING
 
 	store_16 line_data_ptr1, lines_data
-	store_16 line_data_ptr2, lines_data + SECOND_FRAME_OFFSET
+
+	copy_16 line_data_ptr, line_data_ptr1
+	jsr skip_a_frame2
+	copy_16 line_data_ptr2, line_data_ptr
+
+
+	;store_16 line_data_ptr2, lines_data + SECOND_FRAME_OFFSET
 
 				; 	add_const_to_16 line_data_ptr2, LINES_TO_DO * BYTES_PER_LINE +1
 demo3:
@@ -159,6 +167,7 @@ all_lines:
 all_lines:
 	jsr draw_to_page4
 
+	;; Clear past frame
 	copy_16 line_data_ptr, line_data_ptr1
 	LDA #$0
 	STA color
@@ -169,6 +178,7 @@ all_lines:
 	BCC go_on
 	JMP all_done
 go_on:
+	;; Draw new frame
 	copy_16 line_data_ptr1, line_data_ptr
 
 	LDA #1
@@ -211,7 +221,7 @@ freeze:
 
 	;; We pause a bit of time before
 	;; loading a new file. Ths is to ensure
-	;; that both line data pointers are one
+	;; that both line data pointers are on
 	;; the same page. The wait is triggered
 	;; by setting "end of block" to a counter.
 	;; When it's 255, it means we're not waiting
@@ -271,22 +281,31 @@ draw_or_erase_frame:
 
 	;; Start parsing a new frame
 
-	LDY #1			; Skip byte count
-	STY frame_offset
-
-	LDA (line_data_ptr),Y
+	LDY #1			; Skip frame size in bytes
+	LDA (line_data_ptr),Y	; paths count OR special command
 	INY
 
+	CMP #PICTURE_LOAD
+	BNE not_load_a_picture
+
+	LDY #3
+	LDA (line_data_ptr),Y	; paths count
+	INY			; position on first edges count
+	JMP draw_paths
+
+not_load_a_picture:
 	CMP #END_OF_TRACK
 	BEQ end_of_track
 
 	CMP #END_OF_MOVIE
 	BEQ end_of_movie
 
+
+draw_paths:
 	STA paths_count
 
 next_path:
-	LDA (line_data_ptr),Y
+	LDA (line_data_ptr),Y	; Number of edges in one path
 	INY
 	STA edge_count
 next_edge:
@@ -302,7 +321,7 @@ next_edge:
 	INY
 	STA y1
 
-	STY frame_offset
+	STY frame_offset	; store for later
 
 	LDA (line_data_ptr),Y
 	INY
@@ -314,7 +333,7 @@ next_edge:
 
 	JSR draw_or_erase_a_line
 
-	LDY frame_offset
+	LDY frame_offset	; restore
 
 	DEC edge_count
 	BNE next_edge
@@ -324,11 +343,64 @@ next_edge:
 	DEC paths_count
 	BNE next_path
 
-	CLC
-	RTS
+	STY frame_offset
+	LDY #1			; Skip frame size in bytes
+	LDA (line_data_ptr),Y	; paths count OR special command
+	CMP #PICTURE_LOAD
+	BEQ draw_a_picture
 end_of_track:
 end_of_movie:
 	RTS
+
+draw_a_picture:
+	copy_16 dummy_ptr, line_data_ptr
+	LDA frame_offset
+	add_a_to_16 dummy_ptr
+	LDA #$0
+	STA block_page_select
+	JSR load_a_picture
+
+	copy_16 dummy_ptr, line_data_ptr
+	LDA frame_offset
+	add_a_to_16 dummy_ptr
+	LDA #$20
+	STA block_page_select
+	JSR load_a_picture
+	RTS
+
+
+
+load_a_picture:
+
+	;; line_data_ptr+Y points to the data we need
+	;; but line_data_ptr will have to be moved on the next frame
+
+	;; LDY #0
+	;; LDA (hgr_offsets_hi),Y
+	;; SEC
+	;; SBC #$20
+	;; STA block_page_select
+
+	LDA #0
+	STA ypos_start		; the block will be drawn from ypos_start
+	LDA #190
+	STA ypos_end		; to ypos_end
+	LDA #36			; it will start on X (measured in bytes)
+	STA xpos
+
+	LDA #4			; the width of the block, in bytes
+	STA row_width
+
+	;; dummy_ptr = src of data
+
+	;; LDA #$60
+	;; STA dummy_ptr + 1
+	;; LDA #0
+	;; STA dummy_ptr
+	JMP block_draw_entry_point
+
+	.include "block_draw.s"
+
 
 frame_offset:	.byte 0
 paths_count:	.byte 0
@@ -343,17 +415,47 @@ edge_count:	.byte 0
 
 	;; Move to next frame
 
-	LDY #0			; read byte count
-	LDA (line_data_ptr),Y
+	LDY #1
+	LDA (line_data_ptr),Y	; What kind of frame have we ?
+	CMP #PICTURE_LOAD
+	BNE regular_frame
 
+	;; Picture load frames a re a bit special, they have picture
+	;; data followed by vector data.
+
+	INY			; Load the MSB of the byte count
+	LDA (line_data_ptr),Y
+	TAX
+
+	LDY #0
+	LDA (line_data_ptr),Y	; LSB of the byte count
+	CLC
+	ADC line_data_ptr
+	STA line_data_ptr
+	TXA			; remember the MSB
+	ADC line_data_ptr+1
+	STA line_data_ptr+1
+	BCC process_next_frame	; Always taken
+
+regular_frame:
+	LDY #0
+	LDA (line_data_ptr),Y	; read byte count
+
+
+
+
+	;; Position ourselves at the beginning of the
+	;; next frame.
 	;; Note that on end of movie, the byte count is zero.
 
 	add_a_to_16 line_data_ptr
 
+process_next_frame:
 	;; Detect various ends
 
-	INY			; Skip byte count
-	LDA (line_data_ptr),Y
+	INY			; Y := 1, skip byte count
+	LDA (line_data_ptr),Y	; read path count OR special command
+
 
 	CMP #END_OF_TRACK
 	BEQ end_of_track
@@ -376,7 +478,7 @@ end_of_track:
 	STA line_data_ptr
 
 	;; Trigger next file read (later)
-	LDA #2
+	LDA #4
 	STA end_of_block
 
 go_on:
@@ -966,7 +1068,7 @@ by0:
 
 	;; Macros to generate line drawing code
 	NO_BREAK_INDICATOR = $7F
-	BACKGROUND_COLOR = $FF
+	BACKGROUND_COLOR = $7F
 	RIGHT_TO_LEFT = 1
 	LEFT_TO_RIGHT = 2
 	TOP_DOWN = 2
