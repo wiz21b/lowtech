@@ -12,12 +12,22 @@
 	.include "precalc_def.s"
 
 	text_pointer	= 240
+	cursor_script_ndx = 250
 	x_pos	= 252
 	y_pos	= 254
 	dummy_ptr3	= 244
 	dummy_ptr	= 246
 	scroll_matric_ptr       = 248
 	dummy_ptr2		= 248
+
+
+	FILE_THREED = 3
+	FILE_DATA_3D_0 = 4
+	FILE_DATA_3D_1 = 5
+
+	FILE1 = FILE_THREED
+	FILE2 = FILE_DATA_3D_0
+	FILE3 = FILE_DATA_3D_1
 
 	;; store_16  dummy_ptr, filename_FILLER
 	;; store_16  iobuffer, ($6000-1024)
@@ -32,7 +42,206 @@
 	;; store_16 file_buffer, $2000
 	;; JSR load_file
 
+	lda #$0
+	ldx #$40
+	JSR clear_hgr2
 
+	LDA $C052
+	;LDA $C054		; Page 1
+	LDA $C055		;Page 2
+	LDA $C057
+	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
+
+	LDA #FILE1
+	JSR init_file_load
+
+
+	CURSOR_BASE_COLOR = 128 + 7 * 16
+
+	LDA #$20
+	STA block_page_select
+	STA filled_block_page_select
+
+	store_16 cursor_script_ndx, cursor_script
+read_script:
+	LDY #0
+	LDA (cursor_script_ndx),Y
+
+	CMP #$FF
+	BNE script_not_done
+	LDA #0
+	STA cursor_color
+	JSR clear_cursor
+
+	JMP show_logo
+
+script_not_done:
+	LDA cursor_color
+	PHA
+	LDA #0
+	STA cursor_color
+	JSR clear_cursor
+
+	LDY #0
+	LDA (cursor_script_ndx),Y
+	STA cursor_pos_x
+	INY
+	LDA (cursor_script_ndx),Y
+	STA cursor_pos_y
+	INY
+	LDA (cursor_script_ndx),Y
+	TAX
+	INY
+	LDA (cursor_script_ndx),Y
+	BEQ pause_mode
+
+	STX dummy_ptr
+	STA dummy_ptr + 1
+
+	INY
+	LDA (cursor_script_ndx),Y ; width
+	LDX cursor_pos_x
+
+	CMP #10
+	BPL no_cursor_push
+
+	; X = letter pos (not cursor pos)
+	CLC
+	ADC cursor_pos_x
+	SEC
+	SBC #0
+	STA cursor_pos_x
+no_cursor_push:
+	; X = x pos
+	LDA (cursor_script_ndx),Y ; width
+	AND #127
+	JSR draw_letter
+
+	LDX #10
+
+pause_mode:
+	STX cursor_script_wait
+go_on:
+	PLA
+	LDA #CURSOR_BASE_COLOR
+	STA cursor_color
+	LDA #0
+	STA cursor_time
+	JSR clear_cursor
+	add_const_to_16 cursor_script_ndx,5
+
+cursor_blink:
+	DEC cursor_script_wait
+	LDA cursor_script_wait
+	BNE script_wait
+	JMP read_script
+script_wait:
+	INC cursor_time
+	LDA cursor_time
+	CMP #20
+	BNE pause_cursor
+	LDA #0
+	STA cursor_time
+
+	LDA cursor_color
+	EOR #CURSOR_BASE_COLOR
+	STA cursor_color
+	JSR clear_cursor
+
+pause_cursor:
+	JSR handle_track_progress
+	LDA #1
+	JSR pause
+	jmp cursor_blink
+
+clear_cursor:
+	LDX cursor_pos_x
+	STX filled_xpos		; it will start on X = 30 (measured in bytes)
+	LDA #1
+	STA filled_row_width		; the width of the block, in bytes
+
+	LDA cursor_pos_y
+	STA filled_ypos_start		; the block will be drawn from ypos_start
+	CLC
+	ADC #19
+	STA filled_ypos_end		; to ypos_end
+
+	LDA cursor_color
+	STA filled_block_color
+	jsr filled_block_draw_entry_point
+	RTS
+
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+show_logo:
+	LDA #250
+	JSR pause
+
+	;; lda #$0
+	;; ldx #$40
+	;; JSR clear_hgr2
+
+	JMP demo1
+
+cursor_time:	.byte 0
+cursor_color:	.byte 0
+cursor_pos_x:	.byte 0
+cursor_pos_y:	.byte 0
+cursor_script:
+	CURSOR_SPEED=10
+	CURSOR_X = 1
+	.byte CURSOR_X,10,255,0,0
+	.byte CURSOR_X,30,200,0,0
+	.byte CURSOR_X,50,100,0,0
+	.byte CURSOR_X,70,CURSOR_SPEED,0,0
+	.byte CURSOR_X,90,CURSOR_SPEED,0,0
+	.byte CURSOR_X,110,CURSOR_SPEED,0,0
+	.byte CURSOR_X,130,CURSOR_SPEED,0,0
+	.byte CURSOR_X,162,CURSOR_SPEED,0,0
+	.byte 1,162,<mainlogo0,>mainlogo0,2
+	.byte 3,162,<mainlogo1,>mainlogo1,4
+	.byte 7,162,<mainlogo2,>mainlogo2,4
+	.byte 11,162,<mainlogo3,>mainlogo3,4
+	.byte 15,162,<mainlogo4,>mainlogo4,4
+	.byte 19,162,<mainlogo5,>mainlogo5,4
+	.byte 23,162,<mainlogo6,>mainlogo6,2
+	.byte 25,162,<mainlogo7,>mainlogo7,4
+	.byte 29,162,255,0,0
+	.byte 25,162,<mainlogo8,>mainlogo8,4+128
+	.byte 23,162,<mainlogo8,>mainlogo8,4+128
+	.byte 19,162,<mainlogo8,>mainlogo8,4+128
+	.byte 15,162,<mainlogo8,>mainlogo8,4+128
+	.byte 11,162,<mainlogo8,>mainlogo8,4+128
+	.byte 7,162,<mainlogo8,>mainlogo8,4+128
+	.byte 3,162,<mainlogo8,>mainlogo8,4+128
+	.byte 1,162,<mainlogo8,>mainlogo8,4+128
+	.byte 1,162,200,0,0
+	.byte $ff
+
+cursor_script_wait:	.byte 0
+
+
+draw_letter:
+	STX xpos		; it will start on X = 30 (measured in bytes)
+	STA row_width		; the width of the block, in bytes
+
+	LDA #162
+	STA ypos_start		; the block will be drawn from ypos_start
+	LDA #162+19
+	STA ypos_end		; to ypos_end
+
+	;; dummy_ptr = src of data
+
+ 	JSR block_draw_entry_point
+
+	LDA #12
+	JSR pause
+	RTS
+
+demo1:
+;; stopped:
+;; 	JMP stopped
 	JSR stars_fixed
 	JSR stars
 
@@ -54,26 +263,19 @@
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
 
+
+
+
+
 	.ifndef DEBUG
 	LDA #250
 	JSR pause
-	LDA #250
+	LDA #50
 	JSR pause
 	.endif
 
 freeze:
 
-	FILE_THREED = 3
-	FILE_DATA_3D_0 = 4
-	FILE_DATA_3D_1 = 5
-
-	FILE1 = FILE_THREED
-	FILE2 = FILE_DATA_3D_0
-	FILE3 = FILE_DATA_3D_1
-
-
-	LDA #FILE1
-	JSR init_file_load
 
 	store_16 text_pointer, m2_the_message
 	JSR draw_text_line_animated
@@ -315,7 +517,7 @@ copy_block:
 
 show_message_loop0:
 	.ifndef DEBUG
-	LDA #25
+	LDA #10
 	JSR pause
 	.endif
 
@@ -357,7 +559,7 @@ continue_loop0:
 
 	LDA message_ndx
 
-	CMP #20
+	CMP #1
 	BNE not_file2
 	LDA #FILE2
 	JSR init_file_load
@@ -783,69 +985,162 @@ RELd1:	sta $2000,x
 
 	;; -----------------------------------------------------------
 
-block_draw:
-	LDA #100
-	STA ypos_start		; the block will be drawn from ypos_start
-	LDA #180
-	STA ypos_end		; to ypos_end
-	LDA #30			; it will start on X = 30 (measured in bytes)
-	STA xpos
+;; block_draw:
+;; 	LDA #100
+;; 	STA ypos_start		; the block will be drawn from ypos_start
+;; 	LDA #180
+;; 	STA ypos_end		; to ypos_end
+;; 	LDA #30			; it will start on X = 30 (measured in bytes)
+;; 	STA xpos
 
-	LDA #5			; the width of the block, in bytes
-	STA row_width
+;; 	LDA #5			; the width of the block, in bytes
+;; 	STA row_width
 
-	;; dummy_ptr = src of data
+;; 	;; dummy_ptr = src of data
 
-	LDA #$C0
-	STA dummy_ptr + 1
-	LDA #0
-	STA dummy_ptr
+;; 	LDA #$C0
+;; 	STA dummy_ptr + 1
+;; 	LDA #0
+;; 	STA dummy_ptr
 
-	JMP block_draw_entry_point
+;; 	JMP block_draw_entry_point
 
-loop_row:
+;; loop_row:
+;; 	;; A = Y of current line
+;; 	TAX
+
+;; 	;; offset: dummy_ptr2 := hgr_offset[X] + h_pos
+;; 	CLC
+;; 	LDA hgr4_offsets_lo,X
+;; xpos = * + 1
+;; 	ADC #0
+;; 	STA dummy_ptr2
+;; 	LDA hgr4_offsets_hi,X
+;; 	ADC #0
+;; 	STA dummy_ptr2+1
+
+;; row_width = * + 1
+;; 	LDY #0
+
+;; byte_loop:
+;; 	LDA (dummy_ptr),Y
+;; 	STA (dummy_ptr2),Y
+;; 	DEY
+;; 	BPL byte_loop
+
+;; 	;; Advance the source pointer
+;; 	CLC
+;; 	LDA dummy_ptr
+;; 	ADC row_width
+;; 	STA dummy_ptr
+;; 	LDA dummy_ptr+1
+;; 	ADC #0
+;; 	STA dummy_ptr+1
+
+;; 	INC ypos_start
+
+;; block_draw_entry_point:
+;; 	ypos_start = * + 1
+;; 	LDA #0
+
+;; 	ypos_end = * + 1
+;; 	CMP #0
+;; 	BNE loop_row
+
+;; 	RTS
+
+
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	.include "block_draw.s"
+mainlogo0:
+	.incbin "build/imphobia0.blk"
+mainlogo1:
+	.incbin "build/imphobia1.blk"
+mainlogo2:
+	.incbin "build/imphobia2.blk"
+mainlogo3:
+	.incbin "build/imphobia3.blk"
+mainlogo4:
+	.incbin "build/imphobia4.blk"
+mainlogo5:
+	.incbin "build/imphobia5.blk"
+mainlogo6:
+	.incbin "build/imphobia6.blk"
+mainlogo7:
+	.incbin "build/imphobia7.blk"
+mainlogo8:
+	.incbin "build/imphobia8.blk"
+
+
+	.proc clear_hgr2
+	;; A = color to clear with
+	;; X = page = $20 or $40
+
+	sta smc + 1
+	STX dummy_pointer + 1
+	LDX #0
+	STX dummy_pointer
+	ldx #$20
+
+	;; HGR memory is $4000 bytes => $40 x 256
+
+clear_hgr_loop:
+
+smc:
+	LDA #$00
+
+	LDY #0
+clear_block:
+	STA (dummy_pointer), Y
+	DEY
+	BNE clear_block
+
+	INC dummy_pointer + 1
+	DEX
+	BNE clear_hgr_loop
+
+	RTS
+	.endproc
+
+
+
+filled_block_draw:
+
+filled_loop_row:
 	;; A = Y of current line
 	TAX
 
 	;; offset: dummy_ptr2 := hgr_offset[X] + h_pos
 	CLC
-	LDA hgr4_offsets_lo,X
-xpos = * + 1
+	LDA hgr2_offsets_lo,X
+filled_xpos = * + 1
 	ADC #0
 	STA dummy_ptr2
-	LDA hgr4_offsets_hi,X
+	LDA hgr2_offsets_hi,X
+filled_block_page_select = * + 1
 	ADC #0
 	STA dummy_ptr2+1
 
-row_width = * + 1
+filled_row_width = * + 1
 	LDY #0
+	DEY			; fix the number for the loop
 
-byte_loop:
-	LDA (dummy_ptr),Y
+filled_byte_loop:
+filled_block_color = * + 1
+	LDA #0
 	STA (dummy_ptr2),Y
 	DEY
-	BPL byte_loop
+	BPL filled_byte_loop
 
-	;; Advance the source pointer
-	CLC
-	LDA dummy_ptr
-	ADC row_width
-	STA dummy_ptr
-	LDA dummy_ptr+1
-	ADC #0
-	STA dummy_ptr+1
+	INC filled_ypos_start
 
-	INC ypos_start
-
-block_draw_entry_point:
-	ypos_start = * + 1
+filled_block_draw_entry_point:
+	filled_ypos_start = * + 1
 	LDA #0
 
-	ypos_end = * + 1
+	filled_ypos_end = * + 1
 	CMP #0
-	BNE loop_row
+	BNE filled_loop_row
 
 	RTS
-
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

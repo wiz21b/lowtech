@@ -18,6 +18,12 @@ dummy_pointer = 254
 	.export start_player
 	.export FILE_ICEBERG_LOAD_ADDR
 
+	LDA #$A0		; space
+clear_apple_loop:
+	clear_apple = * + 1
+	STA $400 + 39
+	DEC clear_apple
+	BNE clear_apple_loop
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -46,8 +52,8 @@ dummy_pointer = 254
 	;; LDA LC_RAM_SELECT
 
 
-	LDA #'A'
-	STA $400
+	;; LDA #'A'
+	;; STA $400
 
         LDA #FILE_PT3
 	JSR load_file_no_irq
@@ -77,8 +83,8 @@ dummy_pointer = 254
 	JSR start_player
 	.endif
 
-	LDA #'B'
-	STA $401
+	;; LDA #'B'
+	;; STA $401
 
 	;; -----------------------------------------------------------
 

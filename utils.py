@@ -1802,7 +1802,7 @@ def image_to_hgr( image):
 
 def cut_image( img, block_path, x1,y1, x2,y2):
 
-    # x1,x2,y1,y2 : are inclusive
+    # x1,x2,y1,y2 : are inclusive, x1,x2 are byte offsets
     # Img path to a BIN hgr image
 
     assert img

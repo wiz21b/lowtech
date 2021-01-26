@@ -441,6 +441,7 @@ TUNE_ADDRESS = 0xFD00 - (((os.path.getsize(TUNE_ORIGINAL) + 256) >> 8) << 8)
 
 assert TUNE_ADDRESS >= 0xF000, "Tune too big ! over 3D file load area"
 
+print(f"Tune willl start at ${TUNE_ADDRESS:x}")
 # TUNE = TUNE_ORIGINAL
 
 td_files = []
