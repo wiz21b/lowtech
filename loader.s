@@ -95,6 +95,8 @@ clear_apple_loop:
 	JSR load_file_no_irq
 	LDA #FILE_BIG_SCROLL
 	JSR load_file_no_irq
+	LDA #FILE_MAIN_MUSIC
+	JSR load_file_no_irq
 	.endif
 
 	.ifdef MUSIC
@@ -103,6 +105,18 @@ clear_apple_loop:
 	.if FIRST_PART = 1
 	JSR $6000
 	.endif
+
+	;;  Back from first part
+
+	LDA #1
+	STA DONE_PLAYING
+
+	LDA #>FILE_MAIN_MUSIC_LOAD_ADDR
+	LDY #>PT3_LOC
+	LDX #12
+	JSR page_copy
+
+	JSR start_player
 
 
 	;; -----------------------------------------------------------
@@ -213,7 +227,7 @@ txt_ofs:
 
 	.endproc
 
-	.endif
+	.endif			; DEBUG
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -226,7 +240,7 @@ txt_ofs:
 
 	.include "read_sector.s" ; RWTS code
 
-	.byte "---MUSIC"
+	;.byte "---MUSIC"
 	.include "pt3_lib/zp.inc"
 	.include "pt3_lib/hardware.inc" ; some firmware locations
 	.include "pt3_lib/pt3_lib_core.s"
@@ -236,11 +250,36 @@ txt_ofs:
 	;.include "pt3_lib/interrupt_handler.s"
 	; if you're self patching, detect has to be after
 	; interrupt_handler.s
-	.byte "---FILE_LOAD"
+	;.byte "---FILE_LOAD"
 disk_toc:
 	.include "build/toc_equs.inc"
 	.include "build/toc_data.inc"
 	.include "file_load.s"
-	.byte "---THROWABLE"
 	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
+
+	;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+	.proc start_player
+	;; When DONE_PLAYING is different than 0, the palyer doesn't
+	;;  play anymore (but the IRQ keeps going)
+	lda	#0
+	sta	DONE_PLAYING
+	lda	#1
+	sta LOOP
+
+
+	jsr	mockingboard_init
+
+	jsr	pt3_init_song
+	jsr	reset_ay_both
+	jsr	clear_ay_both
+
+	rts
+	.endproc
+
+	;; Stuff after this JUNK mark will be used during loader's init
+	;; and will be erased by other data afterwards.
+
+	.byte "JUNK"
 	.include "file_load_init.s"

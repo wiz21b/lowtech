@@ -234,6 +234,30 @@ def gen_code_vertical_scroll():
 #exit()
 
 
+def cut_cursor_animation():
+    # with open("out.hgr", "rb") as fout:
+    #     data = fout.read()
+    #     show_hgr(data)
+
+    # Y_START, Y_END = 162, 180
+    # X = [10, 24, 52, 80, 108, 136, 164, 178, 198+7, 198+5*7]
+    Y_START, Y_END = 35, 53
+    X = [14, 21, 42, 63, 84,  105, 126, 133, 154, 154+5*7]
+
+    print(f"CONSOLE_LETTER_HEIGHT = {Y_END - Y_START + 1}")
+    for i in range(len(X) - 1):
+        x1, x2 = (X[i] // 7), (X[i+1] // 7) - 1
+
+        #print(f"mainlogo{i}: .incbin \"build/imphobia{i}.blk\"")
+
+        ofs = ((X[i]-X[0]) // 7) + 1
+
+        print(f"        .byte {ofs},162,<mainlogo{i},>mainlogo{i},{x2 - x1 + 1}")
+
+        cut_image("out.hgr", f"build/imphobia{i}.blk",
+                  x1, Y_START, x2, Y_END)
+
+
 
 memory_maps = dict()
 segments = dict()
@@ -318,7 +342,6 @@ else:
 BUILD_DIR = "build"
 DATA_DIR = "data"
 BUILD_DIR_ABSOLUTE = os.path.join(os.path.dirname(os.path.abspath(__file__)), BUILD_DIR)
-TUNE = "data/FR.PT3"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mame", action="store_true")
@@ -434,6 +457,11 @@ disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
 #TUNE_ORIGINAL = f"{DATA_DIR}/2UNLIM2.pt3"
 #TUNE_ORIGINAL = f"{DATA_DIR}/FC.PT3"
 TUNE_ORIGINAL = f"{DATA_DIR}/BH_FAST.pt3"
+TUNE_ORIGINAL = f"{DATA_DIR}/wizmod.pt3"
+TUNE_ORIGINAL = "/mnt/data2/apple2/Tr_Songs/pt3/Engel.pt3"
+MAIN_MUSIC = f"{DATA_DIR}/BH_FAST.pt3"
+
+
 crunch(TUNE_ORIGINAL)
 
 # lzsa -r -f2 data\2UNLIM.pt3 data\2UNLIM.lzsa
@@ -492,12 +520,14 @@ if td_files[-1][1] == 0xD0:
 else:
     iceberg_page = 0xD0
 
+
 toc_disk.add_files( [ (f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
                       (f"{TUNE_ORIGINAL}.lzsa",  0x60, "pt3"),
                       # (TUNE,  0xB8, "pt3"),
                       (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
                       (f"{BUILD_DIR}/BSCROLL",0x60,"big_scroll"),
                       # (f"{BUILD_DIR}/CHKDSK",0x60,"check_disk"),
+                      (MAIN_MUSIC,0x60,"main_music"),
                       (f"{BUILD_DIR}/THREED.lzsa",0x9B,"threed") ] \
                     + td_files + \
                     [ (f"{BUILD_DIR}/ICEBERG.BLK", iceberg_page, "iceberg"),
@@ -544,6 +574,7 @@ with open(f"{BUILD_DIR}/LOADER","rb") as floader:
 
 
 gen_code_vertical_scroll()
+cut_cursor_animation()
 run(f"{CA65} -o {BUILD_DIR}/vscroll.o -t apple2 --listing {BUILD_DIR}/vscroll.txt {additional_options} vscroll.s")
 run(f"{LD65} -o {BUILD_DIR}/VSCROLL {BUILD_DIR}/vscroll.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
@@ -573,6 +604,9 @@ print(f"Crunch {f} ({orig_size}), {pages} pages, crunched data start on page {td
 assert end_of_code  < mem_limit, "Too big ! {:4X} > {:4X}".format(end_of_code, mem_limit)
 
 toc_disk.update_file( f, td_start_page, "threed")
+
+main_music_start_page = 1 + (0x6000 + os.path.getsize(f"{BUILD_DIR}/BSCROLL") + 255) // 256
+toc_disk.update_file(MAIN_MUSIC, main_music_start_page, "main_music")
 
 
 payload_page = 0x62

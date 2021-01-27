@@ -252,7 +252,7 @@ class LoaderTOC:
                 assert size > 0, f"empty file ? {filepath}"
                 end = ((page_base * 256 + size - 1) & 0xFF00) + 0xFF
 
-                print(f"[{ident}] ${page_base:02X}00 - ${end:04X}: {filepath}, {size} bytes")
+                print(f"[{ident}] ${page_base:02X}00 - ${end:04X}: {filepath}, {size} bytes, label:{label}")
 
                 if i > 0:
                     # Skip the loader, cos it won't load itself :-)
@@ -1806,7 +1806,7 @@ def cut_image( img, block_path, x1,y1, x2,y2):
     # Img path to a BIN hgr image
 
     assert img
-    assert x1 < x2 and y1 < y2
+    assert x1 <= x2 and y1 <= y2, "{x1}<={x2} and {y1}<={y2}"
     assert (0 <= x1 < 40) and (0 <= x2 < 40), "bytes addresses only!"
 
     with open(img, "rb") as fin:
@@ -1819,6 +1819,8 @@ def cut_image( img, block_path, x1,y1, x2,y2):
 
         with open( block_path, "wb") as fout:
             fout.write( bytearray( block))
+
+
 
 
 REVERSED_BYTES = [ [(n//1)&1,  (n//2)&1,

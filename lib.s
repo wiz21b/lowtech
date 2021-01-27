@@ -1,3 +1,25 @@
+	.proc page_copy
+	;; A = page source
+	;; Y = page dest
+	;; X = nb pages to copy
+	STA page_source
+	STY page_dest
+	LDY #0
+copy_loop_page:
+copy_loop:
+	page_source = * + 2
+	LDA $AA00,Y
+	page_dest = * + 2
+	STA $AA00,Y
+	INY
+	BNE copy_loop
+	INC page_source
+	INC page_dest
+	DEX
+	BNE copy_loop_page
+	RTS
+	.endproc
+
 
 .proc pause
 

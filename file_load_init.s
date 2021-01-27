@@ -11,7 +11,6 @@
 
 	;; Global calibration variables to avoid .scope hell
 
-	.byte "JUNK"
 	CALIBRATION_RUNS = 128	;MUST BE 128 (hardcoded computations)
 
 total_data_time:	.byte 0,0,0
@@ -424,24 +423,4 @@ notyet:
 	STA curtrk
 
 	RTS
-	.endproc
-
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-	.proc start_player
-	lda	#0
-	sta	DONE_PLAYING
-	lda	#1
-	sta LOOP
-
-
-	jsr	mockingboard_init
-
-	jsr	pt3_init_song
-	jsr	reset_ay_both
-	jsr	clear_ay_both
-
-	rts
 	.endproc

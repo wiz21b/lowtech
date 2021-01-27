@@ -20,10 +20,7 @@
 	scroll_matric_ptr       = 248
 	dummy_ptr2		= 248
 
-
-	FILE_THREED = 3
-	FILE_DATA_3D_0 = 4
-	FILE_DATA_3D_1 = 5
+	.include "build/toc_equs.inc"
 
 	FILE1 = FILE_THREED
 	FILE2 = FILE_DATA_3D_0
@@ -56,7 +53,7 @@
 	JSR init_file_load
 
 
-	CURSOR_BASE_COLOR = 128 + 7 * 16
+	CURSOR_BASE_COLOR = 128 + 7
 
 	LDA #$20
 	STA block_page_select
@@ -105,11 +102,13 @@ script_not_done:
 	CMP #10
 	BPL no_cursor_push
 
-	; X = letter pos (not cursor pos)
+	;; X = letter pos (not cursor pos)
+	;; A = letter width
+
 	CLC
 	ADC cursor_pos_x
-	SEC
-	SBC #0
+	;; SEC
+	;; SBC #0
 	STA cursor_pos_x
 no_cursor_push:
 	; X = x pos
@@ -199,22 +198,27 @@ cursor_script:
 	.byte CURSOR_X,110,CURSOR_SPEED,0,0
 	.byte CURSOR_X,130,CURSOR_SPEED,0,0
 	.byte CURSOR_X,162,CURSOR_SPEED,0,0
-	.byte 1,162,<mainlogo0,>mainlogo0,2
-	.byte 3,162,<mainlogo1,>mainlogo1,4
-	.byte 7,162,<mainlogo2,>mainlogo2,4
-	.byte 11,162,<mainlogo3,>mainlogo3,4
-	.byte 15,162,<mainlogo4,>mainlogo4,4
-	.byte 19,162,<mainlogo5,>mainlogo5,4
-	.byte 23,162,<mainlogo6,>mainlogo6,2
-	.byte 25,162,<mainlogo7,>mainlogo7,4
-	.byte 29,162,255,0,0
-	.byte 25,162,<mainlogo8,>mainlogo8,4+128
-	.byte 23,162,<mainlogo8,>mainlogo8,4+128
-	.byte 19,162,<mainlogo8,>mainlogo8,4+128
-	.byte 15,162,<mainlogo8,>mainlogo8,4+128
+
+	CONSOLE_LETTER_HEIGHT = 19
+.byte 1,162,<mainlogo0,>mainlogo0,1
+.byte 2,162,<mainlogo1,>mainlogo1,3
+.byte 5,162,<mainlogo2,>mainlogo2,3
+.byte 8,162,<mainlogo3,>mainlogo3,3
+.byte 11,162,<mainlogo4,>mainlogo4,3
+.byte 14,162,<mainlogo5,>mainlogo5,3
+.byte 17,162,<mainlogo6,>mainlogo6,1
+.byte 18,162,<mainlogo7,>mainlogo7,3
+
+	;.byte 21,162,<mainlogo8,>mainlogo8,5
+	.byte 21,162,255,0,0
+	;.byte 21,162,<mainlogo8,>mainlogo8,4+128
+	.byte 18,162,<mainlogo8,>mainlogo8,4+128
+	.byte 17,162,<mainlogo8,>mainlogo8,4+128
+	.byte 14,162,<mainlogo8,>mainlogo8,4+128
 	.byte 11,162,<mainlogo8,>mainlogo8,4+128
-	.byte 7,162,<mainlogo8,>mainlogo8,4+128
-	.byte 3,162,<mainlogo8,>mainlogo8,4+128
+	.byte 8,162,<mainlogo8,>mainlogo8,4+128
+	.byte 5,162,<mainlogo8,>mainlogo8,4+128
+	.byte 2,162,<mainlogo8,>mainlogo8,4+128
 	.byte 1,162,<mainlogo8,>mainlogo8,4+128
 	.byte 1,162,200,0,0
 	.byte $ff
@@ -228,15 +232,15 @@ draw_letter:
 
 	LDA #162
 	STA ypos_start		; the block will be drawn from ypos_start
-	LDA #162+19
+	LDA #162+CONSOLE_LETTER_HEIGHT
 	STA ypos_end		; to ypos_end
 
 	;; dummy_ptr = src of data
 
  	JSR block_draw_entry_point
 
-	LDA #12
-	JSR pause
+	LDA #6
+	;JSR pause
 	RTS
 
 demo1:
