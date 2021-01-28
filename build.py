@@ -184,6 +184,9 @@ def make_data():
     with open("build/earth.bin","wb") as f_out:
         f_out.write( bytearray( image_to_hgr( im)))
 
+    cut_image("build/earth.bin", f"build/earth.blk",
+                  0, 154, 39, 191)
+
 
 def gen_code_vertical_scroll():
 
@@ -459,18 +462,18 @@ disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
 TUNE_ORIGINAL = f"{DATA_DIR}/BH_FAST.pt3"
 TUNE_ORIGINAL = f"{DATA_DIR}/wizmod.pt3"
 TUNE_ORIGINAL = "/mnt/data2/apple2/Tr_Songs/pt3/Engel.pt3"
+
+TUNE_ORIGINAL = "/mnt/data2/apple2/Tr_Songs/pt3/wiz.pt3"
 MAIN_MUSIC = f"{DATA_DIR}/BH_FAST.pt3"
 
-
-crunch(TUNE_ORIGINAL)
+SIZE_SONG = max(os.path.getsize(TUNE_ORIGINAL), os.path.getsize(MAIN_MUSIC))
 
 # lzsa -r -f2 data\2UNLIM.pt3 data\2UNLIM.lzsa
-TUNE_ADDRESS = 0xFD00 - (((os.path.getsize(TUNE_ORIGINAL) + 256) >> 8) << 8)
-
+TUNE_ADDRESS = 0xFD00 - (((SIZE_SONG + 256) >> 8) << 8)
 assert TUNE_ADDRESS >= 0xF000, "Tune too big ! over 3D file load area"
-
-print(f"Tune willl start at ${TUNE_ADDRESS:x}")
+print(f"Tune will start at ${TUNE_ADDRESS:x}")
 # TUNE = TUNE_ORIGINAL
+crunch(TUNE_ORIGINAL)
 
 td_files = []
 import glob
@@ -521,17 +524,16 @@ else:
     iceberg_page = 0xD0
 
 
-toc_disk.add_files( [ (f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
-                      (f"{TUNE_ORIGINAL}.lzsa",  0x60, "pt3"),
-                      # (TUNE,  0xB8, "pt3"),
-                      (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
-                      (f"{BUILD_DIR}/BSCROLL",0x60,"big_scroll"),
-                      # (f"{BUILD_DIR}/CHKDSK",0x60,"check_disk"),
-                      (MAIN_MUSIC,0x60,"main_music"),
-                      (f"{BUILD_DIR}/THREED.lzsa",0x9B,"threed") ] \
-                    + td_files + \
-                    [ (f"{BUILD_DIR}/ICEBERG.BLK", iceberg_page, "iceberg"),
-                      (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")] )
+toc_disk.add_files([(f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
+                    (f"{TUNE_ORIGINAL}.lzsa", 0x60, "pt3"),  # will be decrunched to the tune memory before anything gets loaded
+                    (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
+                    (f"{BUILD_DIR}/BSCROLL", 0x60, "big_scroll"),
+                    # (f"{BUILD_DIR}/CHKDSK",0x60,"check_disk"),
+                    (MAIN_MUSIC, 0x60, "main_music"),
+                    (f"{BUILD_DIR}/THREED.lzsa",0x9B,"threed") ] \
+                   + td_files + \
+                   [(f"{BUILD_DIR}/ICEBERG.BLK", iceberg_page, "iceberg"),
+                    (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")])
 
 # We compile the loader first, not knowing
 # the disk TOC content precisely. So we propose a TOC with dummies.
@@ -601,9 +603,9 @@ end_of_code = 0x6000 + (orig_size + 255)
 # Remeber that while decrunching, decrunched data will overwrite crunched data
 td_start_page = (mem_limit >> 8) - pages # BA is the best I can do
 print(f"Crunch {f} ({orig_size}), {pages} pages, crunched data start on page {td_start_page:X}")
-assert end_of_code  < mem_limit, "Too big ! {:4X} > {:4X}".format(end_of_code, mem_limit)
+assert end_of_code < mem_limit, "Too big ! {:4X} > {:4X}".format(end_of_code, mem_limit)
 
-toc_disk.update_file( f, td_start_page, "threed")
+toc_disk.update_file(f, td_start_page, "threed")
 
 main_music_start_page = 1 + (0x6000 + os.path.getsize(f"{BUILD_DIR}/BSCROLL") + 255) // 256
 toc_disk.update_file(MAIN_MUSIC, main_music_start_page, "main_music")

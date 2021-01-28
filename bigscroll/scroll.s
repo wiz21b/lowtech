@@ -6,7 +6,7 @@
 
 	.import ticks
 	.import init_file_load, load_file, handle_track_progress
-
+	.import current_pattern_smc, current_line_smc
 
 	.include "defs.s"
 	.include "precalc_def.s"
@@ -42,6 +42,9 @@
 	lda #$0
 	ldx #$40
 	JSR clear_hgr2
+	lda #$0
+	ldx #$20
+	JSR clear_hgr2
 
 	LDA $C052
 	;LDA $C054		; Page 1
@@ -52,6 +55,8 @@
 	LDA #FILE1
 	JSR init_file_load
 
+	LDA #$10
+	JSR wait_pt3_beat
 
 	CURSOR_BASE_COLOR = 128 + 7
 
@@ -70,7 +75,7 @@ read_script:
 	STA cursor_color
 	JSR clear_cursor
 
-	JMP show_logo
+	JMP text_pane
 
 script_not_done:
 	LDA cursor_color
@@ -99,7 +104,7 @@ script_not_done:
 	LDA (cursor_script_ndx),Y ; width
 	LDX cursor_pos_x
 
-	CMP #10
+	CMP #64			; letters without are offset by +128
 	BPL no_cursor_push
 
 	;; X = letter pos (not cursor pos)
@@ -116,7 +121,7 @@ no_cursor_push:
 	AND #127
 	JSR draw_letter
 
-	LDX #10
+	LDX #8
 
 pause_mode:
 	STX cursor_script_wait
@@ -173,16 +178,6 @@ clear_cursor:
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-show_logo:
-	LDA #250
-	JSR pause
-
-	;; lda #$0
-	;; ldx #$40
-	;; JSR clear_hgr2
-
-	JMP demo1
-
 cursor_time:	.byte 0
 cursor_color:	.byte 0
 cursor_pos_x:	.byte 0
@@ -190,9 +185,9 @@ cursor_pos_y:	.byte 0
 cursor_script:
 	CURSOR_SPEED=10
 	CURSOR_X = 1
-	.byte CURSOR_X,10,255,0,0
-	.byte CURSOR_X,30,200,0,0
-	.byte CURSOR_X,50,100,0,0
+	.byte CURSOR_X,10,100,0,0
+	.byte CURSOR_X,30,50,0,0
+	.byte CURSOR_X,50,50,0,0
 	.byte CURSOR_X,70,CURSOR_SPEED,0,0
 	.byte CURSOR_X,90,CURSOR_SPEED,0,0
 	.byte CURSOR_X,110,CURSOR_SPEED,0,0
@@ -210,7 +205,7 @@ cursor_script:
 .byte 18,162,<mainlogo7,>mainlogo7,3
 
 	;.byte 21,162,<mainlogo8,>mainlogo8,5
-	.byte 21,162,255,0,0
+	.byte 21,162,200,0,0
 	;.byte 21,162,<mainlogo8,>mainlogo8,4+128
 	.byte 18,162,<mainlogo8,>mainlogo8,4+128
 	.byte 17,162,<mainlogo8,>mainlogo8,4+128
@@ -220,11 +215,34 @@ cursor_script:
 	.byte 5,162,<mainlogo8,>mainlogo8,4+128
 	.byte 2,162,<mainlogo8,>mainlogo8,4+128
 	.byte 1,162,<mainlogo8,>mainlogo8,4+128
-	.byte 1,162,200,0,0
+	.byte 1,162,100,0,0
 	.byte $ff
 
 cursor_script_wait:	.byte 0
 
+	.proc draw_earth
+	;; A = HGR page select (0 or $20)
+
+	STA block_page_select
+
+	store_16 dummy_ptr, earth_block
+
+	LDX #0
+	STX xpos		; it will start on X = 30 (measured in bytes)
+	LDA #40
+	STA row_width		; the width of the block, in bytes
+
+	LDA #154
+	STA ypos_start		; the block will be drawn from ypos_start
+	LDA #192
+	STA ypos_end		; to ypos_end
+
+
+	;; dummy_ptr = src of data
+
+ 	JSR block_draw_entry_point
+	RTS
+	.endproc
 
 draw_letter:
 	STX xpos		; it will start on X = 30 (measured in bytes)
@@ -238,23 +256,21 @@ draw_letter:
 	;; dummy_ptr = src of data
 
  	JSR block_draw_entry_point
-
-	LDA #6
-	;JSR pause
 	RTS
 
-demo1:
-;; stopped:
-;; 	JMP stopped
+;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+text_pane:
+	;;  We're showing HGR page 2 and drawing on page 1
+	LDA #$0
+	JSR draw_earth
 	JSR stars_fixed
 	JSR stars
 
-	LDA #>$2000
-	LDX #>$4000
-	LDY #$20
-	jsr mem_copy
-
-	;JSR block_draw
+wait_beat1:
+	LDA current_pattern_smc + 1
+	CMP #1
+	BNE wait_beat1
 
 
 	.ifdef DEBUG
@@ -263,45 +279,52 @@ demo1:
 	LDA $C052	     ; mix text and gfx (c052 = full text/gfx)
 	.endif
 
-	LDA $C055
+	LDA $C054		; 55
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
-
-
-
-
-
-	.ifndef DEBUG
-	LDA #250
-	JSR pause
-	LDA #50
-	JSR pause
-	.endif
-
-freeze:
-
 
 	store_16 text_pointer, m2_the_message
 	JSR draw_text_line_animated
 
+	;; All of this because we have to re-prepare HGR2
+	;; for the big scroll
 
-	LDA $C054
+	;; We're showing page 1
+	;; Copy visible page to hidden page 2
+
+	LDA #>$2000
+	LDX #>$4000
+	LDY #$20
+	jsr mem_copy
+
+	;; Switch to hidden page
+	LDA $C052	     ; mix text and gfx (c052 = full text/gfx)
+	LDA $C055		; 55
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
 
-	LDA #250
-	JSR pause
-	LDA #250
-	JSR pause
+	;;  Rebuild starfiled $2000 page from scratch
 
-	;; JSR clear_hgr
+	lda #$0
+	ldx #$20
+	JSR clear_hgr2
+	LDA #$0
+	JSR draw_earth
+	JSR stars_fixed
+	JSR stars
 
-	;JSR start_player
+	.ifndef DEBUG
+wait_beat:
+	LDA current_line_smc + 1
+	BNE wait_beat
+	.endif
 
+	LDA $C052	     ; mix text and gfx (c052 = full text/gfx)
+	LDA $C054		; 55
+	LDA $C057
+	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
 
-
-
-; =============================================================================
+; ====================================================================
 
 big_loop:
 
@@ -507,6 +530,7 @@ copy_block:
 
 	.proc draw_text_line_animated
 
+
 	TEXT_PANE_START = 7
 	LINE_HEIGHT = 12
 
@@ -520,10 +544,6 @@ copy_block:
 	STY message_ndx
 
 show_message_loop0:
-	.ifndef DEBUG
-	LDA #10
-	JSR pause
-	.endif
 
 	LDY message_ndx
 	LDA (text_pointer),Y
@@ -555,6 +575,16 @@ not_end_of_line:
 
 not_a_space:
 	TAX
+
+	.ifndef DEBUG
+wait_beat:
+	LDA current_line_smc + 1
+	CMP pt3_last_line
+	BEQ wait_beat
+	STA pt3_last_line
+
+	.endif
+
 	JSR draw_letter_full
 
 
@@ -579,16 +609,10 @@ just_load:
 	JMP show_message_loop0
 
 end_text:
-end_of_line:
-	.ifndef DEBUG
-	LDA #250
-	JSR pause
-	LDA #250
-	JSR pause
-	.endif
 	RTS
 
 message_ndx:	.byte 0
+pt3_last_line:	.byte 0
 	.endproc
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -666,9 +690,9 @@ letter_vertical_loop:
 	;; Pointer to HGR line
 	LDX y_pos
 hdl0:
-	LDA hgr2_offsets_lo,X
+	LDA hgr4_offsets_lo,X
 	STA dummy_ptr2
-	LDA hgr2_offsets_hi,X
+	LDA hgr4_offsets_hi,X
 	; EOR hgr_page_select ($40 + $20 = $60)
 	EOR #$60
 	STA dummy_ptr2 + 1
@@ -1075,7 +1099,8 @@ mainlogo7:
 	.incbin "build/imphobia7.blk"
 mainlogo8:
 	.incbin "build/imphobia8.blk"
-
+earth_block:
+	.incbin "build/earth.blk"
 
 	.proc clear_hgr2
 	;; A = color to clear with
@@ -1148,3 +1173,10 @@ filled_block_draw_entry_point:
 	BNE filled_loop_row
 
 	RTS
+
+	.proc wait_pt3_beat
+wait_beat:
+	CMP current_line_smc + 1
+	BNE wait_beat
+	RTS
+	.endproc

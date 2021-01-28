@@ -17,6 +17,7 @@ dummy_pointer = 254
 	.export init_file_load, load_file, handle_track_progress
 	.export start_player
 	.export FILE_ICEBERG_LOAD_ADDR
+	.export current_pattern_smc, current_line_smc
 
 	LDA #$A0		; space
 clear_apple_loop:
@@ -91,8 +92,8 @@ clear_apple_loop:
 
 
 	.if FIRST_PART = 1
-	LDA #FILE_EARTH
-	JSR load_file_no_irq
+	;; LDA #FILE_EARTH
+	;; JSR load_file_no_irq
 	LDA #FILE_BIG_SCROLL
 	JSR load_file_no_irq
 	LDA #FILE_MAIN_MUSIC
@@ -113,7 +114,7 @@ clear_apple_loop:
 
 	LDA #>FILE_MAIN_MUSIC_LOAD_ADDR
 	LDY #>PT3_LOC
-	LDX #12
+	LDX #(FILE_MAIN_MUSIC_SIZE+255) / 256
 	JSR page_copy
 
 	JSR start_player

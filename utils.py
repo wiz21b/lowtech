@@ -200,6 +200,8 @@ class LoaderTOC:
             uplbl = label.upper()
             toc.append(f"FILE_{uplbl} = {i}")
             toc.append(f"FILE_{uplbl}_LOAD_ADDR = ${page_base:X}00")
+            s = os.path.getsize(filepath)
+            toc.append(f"FILE_{uplbl}_SIZE = {s}")
             toc.append("\t.byte 0,0,0,0,0")
 
         self._make_toc_files( path, toc)
@@ -257,8 +259,10 @@ class LoaderTOC:
                 if i > 0:
                     # Skip the loader, cos it won't load itself :-)
                     uplbl = label.upper()
-                    toc.append( f"FILE_{uplbl} = {entry_ndx}")
-                    toc.append( f"FILE_{uplbl}_LOAD_ADDR = ${page_base:X}00\n")
+                    toc.append(f"FILE_{uplbl} = {entry_ndx}")
+                    toc.append(f"FILE_{uplbl}_LOAD_ADDR = ${page_base:X}00")
+                    s = os.path.getsize(filepath)
+                    toc.append(f"FILE_{uplbl}_SIZE = {s}")
                     s = ".byte {},{},{},{},${:X}\t; {}".format(*t, label)
                     toc.append( s)
                     entry_ndx += 1
