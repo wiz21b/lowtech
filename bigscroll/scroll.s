@@ -267,10 +267,13 @@ text_pane:
 	JSR stars_fixed
 	JSR stars
 
-wait_beat1:
-	LDA current_pattern_smc + 1
-	CMP #1
-	BNE wait_beat1
+	LDA #1
+	JSR wait_pt3_beat
+
+;; wait_beat1:
+;; 	LDA current_pattern_smc + 1
+;; 	CMP #1
+;; 	BNE wait_beat1
 
 
 	.ifdef DEBUG
@@ -315,7 +318,8 @@ wait_beat1:
 
 	.ifndef DEBUG
 wait_beat:
-	LDA current_line_smc + 1
+	LDA current_pattern_smc + 1
+	CMP #5
 	BNE wait_beat
 	.endif
 

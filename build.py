@@ -526,7 +526,7 @@ else:
 
 toc_disk.add_files([(f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
                     (f"{TUNE_ORIGINAL}.lzsa", 0x60, "pt3"),  # will be decrunched to the tune memory before anything gets loaded
-                    (f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
+                    #(f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
                     (f"{BUILD_DIR}/BSCROLL", 0x60, "big_scroll"),
                     # (f"{BUILD_DIR}/CHKDSK",0x60,"check_disk"),
                     (MAIN_MUSIC, 0x60, "main_music"),
