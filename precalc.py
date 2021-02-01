@@ -17,7 +17,6 @@ from collections import OrderedDict
 import io
 import math
 import random
-random.seed(125)
 
 from PIL import Image
 import pygame

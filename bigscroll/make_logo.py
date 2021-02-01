@@ -26,9 +26,11 @@ from collections import OrderedDict
 import colorama
 import io
 import random
-random.seed(125)
 
 from bigscroll.godot import read_godot_tiles
+
+# 131
+random.seed(134)
 
 VERTICAL_OFFSET=5
 TILE_SIZE = 8
@@ -448,12 +450,15 @@ def make_all( BUILD_DIR, DATA_DIR):
         fo.write("matrix_row_count:\t.byte {}\n".format( len(labels) - 40))
 
 
+    x_rnd_range = lambda : random.randrange(2, 2+((280-28) // 7) + 1)
+
     with open(f"{BUILD_DIR}/stars.s","w") as fo:
         # Stars "inside" the scroller
         for i in range(15):
             fo.write( "TXA\n")
-            adr = hgr_address( VERTICAL_OFFSET*TILE_SIZE + random.randrange( scroller_height_in_pixels)) +\
-                " + {}".format(random.randrange(280 // 7))
+            adr = hgr_address(
+                VERTICAL_OFFSET*TILE_SIZE + random.randrange( scroller_height_in_pixels)) +\
+                " + {}".format(x_rnd_range())
             fo.write( "ORA " + adr + "\n")
             fo.write( "STA " + adr + "\n")
 
@@ -463,13 +468,13 @@ def make_all( BUILD_DIR, DATA_DIR):
             s = (1+2) << (random.randrange(3)*2)
             fo.write( "LDA #{}\n".format(s))
             adr = hgr_address( random.randrange(VERTICAL_OFFSET*TILE_SIZE)) +\
-                               " + {}".format(random.randrange(280 // 7))
+                               " + {}".format(x_rnd_range())
             fo.write( "STA " + adr + "\n")
 
             v = VERTICAL_OFFSET*TILE_SIZE + scroller_height_in_pixels
 
             adr = hgr_address( v + random.randrange(192-v)) +\
-                " + {}".format(random.randrange(280 // 7))
+                " + {}".format(x_rnd_range())
             fo.write( "STA " + adr + "\n")
 
     with open(f"{BUILD_DIR}/precalc_def.s","w") as fo:
