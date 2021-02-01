@@ -109,15 +109,19 @@ clear_apple_loop:
 
 	;;  Back from first part
 
-	LDA #1
-	STA DONE_PLAYING
+	;; -----------------------------------------------------------
 
-	LDA #>FILE_MAIN_MUSIC_LOAD_ADDR
-	LDY #>PT3_LOC
-	LDX #(FILE_MAIN_MUSIC_SIZE+255) / 256
-	JSR page_copy
+	;; Start new sound track
 
-	JSR start_player
+	;; LDA #1
+	;; STA DONE_PLAYING
+
+	;; LDA #>FILE_MAIN_MUSIC_LOAD_ADDR
+	;; LDY #>PT3_LOC
+	;; LDX #(FILE_MAIN_MUSIC_SIZE+255) / 256
+	;; JSR page_copy
+
+	;; JSR start_player
 
 
 	;; -----------------------------------------------------------

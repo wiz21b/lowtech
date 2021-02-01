@@ -29,6 +29,8 @@ from utils import *
 from parse_svg import parse_animals
 from gz3 import longest_paths_search
 
+HGR_OFFSET = 2
+
 # t = (portion.open(1,2) | portion.open(3,4) | portion.open(5,6)) | portion.open(1.5,3.5)
 # print( t)
 
@@ -844,10 +846,10 @@ def gen_code_vertical_tile_draw( fo, page):
 
         if page == 1:
             prefix = ""
-            line_base = hgr_address(y)
+            line_base = hgr_address(y, page=0x2000 + HGR_OFFSET)
         else:
             prefix = "p2_"
-            line_base = hgr_address(y, page=0x4000)
+            line_base = hgr_address(y, page=0x4000 + HGR_OFFSET)
 
         nop_label = f"{prefix}pcsm{y}"
         labels.append( "{}line{}".format(prefix, y))
@@ -934,9 +936,9 @@ def gen_code_vertical_tile_draw_no_tilebreaks( fo, page):
 
 
         if page == 1:
-            line_base = hgr_address(y)
+            line_base = hgr_address(y, 0x2000 + HGR_OFFSET)
         else:
-            line_base = hgr_address(y, page=0x4000)
+            line_base = hgr_address(y, 0x4000 + HGR_OFFSET)
 
         nop_label = f"{prefix}pcsm{y}"
         labels.append( f"{prefix}line{y}")
@@ -972,17 +974,18 @@ def gen_code_vertical_tile_blank( fo, page):
     nops_labels = []
     early_out_count  = 1
 
-    fo.write("""
-; Optimizing the BPL away is not worth it.
-; A branch takes 2 or 3 cycles, but setting it up with self modifying code
-; is at least 10 times that. So it's worth only for tall lines.
-""")
-
     for y in range(0,APPLE_YRES):
 
-        if y % 6 == 0:
+        if y % 19 == 0:
+            # % 19 to make sure we use that BVC construct
+            # the less often possible (so that we avoid
+            # as many branches as we can)
+
             eo_label = f"blank_early_out_p{page}_{early_out_count}"
             #fo.write(f"\tCLV\n")
+
+            # The BVC is just here to skip the RTS.
+            # See optimisation about BMI; RTS below.
             fo.write(f"\tBVC {eo_label}_skip\t; always taken\n")
             fo.write(f"{eo_label}:\n\tRTS\n")
             fo.write(f"{eo_label}_skip:\n")
@@ -990,13 +993,25 @@ def gen_code_vertical_tile_blank( fo, page):
 
         if page == 1:
             prefix = ""
-            line_base = hgr_address(y)
+            line_base = hgr_address(y, 0x2000 + HGR_OFFSET)
         else:
             prefix = "p2_"
-            line_base = hgr_address(y, page=0x4000)
+            line_base = hgr_address(y, 0x4000 + HGR_OFFSET)
 
         labels.append( "{}blank_line{}".format(prefix, y))
         nops_labels.append( "{}blank_pcsm{}".format(prefix, y))
+
+        # Y is the number of lines of the tile we must draw.
+        # The BMI is there to make sure we jump only when
+        # all the lines are drawn. It's just an optimisation
+        # so that we don't have the BPL; RTS construct that
+        # leads the code to jump on every line drawn (ie we jump
+        # only when drawing is completed => we spare one cycle
+        # on every jump not taken). This also enables easier
+        # self modified code, which we describe next.
+
+        # Note that the BMI will be self modified to replace
+        # it by some INX/DEX opcode to update the x-position.
 
         # 13 bytes * 192 = 2496 bytes
         fo.write(f"""
@@ -1006,12 +1021,6 @@ def gen_code_vertical_tile_blank( fo, page):
 {prefix}blank_pcsm{y}:
         BMI {eo_label}
 """)
-        # .format( prefix, y,
-        #                           line_base,
-        #                           prefix, y,
-        #                           prefix, y,
-        #                           prefix, y ))
-
 
     fo.write("\tRTS\n")
     make_lo_hi_ptr_table( fo, prefix + "blank_line_ptrs", labels)
@@ -1726,334 +1735,334 @@ def frame_draw( screen, paths):
 
 
 
+def build_3D_scene():
+    pygame.init()
+    screen = pygame.display.set_mode( (APPLE_XRES, APPLE_YRES))
 
-pygame.init()
-screen = pygame.display.set_mode( (APPLE_XRES, APPLE_YRES))
+    #recorder_frames = animate_3D( screen)
+    recorder_frames = load_frame_segments()
 
-#recorder_frames = animate_3D( screen)
-recorder_frames = load_frame_segments()
+    for fn in glob.glob(f"build/graphs_*.txt"):
+        os.remove(fn)
 
-for fn in glob.glob(f"build/graphs_*.txt"):
-    os.remove(fn)
+    for i,frame_lines in enumerate(recorder_frames):
+        edges = object_to_graph( frame_lines)
+        s = '\n'.join( [ f"{a} {b}" for a,b in edges])
 
-for i,frame_lines in enumerate(recorder_frames):
-    edges = object_to_graph( frame_lines)
-    s = '\n'.join( [ f"{a} {b}" for a,b in edges])
+        with open(f"build/graphs_{i:02}.txt","w") as fout:
+            fout.write(s)
 
-    with open(f"build/graphs_{i:02}.txt","w") as fout:
-        fout.write(s)
 
+    with open( SHAPE,"wb") as f_out:
+        pickle.dump( recorder_frames, f_out)
 
-with open( SHAPE,"wb") as f_out:
-    pickle.dump( recorder_frames, f_out)
+    # with open( SHAPE,"rb") as f_in:
+    #     recorder_frames = pickle.load( f_in)
+    # print(f"{len(recorder_frames)} frames loaded")
 
-# with open( SHAPE,"rb") as f_in:
-#     recorder_frames = pickle.load( f_in)
-# print(f"{len(recorder_frames)} frames loaded")
+    # with open( "XWing","rb") as f_in:
+    #     recorder_frames.extend( pickle.load( f_in))
+    # print(f"{len(recorder_frames)} frames loaded")
 
-# with open( "XWing","rb") as f_in:
-#     recorder_frames.extend( pickle.load( f_in))
-# print(f"{len(recorder_frames)} frames loaded")
+    MAX_BLOCKS = 8
 
-MAX_BLOCKS = 8
+    compute_vertical_tiles()
+    compute_vertical_tiles_right_left()
 
-compute_vertical_tiles()
-compute_vertical_tiles_right_left()
+    delta = 0
+    # with open("lines.s","w") as fo:
 
-delta = 0
-# with open("lines.s","w") as fo:
+    #     STEPS = 220
+    #     CENTER = Vertex( 270//2, 192//2)
 
-#     STEPS = 220
-#     CENTER = Vertex( 270//2, 192//2)
+    #     for i in range(STEPS):
+    #         x = math.cos( math.pi*i/STEPS)*62
+    #         y = math.sin( math.pi*i/STEPS)*62
+    #         gen_data_line( fo, CENTER + Vertex(x,y), CENTER + Vertex(-x,-y))
 
-#     for i in range(STEPS):
-#         x = math.cos( math.pi*i/STEPS)*62
-#         y = math.sin( math.pi*i/STEPS)*62
-#         gen_data_line( fo, CENTER + Vertex(x,y), CENTER + Vertex(-x,-y))
+    print("Recorded {} frames".format( len(recorder_frames)))
 
-print("Recorded {} frames".format( len(recorder_frames)))
-
-mem_block = bytearray()
-nb_mem_blocks = 1
-last_end_block_mark = None
-
-
-
-for fn in glob.glob(f"build/bin_lines*"):
-    os.remove(fn)
-for fn in glob.glob(f"build/xbin_lines*"):
-    os.remove(fn)
-
-frames_bytes = []
-with open("/tmp/cedges.txt","r") as finput:
-    for l in finput.readlines():
-        frames_bytes.append( [int(x) for x in l.strip().split(",")])
-
-
-cframes_bins = []
-
-with open("build/lines.s","w") as fo:
-
-    fo.write("; generated \n")
-    fo.write("; line type (0=horiz/1=verti), X start, Y start, length, slope (word) \n")
-
-    # 5:
-
-    total_pixels = 0
-
-
-    for frame_ndx,frame in enumerate(recorder_frames):
-        if frame_ndx == 0:
-            fo.write("line_data_frame1:\t;Beginning of first frame\n")
-
-        npixels = 0
-        win_x_min, win_x_max = 1000,0
-        win_y_min, win_y_max = 1000,0
-
-        def update_win_boundaries(a):
-            global win_x_min, win_x_max, win_y_min, win_y_max
-            win_x_min = min( win_x_min, a.x)
-            win_x_max = max( win_x_max, a.x)
-            win_y_min = min( win_y_min, a.y)
-            win_y_max = max( win_y_max, a.y)
-
-        # All lines in the frame
-
-        #for li,l in enumerate(frame):
-            # if frame_ndx > 0 or 10 <= li <= 12:
-
-        #compressed_edges = frame_compress( frame )
-        #path_bytes = paths_to_bytes2( compressed_edges)
-        path_bytes = frames_bytes[frame_ndx]
-
-        screen.fill( (0,0,0) )
-        for lx in range(40):
-            pygame.draw.line( screen, (0,0,255),
-                              (lx*7,0),
-                              (lx*7,192), 1)
-
-        # frame_draw( screen, compressed_edges)
-
-        d = 1
-        for i in range(path_bytes[0]):
-            print(d)
-            nv = path_bytes[d]
-            d += 1
-            for j in range(nv):
-                ax = path_bytes[d]
-                ay = path_bytes[d+1]
-                bx = path_bytes[d+2]
-                by = path_bytes[d+3]
-
-                d += 2
-                pygame.draw.line( screen, (255,0,0),
-                                  (ax,ay),
-                                  (bx,by), 1)
-            d += 2
-
-        pygame.display.flip()
-        if len( cframes_bins) == 2*10:
-            #input("pause")
-            pass
-
-
-
-        if frame_ndx == 10:
-            frame_bin_data = inject_picture_in_paths( path_bytes, "build/FORGET.BLK")
-
-        elif frame_ndx == 700:
-            frame_bin_data = inject_picture_in_paths( path_bytes, "build/NEW_DREAM.BLK")
-
-        else:
-            frame_bin_data = path_bytes
-            frame_bin_data = [ len(frame_bin_data) + 1 ] + frame_bin_data
-
-        cframes_bins.append(frame_bin_data)
-
-        if frame_ndx == 0:
-            with open(f"build/xbin_lines_const.s","w") as fo_const:
-                fo_const.write(f"SECOND_FRAME_OFFSET = {len(frame_bin_data)}")
-
-
-            #fo.write("\t.byte {}\n".format(",".join(map("${:02X}".format,path_bytes))))
-
-            fo.write("threed_line_size_marker:\n")
-
-        # frame_mem_block = bytearray()
-
-        # for li,l in enumerate( paths_to_bytes( compressed_edges)):
-
-        #     a = Vertex( l[0],l[1])
-        #     b = Vertex( l[2],l[3])
-
-        #     if frame_ndx == 0:
-        #         # Generate some source code
-        #         bin_data = gen_data_line( fo, a, b)
-        #         if li == 0:
-        #             fo.write("threed_line_size_marker:\n")
-        #     else:
-        #         bin_data = gen_data_line( None, a, b)
-
-        #     #if type(bin_data) == bytearray:
-        #     if bin_data:
-        #         frame_mem_block.extend(bin_data)
-
-        #     update_win_boundaries(a)
-        #     update_win_boundaries(b)
-
-        #     dx, dy = (b - a).x, (b - a).y
-        #     total_pixels += int(max( abs(dx), abs(dy)))
-
-        #     # if dx*dx > dy*dy:
-        #     #     npixels += int(abs(dx)) * 15
-        #     # else:
-        #     #     npixels += int(abs(dy)) * 20
-
-
-
-
-        # win_w = int(win_x_max - win_x_min)
-        # win_h = int(win_y_max - win_y_min)
-        # surf = int(win_w*win_h * APPLE_XRES*APPLE_YRES/40000)
-        # nb_segments = len(frame)
-        # print(f"Frame draws {npixels} cycles; {nb_segments} segments. Clearing woud cost {surf} cycles ({win_w}x{win_h}).")
-
-        # The whole thing here is to figure the byte mark to
-        # put at the end of the block
-
-        # def write_block( mark):
-        #     global nb_mem_blocks, mem_block
-
-        #     mem_block.extend( bytes([ mark ]))
-
-        #     n = f"build/xbin_lines{nb_mem_blocks:02d}"
-        #     print(f"Writing 3D block, {len(mem_block)} bytes in {n}")
-        #     with open( n, "wb") as fo_bin:
-        #         fo_bin.write(mem_block)
-
-        #     nb_mem_blocks += 1
-        #     mem_block = bytearray()
-
-
-
-        # if frame_ndx == len(recorder_frames) - 1:
-        #     mem_block.extend( frame_mem_block)
-        #     write_block(4)
-        # else:
-        #     if len( frame_mem_block) + len( mem_block) < 16*256 - 2:
-        #         # Regular frame
-        #         mem_block.extend( frame_mem_block)
-        #         mem_block.extend( bytes([3])) # end of frame
-        #     else:
-        #         # Last frame of the block
-        #         write_block(5)
-        #         mem_block.extend( frame_mem_block)
-
-
-        # if frame_ndx != len(recorder_frames)-1:
-        #     # not the last frame
-
-
-        #     # One disk track = 4KB, memory above 0xD000 is 12 kb => 3
-        #     # tracks I just need to have two alternating tracks (I
-        #     # could use 1.5 tracks because 12kb / 2 = 6 kb = 1.5
-        #     # track).
-
-        #     if len(mem_block) > 16*256 - 512:
-        #         mem_block.extend( bytes([5]))
-
-        #         fo.write(f"; File split {nb_mem_blocks}\n")
-        #         assert len(mem_block) <= 16*256, "the threshold is too big, {}".format(len(mem_block))
-        #         with open(f"build/bin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
-        #             fo_bin.write(mem_block)
-        #             nb_mem_blocks += 1
-
-        #         mem_block = bytearray()
-
-
-        #     else:
-        #         if frame_ndx == 0:
-        #             fo.write(f"\t.byte 3\t;; end of frame {frame_ndx}\n")
-        #         mem_block.extend( bytes([3]))
-
-        # else:
-        #     if frame_ndx == 0:
-        #         fo.write("\t.byte 4\t;; end of animation\n")
-        #     mem_block.extend( bytes([4]))
-
-
-        # if frame_ndx == 0:
-        #     l = len(mem_block)
-        #     fo.write(f"line_data_frame2:\t;Beginning of second frame; {l} bytes\n")
-
-
-
-
+    mem_block = bytearray()
     nb_mem_blocks = 1
+    last_end_block_mark = None
 
-    ndx = 0
-    while ndx < len(cframes_bins) and nb_mem_blocks <= MAX_BLOCKS:
 
-        print("New block")
-        block = []
 
-        # 4 bytes :
-        #   1 for LSB of bytes count of frame,
-        #   1 for special command
-        #   1 for MSB of bytes count of frame,
-        #   1 for paths count
-        # block.extend([4, PICTURE_LOAD, 0, 0])
-        # block.extend([4, PICTURE_LOAD, 0, 0])
-        # block.extend([4, PICTURE_LOAD, 0, 0])
-        # block.extend([4, PICTURE_LOAD, 0, 0])
+    for fn in glob.glob(f"build/bin_lines*"):
+        os.remove(fn)
+    for fn in glob.glob(f"build/xbin_lines*"):
+        os.remove(fn)
 
-        while ndx < len(cframes_bins):
-            frame_bin = cframes_bins[ndx]
-            print(f"Adding ? {len(frame_bin)} bytes")
-            if len( frame_bin) + len(block) + 2 < 16*256:
-                block.extend( frame_bin)
-                ndx += 1
+    frames_bytes = []
+    with open("/tmp/cedges.txt","r") as finput:
+        for l in finput.readlines():
+            frames_bytes.append( [int(x) for x in l.strip().split(",")])
+
+
+    cframes_bins = []
+
+    with open("build/lines.s","w") as fo:
+
+        fo.write("; generated \n")
+        fo.write("; line type (0=horiz/1=verti), X start, Y start, length, slope (word) \n")
+
+        # 5:
+
+        total_pixels = 0
+
+
+        for frame_ndx,frame in enumerate(recorder_frames):
+            if frame_ndx == 0:
+                fo.write("line_data_frame1:\t;Beginning of first frame\n")
+
+            npixels = 0
+            win_x_min, win_x_max = 1000,0
+            win_y_min, win_y_max = 1000,0
+
+            def update_win_boundaries(a):
+                global win_x_min, win_x_max, win_y_min, win_y_max
+                win_x_min = min( win_x_min, a.x)
+                win_x_max = max( win_x_max, a.x)
+                win_y_min = min( win_y_min, a.y)
+                win_y_max = max( win_y_max, a.y)
+
+            # All lines in the frame
+
+            #for li,l in enumerate(frame):
+                # if frame_ndx > 0 or 10 <= li <= 12:
+
+            #compressed_edges = frame_compress( frame )
+            #path_bytes = paths_to_bytes2( compressed_edges)
+            path_bytes = frames_bytes[frame_ndx]
+
+            screen.fill( (0,0,0) )
+            for lx in range(40):
+                pygame.draw.line( screen, (0,0,255),
+                                  (lx*7,0),
+                                  (lx*7,192), 1)
+
+            # frame_draw( screen, compressed_edges)
+
+            d = 1
+            for i in range(path_bytes[0]):
+                print(d)
+                nv = path_bytes[d]
+                d += 1
+                for j in range(nv):
+                    ax = path_bytes[d]
+                    ay = path_bytes[d+1]
+                    bx = path_bytes[d+2]
+                    by = path_bytes[d+3]
+
+                    d += 2
+                    pygame.draw.line( screen, (255,0,0),
+                                      (ax,ay),
+                                      (bx,by), 1)
+                d += 2
+
+            pygame.display.flip()
+            if len( cframes_bins) == 2*10:
+                #input("pause")
+                pass
+
+
+
+            if frame_ndx == 10:
+                frame_bin_data = inject_picture_in_paths( path_bytes, "build/FORGET.BLK")
+
+            elif frame_ndx == 700:
+                frame_bin_data = inject_picture_in_paths( path_bytes, "build/NEW_DREAM.BLK")
+
             else:
-                break
+                frame_bin_data = path_bytes
+                frame_bin_data = [ len(frame_bin_data) + 1 ] + frame_bin_data
 
-        block.append( 0) # Dummy byte count (zero helps the code to be simpler)
-        print(f"Writing 3D block, {len(block)} bytes.")
+            cframes_bins.append(frame_bin_data)
 
-        if ndx >= len(cframes_bins) or nb_mem_blocks == MAX_BLOCKS:
-            block.append( END_OF_MOVIE)
-        else:
-            block.append( END_OF_TRACK)
-
-        with open(f"build/xbin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
-            fo_bin.write( bytearray( block))
-        nb_mem_blocks += 1
-
-    # if block:
-    #     print(f"Writing 3D block, {len(block)} bytes.")
-    #     with open(f"build/xbin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
-    #         fo_bin.write( bytearray( block))
+            if frame_ndx == 0:
+                with open(f"build/xbin_lines_const.s","w") as fo_const:
+                    fo_const.write(f"SECOND_FRAME_OFFSET = {len(frame_bin_data)}")
 
 
-    TOTAL_ANIM_SECONDS = 6.74/2 # 14.6 with player
-    ONE_MHZ = 1000000
+                #fo.write("\t.byte {}\n".format(",".join(map("${:02X}".format,path_bytes))))
 
-    # cycles_per_pixel = ONE_MHZ * TOTAL_ANIM_SECONDS / total_pixels
-    # print("Total pixels drawn : {} in {} frames => {:.1f} cycles/pixel".format(total_pixels, len(recorder_frames), cycles_per_pixel))
+                fo.write("threed_line_size_marker:\n")
 
-    if len( mem_block) > 0:
-        print(f"Last block is {nb_mem_blocks}")
-        with open(f"build/bin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
-            fo_bin.write(mem_block)
+            # frame_mem_block = bytearray()
 
-    # fix_block = nb_mem_blocks - 2
-    # data = None
-    # with open(f"build/bin_lines{fix_block}","rb") as fo_bin:
-    #     data = fo_bin.read()
-    #     data[-1] = 6
-    # with open(f"build/bin_lines{fix_block}","wb") as fo_bin:
-    #     fo_bin.write(data)
+            # for li,l in enumerate( paths_to_bytes( compressed_edges)):
 
-pygame.quit()
+            #     a = Vertex( l[0],l[1])
+            #     b = Vertex( l[2],l[3])
+
+            #     if frame_ndx == 0:
+            #         # Generate some source code
+            #         bin_data = gen_data_line( fo, a, b)
+            #         if li == 0:
+            #             fo.write("threed_line_size_marker:\n")
+            #     else:
+            #         bin_data = gen_data_line( None, a, b)
+
+            #     #if type(bin_data) == bytearray:
+            #     if bin_data:
+            #         frame_mem_block.extend(bin_data)
+
+            #     update_win_boundaries(a)
+            #     update_win_boundaries(b)
+
+            #     dx, dy = (b - a).x, (b - a).y
+            #     total_pixels += int(max( abs(dx), abs(dy)))
+
+            #     # if dx*dx > dy*dy:
+            #     #     npixels += int(abs(dx)) * 15
+            #     # else:
+            #     #     npixels += int(abs(dy)) * 20
+
+
+
+
+            # win_w = int(win_x_max - win_x_min)
+            # win_h = int(win_y_max - win_y_min)
+            # surf = int(win_w*win_h * APPLE_XRES*APPLE_YRES/40000)
+            # nb_segments = len(frame)
+            # print(f"Frame draws {npixels} cycles; {nb_segments} segments. Clearing woud cost {surf} cycles ({win_w}x{win_h}).")
+
+            # The whole thing here is to figure the byte mark to
+            # put at the end of the block
+
+            # def write_block( mark):
+            #     global nb_mem_blocks, mem_block
+
+            #     mem_block.extend( bytes([ mark ]))
+
+            #     n = f"build/xbin_lines{nb_mem_blocks:02d}"
+            #     print(f"Writing 3D block, {len(mem_block)} bytes in {n}")
+            #     with open( n, "wb") as fo_bin:
+            #         fo_bin.write(mem_block)
+
+            #     nb_mem_blocks += 1
+            #     mem_block = bytearray()
+
+
+
+            # if frame_ndx == len(recorder_frames) - 1:
+            #     mem_block.extend( frame_mem_block)
+            #     write_block(4)
+            # else:
+            #     if len( frame_mem_block) + len( mem_block) < 16*256 - 2:
+            #         # Regular frame
+            #         mem_block.extend( frame_mem_block)
+            #         mem_block.extend( bytes([3])) # end of frame
+            #     else:
+            #         # Last frame of the block
+            #         write_block(5)
+            #         mem_block.extend( frame_mem_block)
+
+
+            # if frame_ndx != len(recorder_frames)-1:
+            #     # not the last frame
+
+
+            #     # One disk track = 4KB, memory above 0xD000 is 12 kb => 3
+            #     # tracks I just need to have two alternating tracks (I
+            #     # could use 1.5 tracks because 12kb / 2 = 6 kb = 1.5
+            #     # track).
+
+            #     if len(mem_block) > 16*256 - 512:
+            #         mem_block.extend( bytes([5]))
+
+            #         fo.write(f"; File split {nb_mem_blocks}\n")
+            #         assert len(mem_block) <= 16*256, "the threshold is too big, {}".format(len(mem_block))
+            #         with open(f"build/bin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
+            #             fo_bin.write(mem_block)
+            #             nb_mem_blocks += 1
+
+            #         mem_block = bytearray()
+
+
+            #     else:
+            #         if frame_ndx == 0:
+            #             fo.write(f"\t.byte 3\t;; end of frame {frame_ndx}\n")
+            #         mem_block.extend( bytes([3]))
+
+            # else:
+            #     if frame_ndx == 0:
+            #         fo.write("\t.byte 4\t;; end of animation\n")
+            #     mem_block.extend( bytes([4]))
+
+
+            # if frame_ndx == 0:
+            #     l = len(mem_block)
+            #     fo.write(f"line_data_frame2:\t;Beginning of second frame; {l} bytes\n")
+
+
+
+
+        nb_mem_blocks = 1
+
+        ndx = 0
+        while ndx < len(cframes_bins) and nb_mem_blocks <= MAX_BLOCKS:
+
+            print("New block")
+            block = []
+
+            # 4 bytes :
+            #   1 for LSB of bytes count of frame,
+            #   1 for special command
+            #   1 for MSB of bytes count of frame,
+            #   1 for paths count
+            # block.extend([4, PICTURE_LOAD, 0, 0])
+            # block.extend([4, PICTURE_LOAD, 0, 0])
+            # block.extend([4, PICTURE_LOAD, 0, 0])
+            # block.extend([4, PICTURE_LOAD, 0, 0])
+
+            while ndx < len(cframes_bins):
+                frame_bin = cframes_bins[ndx]
+                print(f"Adding ? {len(frame_bin)} bytes")
+                if len( frame_bin) + len(block) + 2 < 16*256:
+                    block.extend( frame_bin)
+                    ndx += 1
+                else:
+                    break
+
+            block.append( 0) # Dummy byte count (zero helps the code to be simpler)
+            print(f"Writing 3D block, {len(block)} bytes.")
+
+            if ndx >= len(cframes_bins) or nb_mem_blocks == MAX_BLOCKS:
+                block.append( END_OF_MOVIE)
+            else:
+                block.append( END_OF_TRACK)
+
+            with open(f"build/xbin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
+                fo_bin.write( bytearray( block))
+            nb_mem_blocks += 1
+
+        # if block:
+        #     print(f"Writing 3D block, {len(block)} bytes.")
+        #     with open(f"build/xbin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
+        #         fo_bin.write( bytearray( block))
+
+
+        TOTAL_ANIM_SECONDS = 6.74/2 # 14.6 with player
+        ONE_MHZ = 1000000
+
+        # cycles_per_pixel = ONE_MHZ * TOTAL_ANIM_SECONDS / total_pixels
+        # print("Total pixels drawn : {} in {} frames => {:.1f} cycles/pixel".format(total_pixels, len(recorder_frames), cycles_per_pixel))
+
+        if len( mem_block) > 0:
+            print(f"Last block is {nb_mem_blocks}")
+            with open(f"build/bin_lines{nb_mem_blocks:02d}","wb") as fo_bin:
+                fo_bin.write(mem_block)
+
+        # fix_block = nb_mem_blocks - 2
+        # data = None
+        # with open(f"build/bin_lines{fix_block}","rb") as fo_bin:
+        #     data = fo_bin.read()
+        #     data[-1] = 6
+        # with open(f"build/bin_lines{fix_block}","wb") as fo_bin:
+        #     fo_bin.write(data)
+
+    pygame.quit()
 
 with open("build/precalc.s","w") as fo:
     for page in [1,2]:
@@ -2067,8 +2076,6 @@ with open("build/htiles.s","w") as fo:
     compute_horizontal_tiles_up(fo)
     compute_hgr_offsets(fo)
 
-with open("build/hgr_ofs.s","w") as fo:
-    compute_hgr_offsets(fo)
 
 
 

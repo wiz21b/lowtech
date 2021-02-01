@@ -1,3 +1,4 @@
+HGR_OFFSET = 2			; Offset all gfx to the right (see precalc.py too)
 start_y:	.byte 0
 start_x:	.byte 0
 
@@ -28,6 +29,8 @@ tile_loop:
 
 	LDY start_y
 	LDA (hgr_offsets_lo),Y
+	CLC
+	ADC #HGR_OFFSET
 	STA dummy_ptr
 	LDA (hgr_offsets_hi),Y
 	STA dummy_ptr + 1
@@ -37,10 +40,10 @@ tile_loop:
 	TAY
 	LDA (tile_ptr),Y	; A := tile[ y_count]
 
-	ORA mask_byte		; A := tile[ y_count] & mask
+	ORA mask_byte		; A := tile[ y_count] | mask
 
 	LDY start_x
-	AND (dummy_ptr),Y	; A := (tile[ y_count] & mask) | hgr[fx]
+	AND (dummy_ptr),Y	; A := (tile[ y_count] | mask) & hgr[fx]
 
 	.ifnblank debug
 	;LDA #$0

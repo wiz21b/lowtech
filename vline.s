@@ -1,15 +1,23 @@
-	.macro advance_tile_vertically mdirection
+	.macro advance_tile_vertically mdirection, clearing
+	.scope
 
 	;; fx := fx + slope
 
 	CLC
-	LDA fx
+	LDA fx			; frac(fx)
 	ADC slope
 	STA fx
+
 	LDA fx+1		; int(fx)
-	sta old_fx
-	tax			; Save for later
+	STA old_fx
+	TAX			; Save for later
 	ADC slope+1
+
+;; 	CMP #$FE		;--- FIX
+;; 	BNE no_clipping_fix
+;; 	LDA #0
+;; no_clipping_fix:
+
 	STA fx+1
 
 	;; Find the tile to draw. We build a 8 bits index structured
@@ -35,6 +43,8 @@
 	;; To compensate for that, we modify the modulo7_times8
 	;; table !
 
+	;; Compute int(fx) - old_fx
+
 	.if mdirection = ::RIGHT_TO_LEFT
 	lda old_fx
 	sec
@@ -51,11 +61,12 @@
 	;; Merge the ..DDD... and .....SSS parts
 	ora dummy_ptr
 
-	tax
+	tax			;and save for later use
 
 	;; Now X is the index of the tile, so we can load
 	;; and set its pointer
 
+	.ifnblank clearing
 	.if mdirection = ::RIGHT_TO_LEFT
 
 	LDA tiles_lr_ptrs_lo, X
@@ -71,7 +82,9 @@
 	STA tile_ptr + 1
 
 	.endif
+	.endif
 
+	.endscope
 	.endmacro
 
 old_opcode:	.byte 0
@@ -103,13 +116,13 @@ modulo7_times8:
 	LDA #6			; [0 - tiles_length] inclusive => len 7.
 	STA tiles_length
 
-	LDX length
-	LDA modulo7, X
+	LDX length		; the length (height) of the line we'll draw
+	LDA modulo7, X		; The mod 7 is a bit tricky, check the modulo7 table
 	STA length_mod7
 	LDA div7, X
 	STA length_div7
-	CMP #0
-	BNE at_least_one_tile
+	CMP #0			; the height divided by the tile height is more than one
+	BNE at_least_one_tile	; so at least one full tile will be drawn
 
 	JMP clipped_tile
 
@@ -119,7 +132,7 @@ at_least_one_tile:
 
 loop_start:
 
-	advance_tile_vertically ::direction
+	advance_tile_vertically ::direction, ::clearing
 
 loop_start2:
 	;; tax
@@ -166,7 +179,7 @@ loop_start2:
 	.ifblank clearing	; ----------------- Drawing
 
 	;; Choose the code segment to run to draw or clear
-	;; the line. self_mod will contain a pointer to
+	;; the tile. self_mod will contain a pointer to
 	;; that code and it's part of a JSR opcode which will
 	;; do the jump.
 
@@ -187,6 +200,7 @@ loop_start2:
 	.else	; -------------------------------- Clearing
 
 	;; X = number of the tile we will draw
+	;; Remember X is built on the 00DDDSSS template
 
 	.if ::direction = ::RIGHT_TO_LEFT
 	LDA tiles_lr_breaks_indices,X
@@ -194,18 +208,16 @@ loop_start2:
 	LDA tiles_breaks_indices,X
 	.endif
 
-
 	STA self_mod_flag
 	CMP tiles_length		; 2/3d of times, no self mod is necessary
 	BPL no_self_mod
-
 
 	CLC
 	ADC fy + 1
 	TAY 	;; Y = (fy + 1) + tile_length
 
 	;; self_mod_ptr :=
-	;;      blank_line_code_ptr + (blank_pcsm0-blank_line0)
+	;;      blank_line_code_ptr[Y] + (blank_pcsm0-blank_line0)
 
 	CLC
 	LDA (blank_line_code_ptr_lo), Y
@@ -216,11 +228,12 @@ loop_start2:
 	STA self_mod_ptr + 1
 
 	;; Now we apply the self modifications.
-	;; It consists in replacing th BMI
+	;; It consists in replacing the BMI
 	;; by something else. We'll undo that
 	;; self modification once the code has been
 	;; executed.
 
+	;; So BMI aaaa becomes DEX/INX ; NOP
 
 	.if ::direction = ::RIGHT_TO_LEFT
 	LDA #OPCODE_DEX
@@ -228,11 +241,11 @@ loop_start2:
 	LDA #OPCODE_INX
 	.endif
 	LDY #0
-	STA (self_mod_ptr),Y
+	STA (self_mod_ptr),Y	; Replace BMI's opcode by INX/DEX
 
 	INY
-	LDA (self_mod_ptr),Y
-	STA old_opcode
+	LDA (self_mod_ptr),Y	; Save the BMI's target
+	STA old_opcode		; We'll restore it later
 	LDA #OPCODE_NOP
 	STA (self_mod_ptr),Y
 
@@ -274,7 +287,7 @@ self_mod:
 	jsr line0		; This address will be self modified
 
 
-	.ifnblank clearing
+	.ifnblank clearing	; CLEARING CODE ----------------------
 	LDA self_mod_flag
 	CMP #NO_BREAK_INDICATOR
 	BEQ no_undo_self_mod
@@ -304,18 +317,23 @@ no_undo_self_mod:
 tile_done:
 
 clipped_tile:
+	;; All the lines of the last tile may not be needed.
+	;; That's the case when the height of the line is not
+	;; a multiple of the tile height.
+
 	LDA length_mod7
 	CMP #0
 	BEQ really_done
+
 	STA tiles_length
 	LDA #1
 	STA length_div7
 	LDA #0
 	STA length_mod7
-	advance_tile_vertically ::direction
-	;; FIXME This block should be optimized (ie it is only needed
-	;; when tiles_length is not 6, that is when a tile is clipped
+	advance_tile_vertically ::direction, ::clearing
 
+
+	.ifblank clearing
 	LDA #6
 	SEC
 	SBC tiles_length
@@ -325,6 +343,7 @@ clipped_tile:
 	LDA #0
 	ADC tile_ptr + 1
 	STA tile_ptr + 1
+	.endif
 
 
 	JMP loop_start2

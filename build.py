@@ -138,6 +138,10 @@ MESSAGE2 = ["This demo was",
             "",
             ]
 
+def compute_hgr_offsets(fo):
+    make_lo_hi_ptr_table( fo, "hgr2_offsets", [hgr_address(y,page=0x2000,format=1) for y in range(APPLE_YRES)])
+    fo.write("\n")
+    make_lo_hi_ptr_table( fo, "hgr4_offsets", [hgr_address(y,page=0x4000,format=1) for y in range(APPLE_YRES)])
 
 def make_data():
 
@@ -321,13 +325,14 @@ def crunch( filepath):
     return fname
 
 if platform.system() == "Windows":
-    CA65 = r"\PORT-STC\opt\cc65\bin\ca65"
-    LD65 = r"\PORT-STC\opt\cc65\bin\ld65"
+    CA65 = r"\opt\cc65\bin\ca65"
+    LD65 = r"\opt\cc65\bin\ld65"
     ACMDER = r"java -jar ..\bad_apple\AppleCommander-1.3.5.13-ac.jar"
-    ACME = r"\PORT-STC\opt\acme\acme"
-    APPLEWIN = r"\PORT-STC\opt\applewin\Applewin.exe"
+    ACME = r"\opt\acme\acme"
+    APPLEWIN = r"\opt\applewin\Applewin.exe"
     MAME = r"c:\port-stc\opt\mame\mame64"
     LZSA = "lzsa.exe"
+    DSK2WOZ = "dsk2woz_wiggles.exe"
 
 elif platform.system() == "Linux":
     CA65 = r"ca65"
@@ -337,6 +342,7 @@ elif platform.system() == "Linux":
     APPLEWIN = r"/opt/wine-staging/bin/wine /home/stefan/AppleWin1.29.16.0/Applewin.exe"
     MAME = "mame"
     LZSA = "lzsa/lzsa"
+    DSK2WOZ = "./dsk2woz"
 else:
     raise Exception("Unsupported system : {}".format(platform.system()))
 
@@ -459,11 +465,10 @@ disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
 
 #TUNE_ORIGINAL = f"{DATA_DIR}/2UNLIM2.pt3"
 #TUNE_ORIGINAL = f"{DATA_DIR}/FC.PT3"
-TUNE_ORIGINAL = f"{DATA_DIR}/BH_FAST.pt3"
-TUNE_ORIGINAL = f"{DATA_DIR}/wizmod.pt3"
-TUNE_ORIGINAL = "/mnt/data2/apple2/Tr_Songs/pt3/Engel.pt3"
+# TUNE_ORIGINAL = f"{DATA_DIR}/BH_FAST.pt3"
+# TUNE_ORIGINAL = f"{DATA_DIR}/wizmod.pt3"
 
-TUNE_ORIGINAL = "/mnt/data2/apple2/Tr_Songs/pt3/wiz.pt3"
+TUNE_ORIGINAL = f"{DATA_DIR}/wiz.pt3"
 MAIN_MUSIC = f"{DATA_DIR}/BH_FAST.pt3"
 
 SIZE_SONG = max(os.path.getsize(TUNE_ORIGINAL), os.path.getsize(MAIN_MUSIC))
@@ -573,6 +578,10 @@ with open(f"{BUILD_DIR}/LOADER","rb") as floader:
 # Now that the loader is built (with incomplete TOC data but correct
 # size), we can build other modules which depends on its routines.
 # (the linker will be able to do its job)
+
+
+with open("build/hgr_ofs.s","w") as fo:
+    compute_hgr_offsets(fo)
 
 
 gen_code_vertical_scroll()
@@ -720,7 +729,7 @@ print("Running emulator")
 if args.dsk:
     final_disk = "NEW.DSK"
 else:
-    run(f"./dsk2woz_wiggles {BUILD_DIR}/NEW.DSK {BUILD_DIR}/NEW.WOZ")
+    run(f"{DSK2WOZ} {BUILD_DIR}/NEW.DSK {BUILD_DIR}/NEW.WOZ")
     final_disk = "NEW.WOZ"
 
 final_disk = os.path.join(BUILD_DIR_ABSOLUTE, final_disk)

@@ -111,6 +111,7 @@ x_correctly_ordered:
 
 	LDA dy_positive
 	STA length
+	;DEC length ; --- FIX
 	LDA slope65536
 	STA slope
 	LDA slope65536+1

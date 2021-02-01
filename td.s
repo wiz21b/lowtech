@@ -55,6 +55,7 @@ blank_line_code_ptr_hi	= 244
 line_code_ptr_hi	= 246
 
 self_mod_ptr	= $82
+dummy_ptr3	= 250
 line_data_ptr	= 250
 tile_ptr	= 252
 mul1 = dummy_ptr
@@ -70,8 +71,17 @@ BYTES_PER_LINE	= threed_line_size_marker - line_data_frame1
 
 	STA next_file_to_load
 				;JSR init_disk_read	; Must be done before any read sector
-	lda #$ff
-	JSR clear_hgr
+
+	;; lda #$ff
+	;; JSR clear_hgr
+
+	store_16 dummy_ptr2, hgr2_offsets_lo
+	store_16 dummy_ptr3, hgr2_offsets_hi
+	JSR clear_hgr_band
+	store_16 dummy_ptr2, hgr4_offsets_lo
+	store_16 dummy_ptr3, hgr4_offsets_hi
+	JSR clear_hgr_band
+
 
 	.if GR_ONLY = 1
 	LDA $C051		; text
@@ -261,10 +271,18 @@ all_done:
 	LDA $C050 	; display graphics; last for cleaner mode change
 	.endif
 
+
+	store_16 dummy_ptr2, hgr4_offsets_lo
+	store_16 dummy_ptr3, hgr4_offsets_hi
+	JSR clear_hgr_band
+	store_16 dummy_ptr2, hgr2_offsets_lo
+	store_16 dummy_ptr3, hgr2_offsets_hi
+	JSR clear_hgr_band
+
 	RTS
 
 
-	jmp demo3
+	;; jmp demo3
 
 frame_count:
 	.byte 0
@@ -347,7 +365,7 @@ next_edge:
 	LDY #1			; Skip frame size in bytes
 	LDA (line_data_ptr),Y	; paths count OR special command
 	CMP #PICTURE_LOAD
-	BEQ draw_a_picture
+	;BEQ draw_a_picture
 end_of_track:
 end_of_movie:
 	RTS
@@ -993,62 +1011,62 @@ tile_loop:
 
 .endproc
 
-	.proc multiply_8
-	;; Multiply mul1 * mul2
+;; 	.proc multiply_8
+;; 	;; Multiply mul1 * mul2
 
-	LDA #0
-	CMP mul2		; Clear Carry too
-	BEQ by0
+;; 	LDA #0
+;; 	CMP mul2		; Clear Carry too
+;; 	BEQ by0
 
-	dec mul2	; decrement mul2 because we will be adding with carry set for speed (an extra one)
+;; 	dec mul2	; decrement mul2 because we will be adding with carry set for speed (an extra one)
 
-	ror mul1
-	bcc b1
-	adc mul2
-b1:
-	ror
-	ror mul1
-	bcc b2
-	adc mul2
-b2:
-	ror
-	ror mul1
-	bcc b3
-	adc mul2
-b3:
-	ror
-	ror mul1
-	bcc b4
-	adc mul2
-b4:
-	ror
-	ror mul1
-	bcc b5
-	adc mul2
-b5:
-	ror
-	ror mul1
-	bcc b6
-	adc mul2
-b6:
-	ror
-	ror mul1
-	bcc b7
-	adc mul2
-b7:
-	ror
-	ror mul1
-	bcc b8
-	adc mul2
-b8:
-	ror
-	ror mul1
-	inc mul2
-	rts
-by0:
-	STA mul1
-	RTS
-	.endproc
+;; 	ror mul1
+;; 	bcc b1
+;; 	adc mul2
+;; b1:
+;; 	ror
+;; 	ror mul1
+;; 	bcc b2
+;; 	adc mul2
+;; b2:
+;; 	ror
+;; 	ror mul1
+;; 	bcc b3
+;; 	adc mul2
+;; b3:
+;; 	ror
+;; 	ror mul1
+;; 	bcc b4
+;; 	adc mul2
+;; b4:
+;; 	ror
+;; 	ror mul1
+;; 	bcc b5
+;; 	adc mul2
+;; b5:
+;; 	ror
+;; 	ror mul1
+;; 	bcc b6
+;; 	adc mul2
+;; b6:
+;; 	ror
+;; 	ror mul1
+;; 	bcc b7
+;; 	adc mul2
+;; b7:
+;; 	ror
+;; 	ror mul1
+;; 	bcc b8
+;; 	adc mul2
+;; b8:
+;; 	ror
+;; 	ror mul1
+;; 	inc mul2
+;; 	rts
+;; by0:
+;; 	STA mul1
+;; 	RTS
+;; 	.endproc
 
 
 
@@ -1088,44 +1106,77 @@ by0:
 	draw_vline LEFT_TO_RIGHT
 .endproc
 
-.proc erase_vline_right_left
+	.proc erase_vline_right_left
 	draw_vline RIGHT_TO_LEFT,1
 .endproc
 
-.proc erase_vline_left_right
+	.proc erase_vline_left_right
 	draw_vline LEFT_TO_RIGHT,1
 .endproc
 
 .proc draw_hline
-	;draw_hline2 TOP_DOWN
-
 	direction = TOP_DOWN
 	clearing = 0
 	.include "hline_base.s"
 .endproc
 
 .proc draw_hline_up
-	;draw_hline2 BOTTOM_UP
-
 	direction = BOTTOM_UP
 	clearing = 0
 	.include "hline_base.s"
 .endproc
 
 .proc erase_hline
-	;draw_hline2 TOP_DOWN, 1
 	direction = TOP_DOWN
 	clearing = 1
 	.include "hline_base.s"
 .endproc
 
 .proc erase_hline_up
-	;draw_hline2 BOTTOM_UP, 1
 	direction = BOTTOM_UP
 	clearing = 1
 	.include "hline_base.s"
 .endproc
 
+	.proc clear_hgr_band
+	LDA #191
+	STA clear_hgr_y_count
+clear_hgr_loop:
+clear_hgr_y_count = * + 1
+	LDY #191
+	LDA (dummy_ptr2),Y
+	STA dummy_ptr
+	LDA (dummy_ptr3),Y
+	STA dummy_ptr + 1
+
+	LDY #0
+
+	LDA #$0
+	STA (dummy_ptr),Y
+	INY
+	STA (dummy_ptr),Y
+	INY
+
+	LDA #$7F
+clear_hgr_line_loop:
+	STA (dummy_ptr),Y
+	INY
+	CPY #38
+	BNE clear_hgr_line_loop
+
+	LDA #$0
+	STA (dummy_ptr),Y
+	INY
+	STA (dummy_ptr),Y
+
+	DEC clear_hgr_y_count
+	LDA clear_hgr_y_count
+	CMP #$FF
+	BNE clear_hgr_loop
+
+
+	RTS
+	.endproc
 
 ;; 	;PT3_LOC = $0C00
 ;; 	.include "pt3_lib/zp.inc"

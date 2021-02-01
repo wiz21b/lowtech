@@ -284,8 +284,8 @@ function xclip( a::POINT_TYPE, b::POINT_TYPE)
     return a, b
   end
 
-  bottom = 7
-  top = X_RES - 8
+  bottom = 0
+  top = floor(X_RES / 7)*7 - 1
 
   if a[1] > b[1]
     a,b = b,a
@@ -314,8 +314,8 @@ function xclip( a::POINT_TYPE, b::POINT_TYPE)
     end
   end
 
-  @assert 0 <= ca[1] <= X_RES "$(ca[1])"
-  @assert 0 <= cb[1] <= X_RES "$(cb[1])"
+  @assert bottom <= ca[1] <= top "$(ca[1])"
+  @assert bottom <= cb[1] <= top "$(cb[1])"
 
   return ca, cb
 end

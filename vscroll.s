@@ -39,9 +39,9 @@ BYTES_PER_LINE	= 6
 	LDA $C052	     ; mix text and gfx (c052 = full text/gfx)
 	.endif
 
-	LDA #$FF
-	LDX #$20
-	JSR clear_hgr2
+	;; LDA #$FF
+	;; LDX #$20
+	;; JSR clear_hgr2
 
 	LDA $C054		; Page 1
 	;LDA $C055		;Page 2
