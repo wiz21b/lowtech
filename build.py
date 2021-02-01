@@ -242,7 +242,7 @@ def gen_code_vertical_scroll():
 
 
 def cut_cursor_animation():
-    # with open("out.hgr", "rb") as fout:
+    # with open(f"{DATA_DIR}/console_font.hgr", "rb") as fout:
     #     data = fout.read()
     #     show_hgr(data)
 
@@ -261,7 +261,7 @@ def cut_cursor_animation():
 
         print(f"        .byte {ofs},162,<mainlogo{i},>mainlogo{i},{x2 - x1 + 1}")
 
-        cut_image("out.hgr", f"build/imphobia{i}.blk",
+        cut_image(f"{DATA_DIR}/console_font.hgr", f"build/imphobia{i}.blk",
                   x1, Y_START, x2, Y_END)
 
 
