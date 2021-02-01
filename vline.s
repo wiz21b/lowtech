@@ -12,12 +12,6 @@
 	STA old_fx
 	TAX			; Save for later
 	ADC slope+1
-
-;; 	CMP #$FE		;--- FIX
-;; 	BNE no_clipping_fix
-;; 	LDA #0
-;; no_clipping_fix:
-
 	STA fx+1
 
 	;; Find the tile to draw. We build a 8 bits index structured
@@ -63,10 +57,10 @@
 
 	tax			;and save for later use
 
-	;; Now X is the index of the tile, so we can load
-	;; and set its pointer
 
 	.ifnblank clearing
+	;; Now X is the index of the tile, so we can load
+	;; and set its pointer
 	.if mdirection = ::RIGHT_TO_LEFT
 
 	LDA tiles_lr_ptrs_lo, X
@@ -210,8 +204,9 @@ loop_start2:
 
 	STA self_mod_flag
 	CMP tiles_length		; 2/3d of times, no self mod is necessary
-	BPL no_self_mod
+	BPL no_self_mod			; signed comparison
 
+	;; Compute on which line the break will occur
 	CLC
 	ADC fy + 1
 	TAY 	;; Y = (fy + 1) + tile_length
@@ -237,6 +232,16 @@ loop_start2:
 
 	.if ::direction = ::RIGHT_TO_LEFT
 	LDA #OPCODE_DEX
+
+	.ifnblank clearing
+	;; Super dirty fix
+	LDX old_fx
+	CPX #7
+	BCS no_clip_fix
+	LDA #OPCODE_NOP
+no_clip_fix:
+	.endif
+
 	.else
 	LDA #OPCODE_INX
 	.endif
@@ -284,7 +289,7 @@ count:
 	CLC
 	CLV
 self_mod:
-	jsr line0		; This address will be self modified
+	JSR line0		; This address will be self modified
 
 
 	.ifnblank clearing	; CLEARING CODE ----------------------
@@ -317,6 +322,7 @@ no_undo_self_mod:
 tile_done:
 
 clipped_tile:
+
 	;; All the lines of the last tile may not be needed.
 	;; That's the case when the height of the line is not
 	;; a multiple of the tile height.
@@ -325,13 +331,28 @@ clipped_tile:
 	CMP #0
 	BEQ really_done
 
+	;; SEC		; ---- FIX  works a bit
+	;; SBC #1
+	;; BEQ really_done
+
+
+	;; How many lines to draw in the clipped tile.
 	STA tiles_length
+
+
+	;; We'll reuse the "complete tile" code above. This makes
+	;; sur we leave that loop after having drawn/erased
+	;; our clipped tile. This also makes sure we don't renter
+	;; this very code.
+
 	LDA #1
 	STA length_div7
 	LDA #0
 	STA length_mod7
-	advance_tile_vertically ::direction, ::clearing
 
+	advance_tile_vertically ::direction, ::clearing
+	;; Don't touch X anymore  because it will be used
+	;; in the "loop_start2" routine right after.
 
 	.ifblank clearing
 	LDA #6
@@ -343,6 +364,23 @@ clipped_tile:
 	LDA #0
 	ADC tile_ptr + 1
 	STA tile_ptr + 1
+	.else
+
+;; 	LDA fx + 1
+;; 	CMP #7*10		; remember : A - 6
+;; 	BCS no_clipping_fix	; A >= data
+;; 	TXA
+;; 	PHA
+;; 	LDX fx + 1
+;; 	LDA div7,X
+;; 	TAX
+;; 	STA $2002,X
+;; 	STA $4002,X
+;; 	PLA
+;; 	TAX
+;; 	LDX #0			; make sure we don't break
+;; no_clipping_fix:
+
 	.endif
 
 

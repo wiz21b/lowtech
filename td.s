@@ -164,7 +164,7 @@ all_lines:
 	JSR draw_or_erase_multiple_lines
 
 	copy_16 line_data_ptr, line_data_ptr1
-	jsr skip_a_frame
+	jsr skip_a_frame2
 
 	copy_16 line_data_ptr1, line_data_ptr
 
