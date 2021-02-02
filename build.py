@@ -389,6 +389,7 @@ make_data()
 
 if args.precalc:
     import precalc
+    precalc.build_3D_scene()
 
 if not os.path.isdir( BUILD_DIR):
     os.makedirs(BUILD_DIR)

@@ -24,6 +24,11 @@ POINT_TYPE=Point3{Float64}
 
 DISABLE_CLIPPING=false
 
+mutable struct Segment
+  origin::Int
+  destination::Int
+end
+
 
 struct Edge
   v1::POINT_TYPE
@@ -54,15 +59,21 @@ struct Face
   vertices::Array{Int,1}
 end
 
+function is_edge(f::Face)
+  return length(f.vertices == 2)
+end
+
 mutable struct PlyMesh
   vertices::Array{POINT_TYPE,1}
   faces::Array{Face,1}
+  segments::Array{Segment,1}
+
   xformed_vertices::Array{POINT_TYPE,1}
   projected_vertices::Array{POINT_TYPE,1}
   perspective_vertices::Array{POINT_TYPE,1}
 end
 
-PlyMesh(v,f) = PlyMesh(v,f,[],[],[])
+PlyMesh(v,f,s) = PlyMesh(v,f,s,[],[],[])
 
 function Base.getindex(M::PlyMesh, i::Int)
   1 <= i <= M.faces.count || throw(BoundsError(S, i))
@@ -265,14 +276,14 @@ function optimize_graph( graph)
 
     if best == undef || length(paths) < length(best)
       best = paths
-      print("!")
+      #print("!")
     else
-      print(".")
+      #print(".")
     end
 
   end
 
-  println( " --> best len : ",length(best), " for ", ne(graph), " edges, ", nv(graph), " vertices")
+  #println( " --> best len : ",length(best), " for ", ne(graph), " edges, ", nv(graph), " vertices")
   #println( all_paths)
 
   return best
@@ -406,6 +417,12 @@ function merge_vertices(mesh::PlyMesh, epsilon = 1e-5)
     end
   end
 
+  for s in mesh.segments
+    push!(used_vertices,s.origin)
+    push!(used_vertices,s.destination)
+  end
+
+
   unique = Array{POINT_TYPE,1}()
   xfunique = Array{POINT_TYPE,1}()
   projunique = Array{POINT_TYPE,1}()
@@ -454,6 +471,13 @@ function merge_vertices(mesh::PlyMesh, epsilon = 1e-5)
     # a face where some edges disappear...
 
   end
+
+  for s in mesh.segments
+    s.origin = remap[s.origin]
+    s.destination = remap[s.destination]
+  end
+
+
 end
 
 function test_merge_vertices()
@@ -503,17 +527,40 @@ function load_ply(io::IOStream)
   #print(points)
 
   faces = Array{Face,1}()
+  segments = Array{Segment,1}()
 
   for i = 1:n_faces
     line = split(readline(io))
     nb_vertices = parse(Int, popfirst!(line))
     vertices = reinterpret(ZeroIndex{Int}, parse.(Int, line))
-    #print(vertices)
-    push!(faces, Face(vertices))
-    #push!(faces, NgonFace{nb_vertices, faceeltype}()) # line looks like: "3 0 1 3"
+
+    # Check for faces which are long and thin, they will
+    # be made edges
+
+    a = points[vertices[1]]
+    b = points[vertices[2]]
+    c = points[vertices[3]]
+
+    if ((b - a) ⋅ (c - a)) / (norm(b - a) * norm( c - a)) > 0.99
+      println("Edge!")
+
+      # Pick the longest
+      if norm(b-a) > norm(c-a)
+        push!(segments, Segment(vertices[1], vertices[2]))
+      else
+        push!(segments, Segment(vertices[1], vertices[3]))
+      end
+    else
+
+      #print(vertices)
+      push!(faces, Face(vertices))
+      #push!(faces, NgonFace{nb_vertices, faceeltype}()) # line looks like: "3 0 1 3"
+    end
+
   end
 
-  return PlyMesh(points, faces)
+
+  return PlyMesh(points, faces, segments)
 end
 
 # using FileIO
@@ -521,6 +568,7 @@ end
 
 
 function hv(v)
+  # Vector to homogenous coordinates
   return [v[1]; v[2]; v[3]; 1]::Array{Float64,1}
 end
 
@@ -611,6 +659,14 @@ function fusion_edges( mesh::PlyMesh)
         v[a],
         v[b])
     end
+  end
+
+  for s in mesh.segments
+
+    o, d = s.origin, s.destination
+    fusioned_edges[(o,d)] = Edge(
+        v[o],
+        v[d])
   end
 
   return fusioned_edges

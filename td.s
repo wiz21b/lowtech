@@ -9,6 +9,7 @@
 ;;; Part of this code (see below) is copied from the PT3 player by Vince "Deater" Weaver and is licensed accordingly
 
 	.import init_file_load
+	.import load_file
 	.import first_page
 	.import read_in_pogress
 	.import file_being_loaded
@@ -278,6 +279,11 @@ all_done:
 	store_16 dummy_ptr2, hgr2_offsets_lo
 	store_16 dummy_ptr3, hgr2_offsets_hi
 	JSR clear_hgr_band
+
+	;; Finish file load
+still_stuff_to_read:
+	JSR handle_track_progress
+	BCS still_stuff_to_read
 
 	RTS
 
