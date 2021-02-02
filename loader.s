@@ -96,8 +96,8 @@ clear_apple_loop:
 	;; JSR load_file_no_irq
 	LDA #FILE_BIG_SCROLL
 	JSR load_file_no_irq
-	LDA #FILE_MAIN_MUSIC
-	JSR load_file_no_irq
+	;; LDA #FILE_MAIN_MUSIC
+	;; JSR load_file_no_irq
 	.endif
 
 	.ifdef MUSIC

@@ -455,7 +455,31 @@ reset2:
 
 	;jmp big_loop
 
+	;; Finishing
+
+	store_16 dummy_ptr2, hgr4_offsets_lo
+	store_16 dummy_ptr3, hgr4_offsets_hi
+	JSR clear_hgr_band
+	store_16 dummy_ptr2, hgr2_offsets_lo
+	store_16 dummy_ptr3, hgr2_offsets_hi
+	JSR clear_hgr_band
+
+	LDA #$0
+	LDX #0
+	JSR draw_tube
+	LDA #$0
+	LDX #192-11
+	JSR draw_tube
+	LDA #$20
+	LDX #0
+	JSR draw_tube
+	LDA #$20
+	LDX #192-11
+	JSR draw_tube
+
 	RTS
+
+
 
 
 ;; hexa:		.asciiz "0123456789ABCDEF"
@@ -1112,6 +1136,8 @@ mainlogo8:
 	.incbin "build/imphobia8.blk"
 earth_block:
 	.incbin "build/earth.blk"
+pipe_block:
+	.incbin "build/pipe.blk"
 
 	.proc clear_hgr2
 	;; A = color to clear with
@@ -1189,5 +1215,75 @@ filled_block_draw_entry_point:
 wait_beat:
 	CMP current_line_smc + 1
 	BNE wait_beat
+	RTS
+	.endproc
+
+;;; ------------------------------------------------------------------
+
+	.proc draw_tube
+	;; A = HGR page select (0 or $20)
+	;; X = offset
+
+	STA block_page_select
+
+	TXA
+	STA ypos_start		; the block will be drawn from ypos_start
+	CLC
+	ADC #11
+	STA ypos_end		; to ypos_end
+
+	store_16 dummy_ptr, pipe_block
+
+	LDX #0
+	STX xpos		; it will start on X = 30 (measured in bytes)
+	LDA #40
+	STA row_width		; the width of the block, in bytes
+
+
+
+	;; dummy_ptr = src of data
+
+ 	JSR block_draw_entry_point
+	RTS
+	.endproc
+
+
+	.proc clear_hgr_band
+	LDA #191
+	STA clear_hgr_y_count
+clear_hgr_loop:
+clear_hgr_y_count = * + 1
+	LDY #191
+	LDA (dummy_ptr2),Y
+	STA dummy_ptr
+	LDA (dummy_ptr3),Y
+	STA dummy_ptr + 1
+
+	LDY #0
+
+	LDA #$0
+	STA (dummy_ptr),Y
+	INY
+	STA (dummy_ptr),Y
+	INY
+
+	LDA #$7F
+clear_hgr_line_loop:
+	STA (dummy_ptr),Y
+	INY
+	CPY #38
+	BNE clear_hgr_line_loop
+
+	LDA #$0
+	STA (dummy_ptr),Y
+	INY
+	STA (dummy_ptr),Y
+
+	DEC clear_hgr_y_count
+	LDA clear_hgr_y_count
+	CMP #$FF
+	BNE clear_hgr_loop
+
+
 	RTS
 	.endproc

@@ -340,6 +340,9 @@ function yclip( a::POINT_TYPE, b::POINT_TYPE)
   bottom = 7
   top = Y_RES - 1 # - 8
 
+  SHRINK = 18 # Not working : 14,16; Working : 12 + 7
+  bottom, top = SHRINK, Y_RES - 1 - SHRINK
+
   if a[2] > b[2]
     a,b = b,a
   end

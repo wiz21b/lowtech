@@ -190,6 +190,8 @@ def make_data():
     cut_image("build/earth.bin", f"build/earth.blk",
                   0, 154, 39, 191)
 
+    cut_image("data/pipe.hgr", f"build/pipe.blk",
+                  0, 0, 39, 11)
 
 def gen_code_vertical_scroll():
 
@@ -534,7 +536,7 @@ toc_disk.add_files([(f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
                     #(f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
                     (f"{BUILD_DIR}/BSCROLL", 0x60, "big_scroll"),
                     # (f"{BUILD_DIR}/CHKDSK",0x60,"check_disk"),
-                    (MAIN_MUSIC, 0x60, "main_music"),
+                    #(MAIN_MUSIC, 0x60, "main_music"),
                     (f"{BUILD_DIR}/THREED.lzsa",0x9B,"threed") ] \
                    + td_files + \
                    [(f"{BUILD_DIR}/ICEBERG.BLK", iceberg_page, "iceberg"),
@@ -616,8 +618,8 @@ assert end_of_code < mem_limit, "Too big ! {:4X} > {:4X}".format(end_of_code, me
 
 toc_disk.update_file(f, td_start_page, "threed")
 
-main_music_start_page = 1 + (0x6000 + os.path.getsize(f"{BUILD_DIR}/BSCROLL") + 255) // 256
-toc_disk.update_file(MAIN_MUSIC, main_music_start_page, "main_music")
+# main_music_start_page = 1 + (0x6000 + os.path.getsize(f"{BUILD_DIR}/BSCROLL") + 255) // 256
+# toc_disk.update_file(MAIN_MUSIC, main_music_start_page, "main_music")
 
 
 payload_page = 0x62

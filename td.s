@@ -73,24 +73,11 @@ BYTES_PER_LINE	= threed_line_size_marker - line_data_frame1
 	STA next_file_to_load
 				;JSR init_disk_read	; Must be done before any read sector
 
-	;; lda #$ff
-	;; JSR clear_hgr
-
-	store_16 dummy_ptr2, hgr2_offsets_lo
-	store_16 dummy_ptr3, hgr2_offsets_hi
-	JSR clear_hgr_band
-	store_16 dummy_ptr2, hgr4_offsets_lo
-	store_16 dummy_ptr3, hgr4_offsets_hi
-	JSR clear_hgr_band
-
-
 	.if GR_ONLY = 1
 	LDA $C051		; text
 	LDA $C052		; all text, no mix
 	LDA $C054		; primary page
 	.endif
-
-				;JSR check_timer
 	.if GR_ONLY = 0
 
 	.ifdef DEBUG
@@ -105,10 +92,6 @@ BYTES_PER_LINE	= threed_line_size_marker - line_data_frame1
 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
 
 	.endif
-
-	;; .ifdef MUSIC
-	;; JSR start_player
-	;; .endif
 
 
 loop_infinite:
