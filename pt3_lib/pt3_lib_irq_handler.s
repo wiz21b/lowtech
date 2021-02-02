@@ -22,7 +22,7 @@ pt3_play_music:
 	beq	mb_write_frame		; if not done, continue
 
 	lda	LOOP			; see if looping
-	;beq	move_to_next ; WIZ always loop
+	beq	move_to_next
 
 pt3_loop_smc:
 	lda	#$d1			; looping, move to loop location
@@ -34,13 +34,14 @@ pt3_loop_smc:
 	sta	current_subframe_smc+1
 	sta	DONE_SONG		; undo the next song
 
-	beq	done_pt3_irq_handler	; branch always
+	;; beq	done_pt3_irq_handler	; branch always
 
+	beq pt3_play_music
 	;; WIZ : I always loop so this is not needed anymore
 
-;; move_to_next:
-;; 	; same as "press right"
-	;; 	ldx	#$20
+move_to_next:
+	; same as "press right"
+	; 	ldx	#$20
 
 ;; These 4 lines added by WIZ
 ;; 	stx	DONE_PLAYING
