@@ -30,58 +30,55 @@ import random
 from bigscroll.godot import read_godot_tiles
 
 # 131
-random.seed(134)
+random.seed(134) # Set for stars
 
-VERTICAL_OFFSET=5
+VERTICAL_OFFSET = 5
 TILE_SIZE = 8
-ROL_SPEED=1
+ROL_SPEED = 4
 
-def roller( tile, block_y, code_stream, roll_func, routine_base_name):
+
+def roller(tile, block_y, code_stream, roll_func, routine_base_name):
     """
     tile : the tile we're rolling
     block_y = y_position of the tile in the big letter
     """
 
     jump_table = []
-    masks = [int(x) for x in np.packbits( tile)]
-    for rol_factor in range(TILE_SIZE):
-        routine_name = "{}_rol{}_y{}".format( routine_base_name, rol_factor, block_y)
-        jump_table.append( routine_name)
+    masks = [int(x) for x in np.packbits(tile)]
+    for rol_factor in range(0, TILE_SIZE, ROL_SPEED):
+        routine_name = f"{routine_base_name}_rol{rol_factor}_y{block_y}"
+        jump_table.append(routine_name)
 
+        code_stream.write(f"\n{routine_name}:\n")
 
-        code_stream.write( "\n{}:\n".format( routine_name))
-
-        if rol_factor % ROL_SPEED > 0:
-            code_stream.write( "\n RTS ; left blank\n")
-            # Very dirty way of not producing some code :-)
-            # (while keeping jump tables the same, which allows me to keep the code rather unchanged)
-            continue
-
-        y = 0
         last_v = None
-        for m in masks:
+        for y, m in enumerate(masks):
+            # There's a +ROL_SPEED. That's because we want the
+            # last ROL of a tile to be the last thing to draw
+            # on the screen. So if we want a full white/black tile
+            # on the last ROL... So this way, we always end up
+            # with the last ROL being 8 positions to the left.
 
-            assert 0 <= rol_factor < TILE_SIZE
-            rol_m = roll_func( m, rol_factor)
+            assert 0 <= m <= 255
+            assert 0 <= rol_factor+ROL_SPEED <= TILE_SIZE
+            rol_m = roll_func(m, rol_factor+ROL_SPEED)
 
             # Reverse bits because HGR is reversed
-            v = bin( reverseBits( rol_m, 8)).replace("0b","%")
+            v = reverseBits(rol_m, 8)
 
+            # Remove redundant LDA's
             if v != last_v:
-                code_stream.write( "\tLDA #{}\t;{}\n".format(
-                    v,
-                    "{:08b}".format(rol_m)))
+                code_stream.write(f"\tLDA #%{v:08b}\t;{rol_m:08b}\n")
                 last_v = v
 
-            code_stream.write( "\tSTA {},Y\n".format(
-                hgr_address( (block_y+VERTICAL_OFFSET)*8 + y)))
-            y += 1
+            code_stream.write("\tSTA {},Y\n".format(
+                hgr_address((block_y+VERTICAL_OFFSET)*8 + y)))
+
         code_stream.write("\tRTS\n")
     return jump_table
 
 
-
-def opening_rol_head( tile, i, block_y, code_stream):
+def opening_rol_head(tile, tile_ndx, block_y, code_stream):
 
     # .THIS..!.......!.......!
     #          ###############
@@ -90,11 +87,12 @@ def opening_rol_head( tile, i, block_y, code_stream):
 
     # lambda : rols the tile to the left
 
-    return roller( tile, block_y, code_stream,
-                   lambda m,rol_factor : (m << (rol_factor+ROL_SPEED)) >> 8,
-                   "open_head{}".format(i))
+    return roller(tile, block_y, code_stream,
+                  lambda m, rol_factor: (m << (rol_factor)) >> 8,
+                  f"open_head{tile_ndx}")
 
-def opening_rol_tail( tile, i, block_y, code_stream):
+
+def opening_rol_tail(tile, tile_ndx, block_y, code_stream):
 
     # ........!..THIS.!.......
     #           ##############
@@ -103,34 +101,39 @@ def opening_rol_tail( tile, i, block_y, code_stream):
 
     # lambda : rols the tile and pad with white
 
-    return roller( tile, block_y, code_stream,
-                   lambda m,rol_factor : ((m << (rol_factor+(ROL_SPEED-1))) & 255) | (255 >> (7-(rol_factor))),
-                   "open_tail{}".format(i))
+    return roller(tile, block_y, code_stream,
+                  lambda m, rol_factor: ((m << (rol_factor)) & 255) | (255 >> (8-(rol_factor))),
+                  f"open_tail{tile_ndx}")
 
 
-
-def closing_rol_head( tile, i, block_y, code_stream):
+def closing_rol_head(tile, tile_ndx, block_y, code_stream):
 
     # .......!.THIS..!.......!
     # ##############
     # ################
     # ##################
 
-    return roller( tile, block_y, code_stream,
-                   lambda m,rol_factor : (((256*255+m) << ( min(rol_factor+ROL_SPEED,8) )) >> 7) & 255,
-                   "close_head{}".format(i))
+    return roller(tile, block_y, code_stream,
+                  lambda m, rol_factor: (((256*255+m) << rol_factor) >> 8) & 255,
+                  f"close_head{tile_ndx}")
 
 
-def closing_rol_tail( tile, i, block_y, code_stream):
+def closing_rol_tail(tile, tile_ndx, block_y, code_stream):
 
     # .......!.......!..THIS.!
     # ##############
     # ################
     # ##################
 
-    return roller( tile, block_y, code_stream,
-                   lambda m,rol_factor : (m << (rol_factor+ROL_SPEED)) & 255,
-                   "close_tail{}".format(i))
+    # def bitrol(m, rol_factor):
+    #     if rol_factor == 17:
+    #         return 0
+    #     else:
+    #         return (m << (rol_factor)) & 255
+
+    return roller(tile, block_y, code_stream,
+                  lambda m, rol_factor: (m << (rol_factor)) & 255,
+                  f"close_tail{tile_ndx}")
 
 
 def npa_to_bytes(a):
@@ -369,11 +372,12 @@ def make_all(BUILD_DIR, DATA_DIR):
 
     tiles = list(hashes.values())
     tile_ndx = 1
+    STEP = 8 // ROL_SPEED
 
     with open(f"{BUILD_DIR}/bs_precalc.s", "w") as fo:
 
         filler_code = io.StringIO()
-        big_jump_table = []
+        big_jump_table = [0] * STEP
         data = np.copy(optimized)
 
         for line_num in range(data.shape[0]):
@@ -382,10 +386,12 @@ def make_all(BUILD_DIR, DATA_DIR):
             for x in range(data.shape[1]):
                 t = line[x]
 
+                # For each Y position, the tiles
+                # code is repeated.
+
                 if t != 0:
                     if t not in tiles_on_line:
                         tiles_on_line[t] = tile_ndx
-                        tile_ndx += 1
 
                         if t > 1000:
                             big_jump_table.extend(
@@ -410,27 +416,30 @@ def make_all(BUILD_DIR, DATA_DIR):
                                 opening_rol_tail(
                                     tiles[-t], tile_ndx, line_num, filler_code))
 
+                        tile_ndx += 1
+
                     line[x] = tiles_on_line[t]
                 # print( tiles_on_line.keys())
 
             # print("-"*200)
         #print( npa_to_bytes( simplified.transpose()))
 
-        print("Jump table has {} entries ({} tiles)".format(len(big_jump_table), len(big_jump_table)//8))
-        # fo.write("\n\njump_table_hi:\n")
-        # for i in range( 0,len( big_jump_table),8):
-        #     fo.write("\t!byte " + ", ".join( [">{}".format(s) for s in big_jump_table[i:i+8]]) + "\n")
+        print("Jump table has {} entries ({} tiles)".format(len(big_jump_table), tile_ndx))
 
-        # fo.write("\n\njump_table_lo:\n")
-        # for i in range( 0,len( big_jump_table),8):
-        #     fo.write("\t!byte " + ", ".join( ["<{}".format(s) for s in big_jump_table[i:i+8]]) + "\n")
+        for i in range(0, len(big_jump_table), STEP):
+            fo.write(f"tile{i//STEP}_entry:\t.word ")
+            fo.write(",".join(
+                ["{}".format(s) for s in big_jump_table[i:i+STEP]]) + "\n")
 
-        fo.write(".word {}\n".format( ','.join(['0']*8)))
-        for i in range( 0,len( big_jump_table),8):
-            fo.write("\t.word " + ", ".join(
-                ["{}".format(s) for s in big_jump_table[i:i+8]]) + " ; {:x} \n".format(i // 8 + 1))
+        fo.write("\ntimes8hi:\n")
+        for i in range(tile_ndx):
+            fo.write(f"\t.byte >tile{i}_entry\n")
 
-        fo.write( filler_code.getvalue())
+        fo.write("\ntimes8lo:\n")
+        for i in range(tile_ndx):
+            fo.write(f"\t.byte <tile{i}_entry\n")
+
+        fo.write(filler_code.getvalue())
 
         #data = data.transpose()
 
@@ -451,21 +460,25 @@ def make_all(BUILD_DIR, DATA_DIR):
             labels.append("matrix_row1")
 
         for row in trans:
-            tiles = [t for t in filter( lambda t: t > 0, row)] + [0]
+            tiles = [t for t in filter(lambda t: t > 0, row)] + [0]
             label = "matrix_row{}".format(row_id)
-            labels.append( label)
-            fo.write("{}:\t.byte {}\n".format(label, ",".join( [str(t) for t in tiles])))
-            row_id+=1
+            labels.append(label)
+            fo.write("{}:\t.byte {}\n".format(
+                label, ",".join([str(t) for t in tiles])))
+            row_id += 1
 
         for i in range(40):
-            labels.append( "matrix_row1")
+            labels.append("matrix_row1")
 
-        fo.write("matrix_rows:\t.word {}\n".format( ",".join(labels)))
+        fo.write("matrix_rows:\t.word {}\n".format(",".join(labels)))
 
-        fo.write("matrix_row_count:\t.byte {}\n".format( len(labels) - 40))
+        fo.write("matrix_row_count:\t.byte {}\n".format(len(labels) - 40))
 
     with open(f"{BUILD_DIR}/precalc_def.s", "w") as fo:
         fo.write("ROL_SPEED = {}\n".format(ROL_SPEED))
+
+
+    # Starfield ------------------------------------------------------
 
     x_rnd_range = lambda : random.randrange(2, 2+((280-28) // 7) + 1)
 

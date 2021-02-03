@@ -9,7 +9,7 @@
 	.import current_pattern_smc, current_line_smc
 
 	.include "defs.s"
-	.include "precalc_def.s"
+	.include "build/precalc_def.s"
 
 	text_pointer	= 240
 	cursor_script_ndx = 250
@@ -52,6 +52,9 @@
 	lda #$0
 	ldx #$20
 	JSR clear_hgr2
+
+	JMP scrolling
+
 
 	LDA $C052
 	;LDA $C054		; Page 1
@@ -330,14 +333,15 @@ wait_beat:
 	BNE wait_beat
 	.endif
 
+
+; ====================================================================
+
+scrolling:
+
 	LDA $C052	     ; mix text and gfx (c052 = full text/gfx)
 	LDA $C054		; 55
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
-
-; ====================================================================
-
-big_loop:
 
 	LDA #0
 	STA subcount
@@ -399,10 +403,12 @@ loop1:
 	;; Because of the way we build the code that draw the tiles,
 	;; all tiles can be drawn in one sequence.
 
-.REPEAT 13,j
+	;; The matrix is 12 rows tall but we have to add one
+	;; to reach the zero that marks the list of tiles.
+.REPEAT 13,j			; j starts at zero
 	LDY #j
  	LDA (scroll_matric_ptr),Y
- 	BEQ end_row_loop
+ 	BEQ end_row_loop	; End of row tiles list.
 	JSR copy_block
 .ENDREPEAT
 
@@ -422,14 +428,14 @@ clip_right:
 	;; its values are multiplied by 4 so that it can be reused
 	;; for some addressing (that's an optimization)
 
-	CLC
 	LDA subcount
-	ADC #2*ROL_SPEED
+	CLC
+	ADC #2
 	STA subcount
 
-	CMP #16
+	CMP #2*(8/ROL_SPEED)		; 2 * TILE_SIZE
 	BEQ reset
-	jmp loop2
+	JMP loop2
 
 reset:
 	LDA #0
@@ -439,18 +445,19 @@ reset:
 	INC count
 	LDA count
 	CMP matrix_row_count
-	BEQ reset2
+	BEQ scrolling_done
 
 ;; 	CMP #130
 ;; 	BNE dont_load
 ;; 	LDA #FILE3
 ;; 	JSR init_file_load
 ;; dont_load:
-	BMI don_load2
-	JSR handle_track_progress
-don_load2:
+;; 	BMI don_load2
+;; 	JSR handle_track_progress
+;; don_load2:
 	jmp loop2
-reset2:
+
+scrolling_done:
 	;store_16  ticks, 0
 
 	;jmp big_loop
@@ -526,7 +533,7 @@ reset2:
 
 
 count:	.byte 0
-subcount:	.byte 8
+subcount:	.byte 0
 column_loop:	.byte 0
 row_loop:	.byte 0
 y_matrix:	.byte 0
@@ -541,12 +548,20 @@ jump_ptr:	.word 0
 copy_block:
 
 	TAY			; Bloc to draw. First one has number 1.
+
+	;; Note that embodied in the drawing (generated) code
+	;; corresponding to the block number is its vertical position.
+
+	;; Y = tile number, starting at one.
+	;; jump_table_ptr := bs_precalc + ((Y * (8/ROL_SPEED) * 2)
+	;;  2 to convert from bytes to word
+
 	LDA times8lo,Y
 	STA jump_table_ptr
 	LDA times8hi,Y
 	STA jump_table_ptr+1
 
-	LDY subcount
+	LDY subcount		; Must be premultiplied by two
 
 	; copy value from table to jump pointer
 	LDA (jump_table_ptr),Y
@@ -996,16 +1011,6 @@ read_any_sector:
 	.align $100 		; FIXME do nothing
 bs_precalc:
 	.include "build/bs_precalc.s"
-
-times8hi:
-	.REPEAT 64,i			; i starts at 0
-	.byte >bs_precalc + ((i * 8 * 2)   >> 8)
-	.ENDREP
-times8lo:
-	.REPEAT 64,i
-	.byte <bs_precalc + ((i * 8 * 2)  & 255)
-	.ENDREP
-
 	.include "../data/alphabet2.s"
 	.include "../build/hgr_ofs.s"
 div3:
