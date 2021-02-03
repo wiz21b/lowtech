@@ -34,13 +34,14 @@ random.seed(134) # Set for stars
 
 VERTICAL_OFFSET = 5
 TILE_SIZE = 8
-ROL_SPEED = 4
+ROL_SPEED = 1
 
 
-def roller(tile, block_y, code_stream, roll_func, routine_base_name):
+def roller(tile, block_y, code_stream, roll_func, routine_base_name, page):
     """
     tile : the tile we're rolling
     block_y = y_position of the tile in the big letter
+
     """
 
     jump_table = []
@@ -72,13 +73,18 @@ def roller(tile, block_y, code_stream, roll_func, routine_base_name):
                 last_v = v
 
             code_stream.write("\tSTA {},Y\n".format(
-                hgr_address((block_y+VERTICAL_OFFSET)*8 + y)))
+                hgr_address((block_y+VERTICAL_OFFSET)*8 + y, page)))
+
+            # LDA = 2 cycles
+            # STA $MMMM, Y = 5 cycles => x8 = 40 cycles
+            # RTS : 6 cycles
+            # => 48 cycles
 
         code_stream.write("\tRTS\n")
     return jump_table
 
 
-def opening_rol_head(tile, tile_ndx, block_y, code_stream):
+def opening_rol_head(tile, tile_ndx, block_y, code_stream, page):
 
     # .THIS..!.......!.......!
     #          ###############
@@ -89,10 +95,10 @@ def opening_rol_head(tile, tile_ndx, block_y, code_stream):
 
     return roller(tile, block_y, code_stream,
                   lambda m, rol_factor: (m << (rol_factor)) >> 8,
-                  f"open_head{tile_ndx}")
+                  f"open_head{tile_ndx}", page)
 
 
-def opening_rol_tail(tile, tile_ndx, block_y, code_stream):
+def opening_rol_tail(tile, tile_ndx, block_y, code_stream, page):
 
     # ........!..THIS.!.......
     #           ##############
@@ -103,10 +109,10 @@ def opening_rol_tail(tile, tile_ndx, block_y, code_stream):
 
     return roller(tile, block_y, code_stream,
                   lambda m, rol_factor: ((m << (rol_factor)) & 255) | (255 >> (8-(rol_factor))),
-                  f"open_tail{tile_ndx}")
+                  f"open_tail{tile_ndx}", page)
 
 
-def closing_rol_head(tile, tile_ndx, block_y, code_stream):
+def closing_rol_head(tile, tile_ndx, block_y, code_stream, page):
 
     # .......!.THIS..!.......!
     # ##############
@@ -115,10 +121,10 @@ def closing_rol_head(tile, tile_ndx, block_y, code_stream):
 
     return roller(tile, block_y, code_stream,
                   lambda m, rol_factor: (((256*255+m) << rol_factor) >> 8) & 255,
-                  f"close_head{tile_ndx}")
+                  f"close_head{tile_ndx}", page)
 
 
-def closing_rol_tail(tile, tile_ndx, block_y, code_stream):
+def closing_rol_tail(tile, tile_ndx, block_y, code_stream, page):
 
     # .......!.......!..THIS.!
     # ##############
@@ -133,7 +139,7 @@ def closing_rol_tail(tile, tile_ndx, block_y, code_stream):
 
     return roller(tile, block_y, code_stream,
                   lambda m, rol_factor: (m << (rol_factor)) & 255,
-                  f"close_tail{tile_ndx}")
+                  f"close_tail{tile_ndx}", page)
 
 
 def npa_to_bytes(a):
@@ -207,7 +213,7 @@ def show_tile(tile):
 #     return tiles, pic
 
 
-def hgr_address(y):
+def hgr_address(y, page=0x2000):
     assert 0 <= y < 3*64
 
     if 0 <= y < 64:
@@ -220,7 +226,7 @@ def hgr_address(y):
     i = (y % 64) // 8
     j = (y % 64) % 8
 
-    return "${:X} + ${:X}".format( 0x2000 + ofs + 0x80*i, 0x400*j)
+    return "${:X} + ${:X}".format(page + ofs + 0x80*i, 0x400*j)
 
 def reverseBits(num,bitSize):
 
@@ -244,6 +250,20 @@ def reverseBits(num,bitSize):
 def image_to_ascii( pic, width, height):
     data = []
     sym = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+    max_width = 40
+    max_cnt = 0
+    for base_x in range(width - max_width):
+
+        cnt = 0
+        for x in range(base_x, base_x+max_width):
+            for y in range(height):
+                if pic[y][x] != 0:
+                    cnt += 1
+
+        max_cnt = max(max_cnt, cnt)
+
+    print(f"Max non empty tile on a screen : {max_cnt}")
 
     with colorama.colorama_text() as ctx:
         for y in range( height):
@@ -383,6 +403,8 @@ def make_all(BUILD_DIR, DATA_DIR):
         for line_num in range(data.shape[0]):
             line = data[line_num, :]
             tiles_on_line = dict()
+
+            page = 0x2000
             for x in range(data.shape[1]):
                 t = line[x]
 
@@ -397,24 +419,26 @@ def make_all(BUILD_DIR, DATA_DIR):
                             big_jump_table.extend(
                                 closing_rol_head(
                                     tiles[t-1000], tile_ndx,
-                                    line_num, filler_code))
+                                    line_num, filler_code, page))
 
                         elif t < - 1000:
                             big_jump_table.extend(
                                 closing_rol_tail(
                                     tiles[-t-1000], tile_ndx, line_num,
-                                    filler_code))
+                                    filler_code, page))
 
                         elif t > 0:
                             big_jump_table.extend(
                                 opening_rol_head(
-                                    tiles[t], tile_ndx, line_num, filler_code))
+                                    tiles[t], tile_ndx, line_num,
+                                    filler_code, page))
                             # show_tile( tiles_on_line[t])
 
                         elif t < 0:
                             big_jump_table.extend(
                                 opening_rol_tail(
-                                    tiles[-t], tile_ndx, line_num, filler_code))
+                                    tiles[-t], tile_ndx, line_num,
+                                    filler_code, page))
 
                         tile_ndx += 1
 

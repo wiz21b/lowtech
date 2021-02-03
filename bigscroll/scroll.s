@@ -405,12 +405,16 @@ loop1:
 
 	;; The matrix is 12 rows tall but we have to add one
 	;; to reach the zero that marks the list of tiles.
-.REPEAT 13,j			; j starts at zero
+
+	.REPEAT 13,j			; j starts at zero
+
+	;; Total = 2 + 5 + 2 + 6 = 15 cycles => x 12 = 180 cycles
 	LDY #j
- 	LDA (scroll_matric_ptr),Y
+ 	LDA (scroll_matric_ptr),Y ; Only LDA can do indirect load
  	BEQ end_row_loop	; End of row tiles list.
 	JSR copy_block
-.ENDREPEAT
+
+	.ENDREPEAT
 
 end_row_loop:
 
@@ -422,7 +426,7 @@ end_row_loop:
 
 clip_right:
 
-	jsr stars
+	JSR stars
 
 	;; The subcount determines the offset insde a tile
 	;; its values are multiplied by 4 so that it can be reused
@@ -430,15 +434,15 @@ clip_right:
 
 	LDA subcount
 	CLC
-	ADC #2
+	ADC #2			; 1 for normal speed, 2 for double speed
 	STA subcount
 
-	CMP #2*(8/ROL_SPEED)		; 2 * TILE_SIZE
-	BEQ reset
+	CMP #8/ROL_SPEED		; 2 * TILE_SIZE
+	BCS reset			; >=
 	JMP loop2
 
 reset:
-	LDA #0
+	LDA #1
 	STA subcount
 
 
@@ -546,8 +550,9 @@ jump_ptr:	.word 0
 
 
 copy_block:
+	;; A = Block to draw. First one has number 1.
 
-	TAY			; Bloc to draw. First one has number 1.
+	TAY			; 2
 
 	;; Note that embodied in the drawing (generated) code
 	;; corresponding to the block number is its vertical position.
@@ -556,23 +561,40 @@ copy_block:
 	;; jump_table_ptr := bs_precalc + ((Y * (8/ROL_SPEED) * 2)
 	;;  2 to convert from bytes to word
 
-	LDA times8lo,Y
-	STA jump_table_ptr
-	LDA times8hi,Y
-	STA jump_table_ptr+1
+	LDA times8lo,Y		; 4
+	STA jump_table_ptr	; 4
+	LDA times8hi,Y		; 4
+	STA jump_table_ptr+1	; 4
 
-	LDY subcount		; Must be premultiplied by two
+
+	LDA subcount		; 3 Must be premultiplied by two
+	ASL			; 2
+	TAY			; 2
 
 	; copy value from table to jump pointer
-	LDA (jump_table_ptr),Y
-	STA jump_ptr
+	LDA (jump_table_ptr),Y	; 5
+	STA jump_ptr		; 4
 
-	INY
-	LDA (jump_table_ptr),Y
-	STA jump_ptr + 1
+	INY			; 2
+	LDA (jump_table_ptr),Y	; 5
+	STA jump_ptr + 1	; 4
 
-	LDY row_loop
-	JMP (jump_ptr)
+	LDY row_loop		; 3
+	JMP (jump_ptr)		; 5
+
+	;; total cycles copy_block : 53
+	;; block draw : >= 48
+	;; looping code : 12 (without additional outer loops)
+	;; => total 113
+	;; max redraw tiles = 113
+	;; => cycles min : 113 x 113 = 12769 (without outer loops)
+	;; I need that twice to correct for "holes" (which happens
+	;; once every N shift, but that remains a worst case)
+	;; budget = 20000 x 0.85 (PT3 player) = 17000
+	;; Redraw blocks is already optimal
+
+	;; If width of scroll is 36 bytes, max redraw tiles = 103
+	;; => almost no reduction.
 
 
 
