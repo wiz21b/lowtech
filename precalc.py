@@ -1866,10 +1866,10 @@ def build_3D_scene():
 
 
 
-            if frame_ndx == 10:
+            if frame_ndx == -10:
                 frame_bin_data = inject_picture_in_paths( path_bytes, "build/FORGET.BLK")
 
-            elif frame_ndx == 700:
+            elif frame_ndx == -700:
                 frame_bin_data = inject_picture_in_paths( path_bytes, "build/NEW_DREAM.BLK")
 
             else:
@@ -2000,7 +2000,7 @@ def build_3D_scene():
         nb_mem_blocks = 1
 
         ndx = 0
-        while ndx < len(cframes_bins) and nb_mem_blocks <= MAX_BLOCKS:
+        while ndx < len(cframes_bins): # and nb_mem_blocks <= MAX_BLOCKS:
 
             print("New block")
             block = []
@@ -2017,7 +2017,9 @@ def build_3D_scene():
 
             while ndx < len(cframes_bins):
                 frame_bin = cframes_bins[ndx]
-                print(f"Adding ? {len(frame_bin)} bytes")
+                print(f"Adding {len(frame_bin)} bytes")
+                assert 1 <= len(frame_bin) <= 255, "Frame too big"
+                assert 0 <= frame_bin[1] <= 250, "Need room for special codes"
                 if len( frame_bin) + len(block) + 2 < 16*256:
                     block.extend( frame_bin)
                     ndx += 1
@@ -2027,7 +2029,7 @@ def build_3D_scene():
             block.append( 0) # Dummy byte count (zero helps the code to be simpler)
             print(f"Writing 3D block, {len(block)} bytes.")
 
-            if ndx >= len(cframes_bins) or nb_mem_blocks == MAX_BLOCKS:
+            if ndx >= len(cframes_bins): # or nb_mem_blocks == MAX_BLOCKS:
                 block.append( END_OF_MOVIE)
             else:
                 block.append( END_OF_TRACK)

@@ -387,7 +387,7 @@ loop1:
 	lda #0
 	sta dummy_ptr + 1
 	asl16 dummy_ptr
-	add_const_to_16 dummy_ptr, matrix_rows ; matrix_rows[count + row_loop << 1]
+	add_const_to_16 dummy_ptr, matrix_rows ; matrix_rows[ (count + row_loop) << 1]
 
 	ldy #0
 	lda (dummy_ptr),Y

@@ -34,9 +34,14 @@ random.seed(134)
 
 VERTICAL_OFFSET=5
 TILE_SIZE = 8
-ROL_SPEED=2
+ROL_SPEED=1
 
 def roller( tile, block_y, code_stream, roll_func, routine_base_name):
+    """
+    tile : the tile we're rolling
+    block_y = y_position of the tile in the big letter
+    """
+
     jump_table = []
     masks = [int(x) for x in np.packbits( tile)]
     for rol_factor in range(TILE_SIZE):
@@ -68,23 +73,11 @@ def roller( tile, block_y, code_stream, roll_func, routine_base_name):
                     "{:08b}".format(rol_m)))
                 last_v = v
 
-            code_stream.write( "\tSTA {},Y\n".format(hgr_address( (block_y+VERTICAL_OFFSET)*8 + y)))
+            code_stream.write( "\tSTA {},Y\n".format(
+                hgr_address( (block_y+VERTICAL_OFFSET)*8 + y)))
             y += 1
         code_stream.write("\tRTS\n")
     return jump_table
-
-
-
-def opening_rol_tail( tile, i, block_y, code_stream):
-
-    # ........!..THIS.!.......
-    #           ##############
-    #         ################
-    #       ##################
-
-    return roller( tile, block_y, code_stream,
-                   lambda m,rol_factor : ((m << (rol_factor+(ROL_SPEED-1))) & 255) | (255 >> (7-(rol_factor))),
-                   "open_tail{}".format(i))
 
 
 
@@ -95,9 +88,26 @@ def opening_rol_head( tile, i, block_y, code_stream):
     #        #################
     #      ###################
 
+    # lambda : rols the tile to the left
+
     return roller( tile, block_y, code_stream,
                    lambda m,rol_factor : (m << (rol_factor+ROL_SPEED)) >> 8,
                    "open_head{}".format(i))
+
+def opening_rol_tail( tile, i, block_y, code_stream):
+
+    # ........!..THIS.!.......
+    #           ##############
+    #         ################
+    #       ##################
+
+    # lambda : rols the tile and pad with white
+
+    return roller( tile, block_y, code_stream,
+                   lambda m,rol_factor : ((m << (rol_factor+(ROL_SPEED-1))) & 255) | (255 >> (7-(rol_factor))),
+                   "open_tail{}".format(i))
+
+
 
 def closing_rol_head( tile, i, block_y, code_stream):
 
@@ -107,7 +117,7 @@ def closing_rol_head( tile, i, block_y, code_stream):
     # ##################
 
     return roller( tile, block_y, code_stream,
-                   lambda m,rol_factor : (((m+256*255) << ( min(rol_factor+ROL_SPEED,8) )) >> 7) & 255,
+                   lambda m,rol_factor : (((256*255+m) << ( min(rol_factor+ROL_SPEED,8) )) >> 7) & 255,
                    "close_head{}".format(i))
 
 
@@ -124,6 +134,9 @@ def closing_rol_tail( tile, i, block_y, code_stream):
 
 
 def npa_to_bytes(a):
+    """ NumPy array to bytes.
+    """
+
     s = ""
     for y in range( a.shape[0]):
         r = []
@@ -149,49 +162,49 @@ def show_tile(tile):
     print()
 
 
-def image_to_tiles( filename, tile_size):
-    # ndx = 0
-    # tmap = dict()
-    # for tile in tiles:
-    #     tmap[ hash_npa( tile.flatten()) ] = ndx
-    #     ndx += 1
+# def image_to_tiles(filename, tile_size):
+#     # ndx = 0
+#     # tmap = dict()
+#     # for tile in tiles:
+#     #     tmap[ hash_npa( tile.flatten()) ] = ndx
+#     #     ndx += 1
 
-    img = Image.open(filename)
-    data1 = img.convert('L').tobytes()
-    img.close()
-    data = [x >> 7 for x in data1] # From grayscale to 2 bits per pixel
+#     img = Image.open(filename)
+#     data1 = img.convert('L').tobytes()
+#     img.close()
+#     data = [x >> 7 for x in data1] # From grayscale to 2 bits per pixel
 
-    tiles = [ np.zeros( ( tile_size, tile_size, ), dtype=np.bool_ ),
-              np.ones(  ( tile_size, tile_size, ), dtype=np.bool_ ) ]
+#     tiles = [ np.zeros( ( tile_size, tile_size, ), dtype=np.bool_ ),
+#               np.ones(  ( tile_size, tile_size, ), dtype=np.bool_ ) ]
 
-    a = ( np.asarray(data, dtype=np.bool_).reshape( (img.height,img.width,) ))
-    a = np.logical_not(a)
-
-
-    assert img.height % tile_size == 0
-    assert img.width % tile_size == 0
-
-    pic = np.zeros( ( img.height // tile_size, img.width // tile_size ), dtype=np.int )
-
-    for y in range(0, img.height, tile_size):
-        for x in range(0, img.width, tile_size):
-            tile = a[y:y+tile_size,x:x+tile_size]
-
-            s = tile.sum() # number of True
-
-            if  0 < s < tile_size**2: # forget white and blacks
-                show_tile(tile)
-                pic[y // tile_size, x // tile_size] = len( tiles)
-                tiles.append( tile )
-            elif s == 0:
-                pic[y // tile_size, x // tile_size] = 0
-            elif s == tile_size**2:
-                pic[y // tile_size, x // tile_size] = 1
-
-    return tiles, pic
+#     a = ( np.asarray(data, dtype=np.bool_).reshape( (img.height,img.width,) ))
+#     a = np.logical_not(a)
 
 
-def hgr_address( y):
+#     assert img.height % tile_size == 0
+#     assert img.width % tile_size == 0
+
+#     pic = np.zeros( ( img.height // tile_size, img.width // tile_size ), dtype=np.int )
+
+#     for y in range(0, img.height, tile_size):
+#         for x in range(0, img.width, tile_size):
+#             tile = a[y:y+tile_size,x:x+tile_size]
+
+#             s = tile.sum() # number of True
+
+#             if  0 < s < tile_size**2: # forget white and blacks
+#                 show_tile(tile)
+#                 pic[y // tile_size, x // tile_size] = len( tiles)
+#                 tiles.append( tile )
+#             elif s == 0:
+#                 pic[y // tile_size, x // tile_size] = 0
+#             elif s == tile_size**2:
+#                 pic[y // tile_size, x // tile_size] = 1
+
+#     return tiles, pic
+
+
+def hgr_address(y):
     assert 0 <= y < 3*64
 
     if 0 <= y < 64:
@@ -260,29 +273,30 @@ def image_to_ascii( pic, width, height):
     return data
 
 
-
-def unify_tiles( a, tiles):
+def unify_tiles(a, tiles):
     print("Finding unique tiles out of {} tiles".format(len(tiles)))
-    unique_tiles = OrderedDict() # Maps tile hash to old tile number; index gives new tile number
+
+    # Maps tile hash to old tile number; index gives new tile number
+
+    unique_tiles = OrderedDict()
     for tile in tiles:
         h = hash_npa(tile)
         # print(h)
         if h not in unique_tiles:
             unique_tiles[h] = tile
         else:
-            assert np.array_equal( tile,  unique_tiles[h]), "HAsh collision"
+            assert np.array_equal(tile,  unique_tiles[h]), "Hash collision"
 
+    simplified = np.zeros_like(a)
 
-    simplified = np.zeros_like( a)
-
-    hashes = list( unique_tiles.keys())
-    for ndx_tile in range( len( tiles)):
-        new_ndx = hashes.index( hash_npa(tiles[ndx_tile]))
+    hashes = list(unique_tiles.keys())
+    for ndx_tile in range(len(tiles)):
+        new_ndx = hashes.index(hash_npa(tiles[ndx_tile]))
         # print("replacing {} by {}".format(ndx_tile, new_ndx))
 
-        np.putmask( simplified, a == ndx_tile, new_ndx)
+        np.putmask(simplified, a == ndx_tile, new_ndx)
 
-    image_to_ascii( simplified, a.shape[1], a.shape[0])
+    image_to_ascii(simplified, a.shape[1], a.shape[0])
 
     return simplified, unique_tiles
 
@@ -332,47 +346,40 @@ def optimize( a, tiles, tile_size=TILE_SIZE):
     return optimized
 
 
-def add_column(a, n = 1):
-    col = np.zeros( (a.shape[0], n), dtype=np.int)
-    return np.concatenate( (a, col), axis=1)
+# def add_column(a, n=1):
+#     col = np.zeros((a.shape[0], n), dtype=np.int)
+#     return np.concatenate((a, col), axis=1)
 
 
-def make_all( BUILD_DIR, DATA_DIR):
+def make_all(BUILD_DIR, DATA_DIR):
 
     # tiles, tiled_image = image_to_tiles( f"{DATA_DIR}/slomo2.png", TILE_SIZE)
 
-    tiles, tiled_image = read_godot_tiles( DATA_DIR + "/Tiles")
+    tiles, tiled_image = read_godot_tiles(DATA_DIR + "/Tiles")
 
     scroller_height_in_pixels = tiled_image.shape[0] * TILE_SIZE
 
+    col = np.zeros((tiled_image.shape[0], 1), dtype=np.int)
+    tiled_image = np.concatenate((col, col, tiled_image, col), axis=1)
 
-    col = np.zeros( (tiled_image.shape[0], 1), dtype=np.int)
-    tiled_image = np.concatenate( (col, col, tiled_image, col), axis=1)
+    image_to_ascii(tiled_image, tiled_image.shape[1], tiled_image.shape[0])
 
-    image_to_ascii( tiled_image, tiled_image.shape[1], tiled_image.shape[0])
-
-    simplified, hashes = unify_tiles( tiled_image, tiles)
-
-    optimized = optimize( simplified, hashes)
-
+    simplified, hashes = unify_tiles(tiled_image, tiles)
+    optimized = optimize(simplified, hashes)
 
     tiles = list(hashes.values())
     tile_ndx = 1
 
-
-    with open(f"{BUILD_DIR}/bs_precalc.s","w") as fo:
+    with open(f"{BUILD_DIR}/bs_precalc.s", "w") as fo:
 
         filler_code = io.StringIO()
-
-        #fo.write(".segment \"PRECALC\"\n")
-
         big_jump_table = []
         data = np.copy(optimized)
 
-        for line_num in range( data.shape[0]):
-            line = data[line_num,:]
+        for line_num in range(data.shape[0]):
+            line = data[line_num, :]
             tiles_on_line = dict()
-            for x in range( data.shape[1]):
+            for x in range(data.shape[1]):
                 t = line[x]
 
                 if t != 0:
@@ -381,19 +388,27 @@ def make_all( BUILD_DIR, DATA_DIR):
                         tile_ndx += 1
 
                         if t > 1000:
-                            big_jump_table.extend( closing_rol_head( tiles[t-1000], tile_ndx, line_num, filler_code))
+                            big_jump_table.extend(
+                                closing_rol_head(
+                                    tiles[t-1000], tile_ndx,
+                                    line_num, filler_code))
 
                         elif t < - 1000:
-                            big_jump_table.extend( closing_rol_tail( tiles[-t-1000], tile_ndx, line_num, filler_code))
+                            big_jump_table.extend(
+                                closing_rol_tail(
+                                    tiles[-t-1000], tile_ndx, line_num,
+                                    filler_code))
 
                         elif t > 0:
-                            big_jump_table.extend( opening_rol_head( tiles[t], tile_ndx, line_num, filler_code))
-                            #show_tile( tiles_on_line[t])
+                            big_jump_table.extend(
+                                opening_rol_head(
+                                    tiles[t], tile_ndx, line_num, filler_code))
+                            # show_tile( tiles_on_line[t])
 
                         elif t < 0:
-                            jumps = opening_rol_tail( tiles[-t], tile_ndx, line_num, filler_code)
-                            big_jump_table.extend( jumps)
-                            #show_tile( tiles_on_line[t])
+                            big_jump_table.extend(
+                                opening_rol_tail(
+                                    tiles[-t], tile_ndx, line_num, filler_code))
 
                     line[x] = tiles_on_line[t]
                 # print( tiles_on_line.keys())
@@ -433,7 +448,7 @@ def make_all( BUILD_DIR, DATA_DIR):
         # Attetnion ! Expecting row1 to be the empty row.
 
         for i in range(40):
-            labels.append( "matrix_row1")
+            labels.append("matrix_row1")
 
         for row in trans:
             tiles = [t for t in filter( lambda t: t > 0, row)] + [0]
@@ -449,6 +464,8 @@ def make_all( BUILD_DIR, DATA_DIR):
 
         fo.write("matrix_row_count:\t.byte {}\n".format( len(labels) - 40))
 
+    with open(f"{BUILD_DIR}/precalc_def.s", "w") as fo:
+        fo.write("ROL_SPEED = {}\n".format(ROL_SPEED))
 
     x_rnd_range = lambda : random.randrange(2, 2+((280-28) // 7) + 1)
 
@@ -477,8 +494,6 @@ def make_all( BUILD_DIR, DATA_DIR):
                 " + {}".format(x_rnd_range())
             fo.write( "STA " + adr + "\n")
 
-    with open(f"{BUILD_DIR}/precalc_def.s","w") as fo:
-        fo.write( "ROL_SPEED = {}\n".format( ROL_SPEED))
 
 
 if __name__ == "__main__":

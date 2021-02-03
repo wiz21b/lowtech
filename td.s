@@ -256,12 +256,12 @@ all_done:
 	.endif
 
 
-	store_16 dummy_ptr2, hgr4_offsets_lo
-	store_16 dummy_ptr3, hgr4_offsets_hi
-	JSR clear_hgr_band
-	store_16 dummy_ptr2, hgr2_offsets_lo
-	store_16 dummy_ptr3, hgr2_offsets_hi
-	JSR clear_hgr_band
+	;; store_16 dummy_ptr2, hgr4_offsets_lo
+	;; store_16 dummy_ptr3, hgr4_offsets_hi
+	;; JSR clear_hgr_band
+	;; store_16 dummy_ptr2, hgr2_offsets_lo
+	;; store_16 dummy_ptr3, hgr2_offsets_hi
+	;; JSR clear_hgr_band
 
 	;; Finish file load
 still_stuff_to_read:
