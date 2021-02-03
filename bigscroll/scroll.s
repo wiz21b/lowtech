@@ -6,7 +6,7 @@
 
 	.import ticks
 	.import init_file_load, load_file, handle_track_progress
-	.import current_pattern_smc, current_line_smc
+	.import current_pattern_smc, current_line_smc, current_subframe_smc
 
 	.include "defs.s"
 	.include "build/precalc_def.s"
@@ -53,7 +53,7 @@
 	ldx #$20
 	JSR clear_hgr2
 
-	JMP scrolling
+	;JMP scrolling
 
 
 	LDA $C052
@@ -376,7 +376,6 @@ donegr:
 
 	LDA #0
 	STA row_loop
-	STA frame_trigger
 loop1:
 	; count = offset; row_loop = [0..39]
 	; actual row = count + row_loop
@@ -405,8 +404,10 @@ loop1:
 
 	;; The matrix is 12 rows tall but we have to add one
 	;; to reach the zero that marks the list of tiles.
+	;; But there's one row that is never used (due to the
+	;; font shape) !
 
-	.REPEAT 13,j			; j starts at zero
+	.REPEAT 12,j			; j starts at zero
 
 	;; Total = 2 + 5 + 2 + 6 = 15 cycles => x 12 = 180 cycles
 	LDY #j
@@ -420,7 +421,7 @@ end_row_loop:
 
 	INC row_loop
 	LDA row_loop
-	cmp #40
+	cmp #40			; screen width
 	BEQ clip_right
 	JMP loop1
 
@@ -428,21 +429,28 @@ clip_right:
 
 	JSR stars
 
+	LDA current_subframe_smc+1
+sync_to_beat:
+	CMP current_subframe_smc+1
+	BEQ sync_to_beat
+
 	;; The subcount determines the offset insde a tile
 	;; its values are multiplied by 4 so that it can be reused
 	;; for some addressing (that's an optimization)
 
 	LDA subcount
 	CLC
-	ADC #2			; 1 for normal speed, 2 for double speed
+	ADC #1			; 1 for normal speed, 2 for double speed
 	STA subcount
 
-	CMP #8/ROL_SPEED		; 2 * TILE_SIZE
-	BCS reset			; >=
+	CMP #8 ;#8/ROL_SPEED		; 2 * TILE_SIZE
+	BEQ reset			; >=
+
+
 	JMP loop2
 
 reset:
-	LDA #1
+	LDA #0
 	STA subcount
 
 
@@ -459,6 +467,8 @@ reset:
 ;; 	BMI don_load2
 ;; 	JSR handle_track_progress
 ;; don_load2:
+
+
 	jmp loop2
 
 scrolling_done:
@@ -970,7 +980,6 @@ stars_fixed:
 
 
 
-frame_trigger:	.byte 0
 read_any_sector:
 	RTS
 ;; 	add_const_to_16 ticks, 1

@@ -17,7 +17,7 @@ dummy_pointer = 254
 	.export init_file_load, load_file, handle_track_progress
 	.export start_player
 	.export FILE_ICEBERG_LOAD_ADDR
-	.export current_pattern_smc, current_line_smc
+	.export current_pattern_smc, current_line_smc, current_subframe_smc
 
 	LDA #$A0		; space
 clear_apple_loop:
