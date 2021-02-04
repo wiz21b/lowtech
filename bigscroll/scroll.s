@@ -46,10 +46,10 @@
 	;; store_16 file_buffer, $2000
 	;; JSR load_file
 
-	lda #$0
+	lda #$80
 	ldx #$40
 	JSR clear_hgr2
-	lda #$0
+	lda #$80
 	ldx #$20
 	JSR clear_hgr2
 
@@ -318,7 +318,7 @@ text_pane:
 
 	;;  Rebuild starfiled $2000 page from scratch
 
-	lda #$0
+	lda #$80
 	ldx #$20
 	JSR clear_hgr2
 	LDA #$0
@@ -443,7 +443,7 @@ sync_to_beat:
 	ADC #1			; 1 for normal speed, 2 for double speed
 	STA subcount
 
-	CMP #8 ;#8/ROL_SPEED		; 2 * TILE_SIZE
+	CMP #7 ;#8/ROL_SPEED		; 2 * TILE_SIZE
 	BEQ reset			; >=
 
 

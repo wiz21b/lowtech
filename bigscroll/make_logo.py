@@ -36,6 +36,9 @@ VERTICAL_OFFSET = 5
 TILE_SIZE = 8
 ROL_SPEED = 1
 
+HGR_TILE_SIZE = 7
+HGR_TILE_MASK = 2**HGR_TILE_SIZE - 1
+
 
 def roller(tile, block_y, code_stream, roll_func, routine_base_name, page):
     """
@@ -46,7 +49,7 @@ def roller(tile, block_y, code_stream, roll_func, routine_base_name, page):
 
     jump_table = []
     masks = [int(x) for x in np.packbits(tile)]
-    for rol_factor in range(0, TILE_SIZE, ROL_SPEED):
+    for rol_factor in range(0, HGR_TILE_SIZE, ROL_SPEED):
         routine_name = f"{routine_base_name}_rol{rol_factor}_y{block_y}"
         jump_table.append(routine_name)
 
@@ -54,18 +57,29 @@ def roller(tile, block_y, code_stream, roll_func, routine_base_name, page):
 
         last_v = None
         for y, m in enumerate(masks):
+
+            # Transform an 8 bit wide tile into a 7 bit wide onem
+            # (Apple HGR is 7 pixels per bytes, but my tiles where
+            # ! pixels => dirty fix !)
+
+            if m & 1:
+                m = m >> 1
+            else:
+                m = m & HGR_TILE_MASK
+
             # There's a +ROL_SPEED. That's because we want the
             # last ROL of a tile to be the last thing to draw
             # on the screen. So if we want a full white/black tile
             # on the last ROL... So this way, we always end up
             # with the last ROL being 8 positions to the left.
 
-            assert 0 <= m <= 255
+            assert 0 <= m <= HGR_TILE_MASK
             assert 0 <= rol_factor+ROL_SPEED <= TILE_SIZE
             rol_m = roll_func(m, rol_factor+ROL_SPEED)
 
             # Reverse bits because HGR is reversed
-            v = reverseBits(rol_m, 8)
+            v = reverseBits(rol_m, HGR_TILE_SIZE)
+            v = v | 0x80  # Use blue/red palette
 
             # Remove redundant LDA's
             if v != last_v:
@@ -94,7 +108,7 @@ def opening_rol_head(tile, tile_ndx, block_y, code_stream, page):
     # lambda : rols the tile to the left
 
     return roller(tile, block_y, code_stream,
-                  lambda m, rol_factor: (m << (rol_factor)) >> 8,
+                  lambda m, rol_factor: (m << (rol_factor)) >> HGR_TILE_SIZE,
                   f"open_head{tile_ndx}", page)
 
 
@@ -108,7 +122,7 @@ def opening_rol_tail(tile, tile_ndx, block_y, code_stream, page):
     # lambda : rols the tile and pad with white
 
     return roller(tile, block_y, code_stream,
-                  lambda m, rol_factor: ((m << (rol_factor)) & 255) | (255 >> (8-(rol_factor))),
+                  lambda m, rol_factor: ((m << (rol_factor)) & HGR_TILE_MASK) | (HGR_TILE_MASK >> (HGR_TILE_SIZE-(rol_factor))),
                   f"open_tail{tile_ndx}", page)
 
 
@@ -120,7 +134,7 @@ def closing_rol_head(tile, tile_ndx, block_y, code_stream, page):
     # ##################
 
     return roller(tile, block_y, code_stream,
-                  lambda m, rol_factor: (((256*255+m) << rol_factor) >> 8) & 255,
+                  lambda m, rol_factor: ((( (HGR_TILE_MASK << HGR_TILE_SIZE)+m) << rol_factor) >> HGR_TILE_SIZE) & HGR_TILE_MASK,
                   f"close_head{tile_ndx}", page)
 
 
@@ -138,7 +152,7 @@ def closing_rol_tail(tile, tile_ndx, block_y, code_stream, page):
     #         return (m << (rol_factor)) & 255
 
     return roller(tile, block_y, code_stream,
-                  lambda m, rol_factor: (m << (rol_factor)) & 255,
+                  lambda m, rol_factor: (m << (rol_factor)) & HGR_TILE_MASK,
                   f"close_tail{tile_ndx}", page)
 
 
@@ -392,7 +406,7 @@ def make_all(BUILD_DIR, DATA_DIR):
 
     tiles = list(hashes.values())
     tile_ndx = 1
-    STEP = 8 // ROL_SPEED
+    STEP = HGR_TILE_SIZE // ROL_SPEED
 
     with open(f"{BUILD_DIR}/bs_precalc.s", "w") as fo:
 

@@ -29,30 +29,22 @@ BYTES_PER_LINE	= 6
 	.segment "CODE"
 
 
+	;; HGR2 is displayed
 
-	;; lda #0
-	;; jsr clear_hgr
-
-	.if DEBUG
-	LDA $C053
-	.else
-	LDA $C052	     ; mix text and gfx (c052 = full text/gfx)
-	.endif
-
-	;; LDA #$FF
-	;; LDX #$20
-	;; JSR clear_hgr2
+	LDA #$80
+	LDX #$20
+	JSR clear_hgr2
+	LDA #$0
+	STA block_page_select
+	JSR draw_iceberg
 
 	LDA $C054		; Page 1
-	;LDA $C055		;Page 2
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change (according to Apple doc)
 
-	;; .ifdef MUSIC
-	;; JSR start_player
-	;; .endif
+	;; HGR is displayed
 
-	LDA #$00
+	LDA #$80
 	LDX #$40
 	JSR clear_hgr2
 
@@ -63,15 +55,6 @@ BYTES_PER_LINE	= 6
 	LDA $C055		; Page 2
 	LDA $C057
 	LDA $C050 ; display graphics; last for cleaner mode change (accord
-
-	LDA #$00
-	LDX #$20
-	JSR clear_hgr2
-
-	LDA #$00
-	STA block_page_select
-	JSR draw_iceberg
-
 
 	LDA #TEXT_X_MARGIN
 	STA x_pos
