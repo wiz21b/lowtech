@@ -65,7 +65,7 @@ dummy_ptr2	= 252
 dummy_ptr	= 254
 dummy_pointer	= 254
 
-BYTES_PER_LINE	= threed_line_size_marker - line_data_frame1
+;BYTES_PER_LINE	= threed_line_size_marker - line_data_frame1
 
 
 	.segment "CODE"
@@ -497,86 +497,86 @@ go_on:
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-.proc draw_or_erase_multiple_lines_old
+;; .proc draw_or_erase_multiple_lines_old
 
-one_more_line:
+;; one_more_line:
 
-	JSR draw_or_erase_a_line
+;; 	JSR draw_or_erase_a_line
 
-	add_const_to_16 line_data_ptr, BYTES_PER_LINE
+;; 	add_const_to_16 line_data_ptr, BYTES_PER_LINE
 
-	LDY #0
-	LDA (line_data_ptr),Y
+;; 	LDY #0
+;; 	LDA (line_data_ptr),Y
 
-	AND #31
-	CMP #3
-	BMI one_more_line	; A < 3 ?
+;; 	AND #31
+;; 	CMP #3
+;; 	BMI one_more_line	; A < 3 ?
 
-	BEQ end_of_frame	; A = 3 => end of frame
+;; 	BEQ end_of_frame	; A = 3 => end of frame
 
-	CMP #4
-	BEQ end_of_all_frames
+;; 	CMP #4
+;; 	BEQ end_of_all_frames
 
-	;; A = 5 : end of data file,
-	;store_16 line_data_ptr, $E000
+;; 	;; A = 5 : end of data file,
+;; 	;store_16 line_data_ptr, $E000
 
 
-	;; Since we draw on alternating pages, we'll come
-	;; here twice in sequence at the end of each block.
-	;; We thus make sure we don't do the same work
-	;; twice.
+;; 	;; Since we draw on alternating pages, we'll come
+;; 	;; here twice in sequence at the end of each block.
+;; 	;; We thus make sure we don't do the same work
+;; 	;; twice.
 
-;; 	INC end_of_block
-;; 	LDA end_of_block
-;; 	CMP #2
-;; 	BNE dont_init_load
-;; 	LDA #0
+;; ;; 	INC end_of_block
+;; ;; 	LDA end_of_block
+;; ;; 	CMP #2
+;; ;; 	BNE dont_init_load
+;; ;; 	LDA #0
+;; ;; 	STA end_of_block
+
+;; 	;; Guard against delay in the track read
+
+;; ;; wait_read:
+;; ;; 	LDA read_in_pogress
+;; ;; 	CMP #0
+;; ;; 	BNE wait_read
+
+
+;; 	;; This is a huge hack to avoid counting the right moment
+;; 	;;  to start loading data (rememebr we're dealing with two
+;; 	;; buffers, with skip frames, redraws, etc. where it's quite
+;; 	;; difficult to know when to start loading new data)
+;; 	;; FIXME Although it works, I'm sure this wastes some time.
+
+;; 	LDA #2
 ;; 	STA end_of_block
 
-	;; Guard against delay in the track read
 
-;; wait_read:
-;; 	LDA read_in_pogress
-;; 	CMP #0
-;; 	BNE wait_read
+;; load_already_initiated:
+;; dont_init_load:
 
-
-	;; This is a huge hack to avoid counting the right moment
-	;;  to start loading data (rememebr we're dealing with two
-	;; buffers, with skip frames, redraws, etc. where it's quite
-	;; difficult to know when to start loading new data)
-	;; FIXME Although it works, I'm sure this wastes some time.
-
-	LDA #2
-	STA end_of_block
+;; 	LDA line_data_ptr + 1
+;; 	AND #$F0
+;; 	EOR #($D0 ^ $E0)
+;; 	STA line_data_ptr + 1
+;; 	LDA #0
+;; 	STA line_data_ptr
 
 
-load_already_initiated:
-dont_init_load:
+;; 	;; FIXME 	add_const_to_16 line_data_ptr, BYTES_PER_LINE
+;; 	CLC
+;; 	RTS
 
-	LDA line_data_ptr + 1
-	AND #$F0
-	EOR #($D0 ^ $E0)
-	STA line_data_ptr + 1
-	LDA #0
-	STA line_data_ptr
+;; end_of_all_frames:
+;; 	store_16 line_data_ptr, lines_data
+;; 	SEC
+;; 	RTS
 
+;; end_of_frame:
+;; 	add_const_to_16 line_data_ptr, 1
+;; 	CLC
+;; 	RTS
 
-	;; FIXME 	add_const_to_16 line_data_ptr, BYTES_PER_LINE
-	CLC
-	RTS
-
-end_of_all_frames:
-	store_16 line_data_ptr, lines_data
-	SEC
-	RTS
-
-end_of_frame:
-	add_const_to_16 line_data_ptr, 1
-	CLC
-	RTS
-
-	.endproc
+;; 	.endproc
 end_of_block:	.byte 255
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -760,45 +760,45 @@ wait_read2:
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-	.proc skip_a_frame
+;; 	.proc skip_a_frame
 
-one_more_line:
+;; one_more_line:
 
-	add_const_to_16 line_data_ptr, BYTES_PER_LINE
+;; 	add_const_to_16 line_data_ptr, BYTES_PER_LINE
 
-	LDY #0
-	LDA (line_data_ptr),Y
+;; 	LDY #0
+;; 	LDA (line_data_ptr),Y
 
-	AND #31			; 5 bits
-	CMP #3
-	BMI one_more_line	; A < 3 ?
-	BEQ end_of_frame	; A = 3 => end of frame
+;; 	AND #31			; 5 bits
+;; 	CMP #3
+;; 	BMI one_more_line	; A < 3 ?
+;; 	BEQ end_of_frame	; A = 3 => end of frame
 
-	CMP #4
-	BEQ end_of_all_frames
+;; 	CMP #4
+;; 	BEQ end_of_all_frames
 
-	; A = 5 : end of memory block
-end_of_memblock:
-	jsr wait_disk_read
+;; 	; A = 5 : end of memory block
+;; end_of_memblock:
+;; 	jsr wait_disk_read
 
-	;; A = 5 end of block
-	LDA line_data_ptr + 1
-	AND #$F0
-	EOR #($D0 ^ $E0)
-	STA line_data_ptr + 1
-	LDA #0
-	STA line_data_ptr
-	RTS
+;; 	;; A = 5 end of block
+;; 	LDA line_data_ptr + 1
+;; 	AND #$F0
+;; 	EOR #($D0 ^ $E0)
+;; 	STA line_data_ptr + 1
+;; 	LDA #0
+;; 	STA line_data_ptr
+;; 	RTS
 
-end_of_all_frames:
-	store_16 line_data_ptr, lines_data
-	RTS
+;; end_of_all_frames:
+;; 	store_16 line_data_ptr, lines_data
+;; 	RTS
 
-end_of_frame:
-	add_const_to_16 line_data_ptr, 1
-	RTS
+;; end_of_frame:
+;; 	add_const_to_16 line_data_ptr, 1
+;; 	RTS
 
-	.endproc
+;; 	.endproc
 
 
 .proc draw_or_erase_a_line
@@ -1252,4 +1252,4 @@ lines_data:
 ;; line_data_frame1:
 ;; line_data_frame2:
 
-	.include "build/lines.s"
+;	.include "build/lines.s"

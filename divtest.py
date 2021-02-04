@@ -22,7 +22,7 @@ def set_apple( page8):
     return c, mmu
 
 
-def test_div_tables():
+def test_div_tables(BUILD_DIR):
 
     Y_MAX = 256
 
@@ -36,8 +36,7 @@ def test_div_tables():
     y_table = [0] + [min( 0xFFFF, int( round( 256 * Y_MAX / y))) for y in range(1,256)]
 
 
-    print("hello")
-    with open("build/divtbl.s","w") as fo:
+    with open(f"{BUILD_DIR}/divtbl.s","w") as fo:
         #array_to_asm( fo, y_table, ".word")
         array_to_hilo_asm( fo, y_table, "one_over_x")
 
@@ -160,14 +159,12 @@ def test_multiplication():
             assert m1*m2 == c.r.a*256+mmu.read( 0x80)
 
 
-
-test_div_tables()
-
-
-for n in range(0,256):
-    for d in range( n+1,256):
-        tbl = int(65536/d)
-        t = n*(tbl>>8)*256 + n*(tbl & 0xFF)
-        #t = int (65536*n/d)
-        if t > 65530:
-            print("{}/{}= 65536/d = {}, {}".format( n,d,int(65536/d), t ))
+if __name__ == "__main__":
+    test_div_tables()
+    for n in range(0,256):
+        for d in range( n+1,256):
+            tbl = int(65536/d)
+            t = n*(tbl>>8)*256 + n*(tbl & 0xFF)
+            #t = int (65536*n/d)
+            if t > 65530:
+                print("{}/{}= 65536/d = {}, {}".format( n,d,int(65536/d), t ))

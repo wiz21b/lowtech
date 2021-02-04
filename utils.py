@@ -84,6 +84,9 @@ class AppleDisk:
             with open(filename,"rb") as fin:
                 self._disk = bytearray(fin.read( DISK_SIZE))
 
+    def set_filename(self, filename):
+        self.filename = filename
+
     def reset_data_tracking(self):
         self.nb_writes = 0
 
@@ -170,7 +173,8 @@ class LoaderTOC:
     def __init__( self, disk_path):
         # The first sector is the boot sector
         self._file_list = []
-        self._disk = AppleDisk( disk_path)
+        self._disk = AppleDisk()
+        self._disk.set_filename(disk_path)
 
     def add_file( self, path, start_page, nickname):
         assert path and start_page and nickname
@@ -200,7 +204,10 @@ class LoaderTOC:
             uplbl = label.upper()
             toc.append(f"FILE_{uplbl} = {i}")
             toc.append(f"FILE_{uplbl}_LOAD_ADDR = ${page_base:X}00")
-            s = os.path.getsize(filepath)
+            if os.path.exists(filepath):
+                s = os.path.getsize(filepath)
+            else:
+                s = 0
             toc.append(f"FILE_{uplbl}_SIZE = {s}")
             toc.append("\t.byte 0,0,0,0,0")
 
@@ -2049,6 +2056,7 @@ def message_to_font( fout, prefix, message, alphabet):
             if c == " ":
                 text.append(253)
             else:
+                assert c in alphabet, f"While converting line '{line}', {c} is not in alphabet {alphabet}"
                 text.append( alphabet.index(c))
         text.append(254) # end string
     text.append(255) # end text

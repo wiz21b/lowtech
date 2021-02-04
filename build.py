@@ -34,15 +34,42 @@ import os
 import shutil
 import os.path
 import platform
-import sys
+import glob
 import numpy as np
 from PIL import Image, ImageFilter, ImageFont, ImageDraw
 from utils import *
-
 from bigscroll.make_logo import make_all
+from divtest import test_div_tables
 
-PUSAB_ALPHABET="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-,.!"
+if platform.system() == "Windows":
+    CA65 = r"\opt\cc65\bin\ca65"
+    LD65 = r"\opt\cc65\bin\ld65"
+    ACMDER = r"java -jar ..\bad_apple\AppleCommander-1.3.5.13-ac.jar"
+    ACME = r"\opt\acme\acme"
+    APPLEWIN = r"\opt\applewin\Applewin.exe"
+    MAME = r"c:\port-stc\opt\mame\mame64"
+    LZSA = "lzsa.exe"
+    DSK2WOZ = "dsk2woz_wiggles.exe"
 
+elif platform.system() == "Linux":
+    CA65 = r"ca65"
+    LD65 = r"ld65"
+    ACMDER = r"java -jar ../bad_apple/AppleCommander-1.3.5.13-ac.jar"
+    ACME = r"acme"
+    APPLEWIN = r"/opt/wine-staging/bin/wine /home/stefan/AppleWin1.29.16.0/Applewin.exe"
+    MAME = "mame"
+    LZSA = "lzsa/lzsa"
+    DSK2WOZ = "./dsk2woz"
+else:
+    raise Exception("Unsupported system : {}".format(platform.system()))
+
+
+BUILD_DIR = "build"
+DATA_DIR = "data"
+BUILD_DIR_ABSOLUTE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), BUILD_DIR)
+
+PUSAB_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-,.!"
 MESSAGE = ["IN 2020, 50M TONS",
            "OF E-WASTE WERE",
            "PRODUCED.",
@@ -52,14 +79,6 @@ MESSAGE = ["IN 2020, 50M TONS",
            "",
            "HAIL THE AGE OF..."]
 
-
-#show_bitmap_font( new_blocs)
-# exit()
-
-# Alphabeta here : https://fontmeme.com/pixel-fonts/
-# https://fontmeme.com/fonts/little-conquest-font/
-
-#new_blocs = font_split("data/Alphabeta 7 pixels font.png")
 
 LITTLE_CONQUEST_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789,.!"
 MESSAGE2 = ["This demo was",
@@ -103,8 +122,8 @@ MESSAGE2 = ["This demo was",
             "   Astrolab",
             "   by Chequered Ink",
             "",
-            "   Alien Android",
-            "   by Darrell Flood",
+            "   8bit pusab",
+            "   by Seba Perez",
             "",
             "   Little Conquest",
             "   by Brixdee",
@@ -149,10 +168,6 @@ def make_data():
         generate_font_data( fout, "f2", pusab_blocs, PUSAB_ALPHABET, nb_ROLs=1)
         message_to_font( fout, "m2_", MESSAGE, PUSAB_ALPHABET)
 
-    new_blocs = make_bitmap_font("data/Little Conquest.ttf", LITTLE_CONQUEST_ALPHABET)
-    with open("data/alphabet.s","w") as fout:
-        generate_font_data( fout, "f1", new_blocs, LITTLE_CONQUEST_ALPHABET, nb_ROLs=4)
-        message_to_font( fout, "", MESSAGE2, LITTLE_CONQUEST_ALPHABET)
 
     #append_images( [Image.fromarray(b).convert( mode="RGB") for b in new_blocs]).show()
 
@@ -161,26 +176,6 @@ def make_data():
     #Image.fromarray(ar).show()
     #exit()
 
-    # https://www.istockphoto.com/be/vectoriel/iceberg-main-illustration-dessin%C3%A9e-convertie-au-vecteur-gm1038069650-277863881
-    # libre de droit
-
-    im = Image.open("data/black_ice2.bmp")
-    im = im.resize( (APPLE_XRES,APPLE_YRES) )
-    # https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes
-
-    # add some black horizontal lines for underwater part of the iceberg
-    ar = np.array(im)
-    for i in range( 85, APPLE_YRES, 2):
-        ar[i,:] = 0
-    im = Image.fromarray(ar)
-
-    hgr = image_to_hgr( im)
-
-    with open("data/TITLEPIC.BIN","wb") as f_out:
-        f_out.write( bytearray(hgr))
-
-    #im.show()
-    im.close()
 
     im = Image.open("data/earth.png")
     im = im.resize( (APPLE_XRES,APPLE_YRES) )
@@ -193,9 +188,39 @@ def make_data():
     cut_image("data/pipe.hgr", f"build/pipe.blk",
                   0, 0, 39, 11)
 
+
+def make_credits_part():
+    new_blocs = make_bitmap_font("data/Little Conquest.ttf", LITTLE_CONQUEST_ALPHABET)
+    with open("data/alphabet.s","w") as fout:
+        generate_font_data( fout, "f1", new_blocs, LITTLE_CONQUEST_ALPHABET, nb_ROLs=4)
+        message_to_font( fout, "", MESSAGE2, LITTLE_CONQUEST_ALPHABET)
+
+    # https://www.istockphoto.com/be/vectoriel/iceberg-main-illustration-dessin%C3%A9e-convertie-au-vecteur-gm1038069650-277863881
+    # libre de droit
+
+    im = Image.open("data/black_ice2.bmp")
+    im = im.resize((APPLE_XRES, APPLE_YRES))
+    # https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes
+
+    # add some black horizontal lines for underwater part of the iceberg
+    ar = np.array(im)
+    for i in range(85, APPLE_YRES, 2):
+        ar[i, :] = 0
+    im = Image.fromarray(ar)
+
+    hgr = image_to_hgr( im)
+
+    with open("data/TITLEPIC.BIN","wb") as f_out:
+        f_out.write( bytearray(hgr))
+
+    cut_image(f"{DATA_DIR}/TITLEPIC.BIN",
+        f"{BUILD_DIR}/ICEBERG.BLK", 0, 20, 17, 170)
+
+    #im.show()
+    im.close()
+
+
 def gen_code_vertical_scroll():
-
-
     with open("data/vscroll.s","w") as fo:
         code = ";; Generated code "
         for y in range(0,APPLE_YRES-2):
@@ -262,7 +287,8 @@ def cut_cursor_animation():
 
         print(f"        .byte {ofs},162,<mainlogo{i},>mainlogo{i},{x2 - x1 + 1}")
 
-        cut_image(f"{DATA_DIR}/console_font.hgr", f"build/imphobia{i}.blk",
+        cut_image(f"{DATA_DIR}/console_font.hgr",
+                  f"{BUILD_DIR}/imphobia{i}.blk",
                   x1, Y_START, x2, Y_END)
 
 
@@ -314,44 +340,18 @@ def memory_map():
     print()
 
 
-
-
-def crunch( filepath):
+def crunch(filepath):
     fname = f"{filepath}.lzsa"
-    run( f"{LZSA} -r -f2 {filepath} {fname}")
+    run(f"{LZSA} -r -f2 {filepath} {fname}")
 
-    s = os.path.getsize( filepath)
-    c = os.path.getsize( fname)
-    print( f"Crunched {filepath} from {s} to {c}")
+    s = os.path.getsize(filepath)
+    c = os.path.getsize(fname)
+    print(f"Crunched {filepath} from {s} to {c}")
     return fname
 
-if platform.system() == "Windows":
-    CA65 = r"\opt\cc65\bin\ca65"
-    LD65 = r"\opt\cc65\bin\ld65"
-    ACMDER = r"java -jar ..\bad_apple\AppleCommander-1.3.5.13-ac.jar"
-    ACME = r"\opt\acme\acme"
-    APPLEWIN = r"\opt\applewin\Applewin.exe"
-    MAME = r"c:\port-stc\opt\mame\mame64"
-    LZSA = "lzsa.exe"
-    DSK2WOZ = "dsk2woz_wiggles.exe"
-
-elif platform.system() == "Linux":
-    CA65 = r"ca65"
-    LD65 = r"ld65"
-    ACMDER = r"java -jar ../bad_apple/AppleCommander-1.3.5.13-ac.jar"
-    ACME = r"acme"
-    APPLEWIN = r"/opt/wine-staging/bin/wine /home/stefan/AppleWin1.29.16.0/Applewin.exe"
-    MAME = "mame"
-    LZSA = "lzsa/lzsa"
-    DSK2WOZ = "./dsk2woz"
-else:
-    raise Exception("Unsupported system : {}".format(platform.system()))
 
 
 
-BUILD_DIR = "build"
-DATA_DIR = "data"
-BUILD_DIR_ABSOLUTE = os.path.join(os.path.dirname(os.path.abspath(__file__)), BUILD_DIR)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mame", action="store_true")
@@ -364,19 +364,16 @@ parser.add_argument("--dsk", action="store_true")
 parser.add_argument("--img")
 args = parser.parse_args()
 
-
-cut_image("data/forget_all_dreams.bin", "build/FORGET.BLK", 36,0,39,191)
-cut_image("data/new_dreams.bin", "build/NEW_DREAM.BLK", 36,0,39,191)
-cut_image("data/TITLEPIC.BIN", "build/ICEBERG.BLK", 0,20,17,170)
-
-#exit()
+if not os.path.isdir(BUILD_DIR):
+    os.makedirs(BUILD_DIR)
+    pass
 
 
 if args.img:
-    im = Image.open( args.img)
-    im = im.resize( (APPLE_XRES,APPLE_YRES) )
-    hgr = image_to_hgr( im)
-    with open("/tmp/pic.BIN","wb") as fout:
+    im = Image.open(args.img)
+    im = im.resize((APPLE_XRES, APPLE_YRES))
+    hgr = image_to_hgr(im)
+    with open("/tmp/pic.BIN", "wb") as fout:
         fout.write(hgr)
     im.close()
 
@@ -392,12 +389,9 @@ make_data()
 if args.precalc:
     import precalc
     precalc.build_3D_scene()
+    test_div_tables(BUILD_DIR)
 
-if not os.path.isdir( BUILD_DIR):
-    os.makedirs(BUILD_DIR)
-    pass
 
-print("Builing demo")
 
 MUSIC_MEM = 'F700'
 
@@ -411,7 +405,12 @@ if args.awin:
 
 
 
+print("Builing demo")
 
+cut_image(f"{DATA_DIR}/forget_all_dreams.bin",
+          f"{BUILD_DIR}/FORGET.BLK", 36, 0, 39, 191)
+cut_image(f"{DATA_DIR}/new_dreams.bin",
+          f"{BUILD_DIR}/NEW_DREAM.BLK", 36, 0, 39, 191)
 
 
 # memory_map()
@@ -460,7 +459,6 @@ print("Builing loader")
 
 #run(f"{ACME} -o {BUILD_DIR}/prorwts2.o PRORWTS2.S ")
 
-disk = AppleDisk(f"{BUILD_DIR}/NEW.DSK")
 
 # ####################################################################
 # Creating the boot sector and boot loader
@@ -483,7 +481,6 @@ print(f"Tune will start at ${TUNE_ADDRESS:x}")
 crunch(TUNE_ORIGINAL)
 
 td_files = []
-import glob
 
 for i,fn in enumerate( sorted( glob.glob(f"{BUILD_DIR}/xbin_lines[0-9]*"))):
     # if i == 0:
@@ -548,7 +545,7 @@ toc_disk.add_files([(f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
 # the loader final size !). The TOC is incomplete in the sense
 # that we miss track/sector locations of various files
 
-toc_disk.generate_unconfigured_toc( f"{BUILD_DIR}")
+toc_disk.generate_unconfigured_toc(f"{BUILD_DIR}")
 
 
 run(f"{CA65} -o {BUILD_DIR}/loader.o -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
@@ -588,6 +585,8 @@ with open("build/hgr_ofs.s","w") as fo:
 
 gen_code_vertical_scroll()
 cut_cursor_animation()
+make_credits_part()
+
 run(f"{CA65} -o {BUILD_DIR}/vscroll.o -t apple2 --listing {BUILD_DIR}/vscroll.txt {additional_options} vscroll.s")
 run(f"{LD65} -o {BUILD_DIR}/VSCROLL {BUILD_DIR}/vscroll.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
@@ -648,63 +647,10 @@ toc_disk.generate_disk(f"{BUILD_DIR}")
 
 toc_disk.save()
 
-
-
-
 # ####################################################################
 
-
-print("Packaging DSK file")
-
-if False:
-
-    if os.path.isfile( f"{BUILD_DIR}/NEW.DSK"):
-        os.remove(f"{BUILD_DIR}/NEW.DSK")
-
-    shutil.copyfile("data/BLANK_PRODOS2.DSK",f"{BUILD_DIR}/NEW.DSK")
-
-    with open(f"{BUILD_DIR}/LOADER") as stdin :
-        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK LOADER BIN 0x6000", stdin=stdin)
-
-    with open(f"{BUILD_DIR}/prorwts2.o") as stdin :
-        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK RWTS  BIN 0x0800", stdin=stdin)
-
-    with open(f"{BUILD_DIR}/VSCROLL") as stdin :
-        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK VSCROLL BIN 0x6000", stdin=stdin)
-
-    with open(f"{BUILD_DIR}/THREED") as stdin :
-        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK START BIN 0x6000", stdin=stdin)
-
-    with open(f"{BUILD_DIR}/datad000.o") as stdin :
-        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK LINES BIN 0xD000", stdin=stdin)
-
-    with open(f"{DATA_DIR}/TITLEPIC.BIN") as stdin :
-        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK PIX BIN 0x2000", stdin=stdin)
-
-    with open(f"{BUILD_DIR}/earth.bin") as stdin :
-        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK EARTH BIN 0x2000", stdin=stdin)
-
-    # big scroller
-
-    with open(f"{BUILD_DIR}/BSCROLL") as stdin :
-        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK BSCROLL BIN 0x6000", stdin=stdin)
-
-    with open(f"{BUILD_DIR}/data6000.o") as stdin :
-        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK FILLER BIN 0x6000", stdin=stdin)
-
-    with open(f"{DATA_DIR}/FR.PT3") as stdin :
-        run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK SONG BIN 0x4000", stdin=stdin)
-
-    # with open(TUNE) as stdin :
-    #     run(f"{ACMDER} -p {BUILD_DIR}/NEW.DSK MUSIC BIN 0x{MUSIC_MEM}", stdin=stdin)
-
-    run(f"{ACMDER} -l {BUILD_DIR}/NEW.DSK")
-else:
-    pass
-    #disk.save()
-
-
 print("Additional tasks")
+
 if platform.system() == "Linux":
     # Generate listing (you can print in firefox, 2 pages side by side)
 
@@ -712,27 +658,19 @@ if platform.system() == "Linux":
     run(f"source-highlight --src-lang asm -f html --doc -c asm-style.css  --lang-def asm.lang --output-dir={BUILD_DIR} vline.s")
     run(f"source-highlight --src-lang asm -f html --doc -c asm-style.css  --lang-def asm.lang --output-dir={BUILD_DIR} hline.s")
 
-
-
-
-
-
-
-
-
-
-
-
-if args.build:
-    exit()
-
-print("Running emulator")
-
 if args.dsk:
     final_disk = "NEW.DSK"
 else:
     run(f"{DSK2WOZ} {BUILD_DIR}/NEW.DSK {BUILD_DIR}/NEW.WOZ")
     final_disk = "NEW.WOZ"
+
+if args.build:
+    exit()
+
+# ####################################################################
+
+print("Running emulator")
+
 
 final_disk = os.path.join(BUILD_DIR_ABSOLUTE, final_disk)
 
