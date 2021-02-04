@@ -161,10 +161,10 @@ def compute_hgr_offsets(fo):
     fo.write("\n")
     make_lo_hi_ptr_table( fo, "hgr4_offsets", [hgr_address(y,page=0x4000,format=1) for y in range(APPLE_YRES)])
 
-def make_data():
 
+def make_earth_manifesto_data():
     pusab_blocs = make_bitmap_font("data/8-bit-pusab.ttf", PUSAB_ALPHABET, 7)
-    with open("data/alphabet2.s","w") as fout:
+    with open(f"{BUILD_DIR}/alphabet2.s","w") as fout:
         generate_font_data( fout, "f2", pusab_blocs, PUSAB_ALPHABET, nb_ROLs=1)
         message_to_font( fout, "m2_", MESSAGE, PUSAB_ALPHABET)
 
@@ -177,28 +177,28 @@ def make_data():
     #exit()
 
 
-    im = Image.open("data/earth.png")
+    im = Image.open(f"{DATA_DIR}/earth.png")
     im = im.resize( (APPLE_XRES,APPLE_YRES) )
-    with open("build/earth.bin","wb") as f_out:
+    with open(f"{BUILD_DIR}/earth.bin","wb") as f_out:
         f_out.write( bytearray( image_to_hgr( im)))
 
-    cut_image("build/earth.bin", f"build/earth.blk",
+    cut_image(f"{BUILD_DIR}/earth.bin", f"{BUILD_DIR}/earth.blk",
                   0, 154, 39, 191)
 
-    cut_image("data/pipe.hgr", f"build/pipe.blk",
+    cut_image(f"{DATA_DIR}/pipe.hgr", f"{BUILD_DIR}/pipe.blk",
                   0, 0, 39, 11)
 
 
 def make_credits_part():
     new_blocs = make_bitmap_font("data/Little Conquest.ttf", LITTLE_CONQUEST_ALPHABET)
-    with open("data/alphabet.s","w") as fout:
+    with open(f"{BUILD_DIR}/alphabet.s","w") as fout:
         generate_font_data( fout, "f1", new_blocs, LITTLE_CONQUEST_ALPHABET, nb_ROLs=4)
         message_to_font( fout, "", MESSAGE2, LITTLE_CONQUEST_ALPHABET)
 
     # https://www.istockphoto.com/be/vectoriel/iceberg-main-illustration-dessin%C3%A9e-convertie-au-vecteur-gm1038069650-277863881
     # libre de droit
 
-    im = Image.open("data/black_ice2.bmp")
+    im = Image.open(f"{DATA_DIR}/black_ice2.bmp")
     im = im.resize((APPLE_XRES, APPLE_YRES))
     # https://pillow.readthedocs.io/en/stable/handbook/concepts.html#modes
 
@@ -210,10 +210,10 @@ def make_credits_part():
 
     hgr = image_to_hgr( im)
 
-    with open("data/TITLEPIC.BIN","wb") as f_out:
+    with open(f"{BUILD_DIR}/TITLEPIC.BIN","wb") as f_out:
         f_out.write( bytearray(hgr))
 
-    cut_image(f"{DATA_DIR}/TITLEPIC.BIN",
+    cut_image(f"{BUILD_DIR}/TITLEPIC.BIN",
         f"{BUILD_DIR}/ICEBERG.BLK", 0, 20, 17, 170)
 
     #im.show()
@@ -221,7 +221,7 @@ def make_credits_part():
 
 
 def gen_code_vertical_scroll():
-    with open("data/vscroll.s","w") as fo:
+    with open(f"{BUILD_DIR}/vscroll1.s","w") as fo:
         code = ";; Generated code "
         for y in range(0,APPLE_YRES-2):
 
@@ -235,7 +235,7 @@ def gen_code_vertical_scroll():
         code += "RTS"
         fo.write( code)
 
-    with open("data/vscroll2.s","w") as fo:
+    with open(f"{BUILD_DIR}/vscroll2.s","w") as fo:
         code = ";; Generated code "
 
         for y in range(0,APPLE_YRES-2):
@@ -250,19 +250,19 @@ def gen_code_vertical_scroll():
         code += "RTS"
         fo.write( code)
 
-    with open("data/vscroll3.s","w") as fo:
-        code = ";; Generated code "
-        for y in range(0,APPLE_YRES):
+#     with open(f"{BUILD_DIR}/vscroll3.s","w") as fo:
+#         code = ";; Generated code "
+#         for y in range(0,APPLE_YRES):
 
-            line_base = hgr_address((y+1)% APPLE_YRES)
-            line_base2 = hgr_address(y)
+#             line_base = hgr_address((y+1)% APPLE_YRES)
+#             line_base2 = hgr_address(y)
 
-            code += f"""
-        LDA {line_base},x
-        STA {line_base2},x
-"""
-        code += "RTS"
-        fo.write( code)
+#             code += f"""
+#         LDA {line_base},x
+#         STA {line_base2},x
+# """
+#         code += "RTS"
+#         fo.write( code)
 
 #exit()
 
@@ -340,8 +340,10 @@ def memory_map():
     print()
 
 
-def crunch(filepath):
-    fname = f"{filepath}.lzsa"
+def crunch(filepath, fname = None):
+    if not fname:
+        fname = f"{filepath}.lzsa"
+
     run(f"{LZSA} -r -f2 {filepath} {fname}")
 
     s = os.path.getsize(filepath)
@@ -384,7 +386,7 @@ if args.img:
     # show_hgr( hgr)
     exit()
 
-make_data()
+make_earth_manifesto_data()
 
 if args.precalc:
     import precalc
@@ -407,10 +409,10 @@ if args.awin:
 
 print("Builing demo")
 
-cut_image(f"{DATA_DIR}/forget_all_dreams.bin",
-          f"{BUILD_DIR}/FORGET.BLK", 36, 0, 39, 191)
-cut_image(f"{DATA_DIR}/new_dreams.bin",
-          f"{BUILD_DIR}/NEW_DREAM.BLK", 36, 0, 39, 191)
+# cut_image(f"{DATA_DIR}/forget_all_dreams.bin",
+#           f"{BUILD_DIR}/FORGET.BLK", 36, 0, 39, 191)
+# cut_image(f"{DATA_DIR}/new_dreams.bin",
+#           f"{BUILD_DIR}/NEW_DREAM.BLK", 36, 0, 39, 191)
 
 
 # memory_map()
@@ -469,16 +471,16 @@ print("Builing loader")
 # TUNE_ORIGINAL = f"{DATA_DIR}/wizmod.pt3"
 
 TUNE_ORIGINAL = f"{DATA_DIR}/wiz.pt3"
-MAIN_MUSIC = f"{DATA_DIR}/BH_FAST.pt3"
 
-SIZE_SONG = max(os.path.getsize(TUNE_ORIGINAL), os.path.getsize(MAIN_MUSIC))
+# MAIN_MUSIC = f"{DATA_DIR}/wiz.pt3"
+SIZE_SONG = max(os.path.getsize(TUNE_ORIGINAL), os.path.getsize(TUNE_ORIGINAL))
 
-# lzsa -r -f2 data\2UNLIM.pt3 data\2UNLIM.lzsa
+# # lzsa -r -f2 data\2UNLIM.pt3 data\2UNLIM.lzsa
 TUNE_ADDRESS = 0xFD00 - (((SIZE_SONG + 256) >> 8) << 8)
 assert TUNE_ADDRESS >= 0xF000, "Tune too big ! over 3D file load area"
 print(f"Tune will start at ${TUNE_ADDRESS:x}")
 # TUNE = TUNE_ORIGINAL
-crunch(TUNE_ORIGINAL)
+crunch(TUNE_ORIGINAL, f"{BUILD_DIR}/wiz.pt3.lzsa")
 
 td_files = []
 
@@ -519,7 +521,7 @@ for i,fn in enumerate( sorted( glob.glob(f"{BUILD_DIR}/xbin_lines[0-9]*"))):
 #       (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")]
 
 
-toc_disk = LoaderTOC( f"{BUILD_DIR}/NEW.DSK")
+toc_disk = LoaderTOC(f"{BUILD_DIR}/NEW.DSK")
 
 
 if td_files[-1][1] == 0xD0:
@@ -529,7 +531,7 @@ else:
 
 
 toc_disk.add_files([(f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
-                    (f"{TUNE_ORIGINAL}.lzsa", 0x60, "pt3"),  # will be decrunched to the tune memory before anything gets loaded
+                    (f"{BUILD_DIR}/wiz.pt3.lzsa", 0x60, "pt3"),  # will be decrunched to the tune memory before anything gets loaded
                     #(f"{BUILD_DIR}/earth.bin", 0x20, "earth"),
                     (f"{BUILD_DIR}/BSCROLL", 0x60, "big_scroll"),
                     # (f"{BUILD_DIR}/CHKDSK",0x60,"check_disk"),

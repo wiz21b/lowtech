@@ -1042,7 +1042,7 @@ read_any_sector:
 	.align $100 		; FIXME do nothing
 bs_precalc:
 	.include "build/bs_precalc.s"
-	.include "../data/alphabet2.s"
+	.include "../build/alphabet2.s"
 	.include "../build/hgr_ofs.s"
 div3:
 	;;  Converts color X (so from 0 to 270/2, beacuse a color

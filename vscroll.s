@@ -585,13 +585,13 @@ letter_tables:
 
 
 vscroll_move:
-	.include "data/vscroll.s"
+	.include "build/vscroll1.s"
 vscroll_move_p2:
-	.include "data/vscroll2.s"
+	.include "build/vscroll2.s"
 
 	.align $100
 picture_data:
-	.include "data/alphabet.s"
+	.include "build/alphabet.s"
 	.include "build/hgr_ofs.s"
 
 div3:
