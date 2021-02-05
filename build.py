@@ -679,7 +679,7 @@ final_disk = os.path.join(BUILD_DIR_ABSOLUTE, final_disk)
 if args.mame:
     # -resolution 1200x900
     # -sound none
-    run(f"{MAME} apple2e -volume -12 -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {final_disk}")
+    run(f"{MAME} apple2e -sound none -volume -12 -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {final_disk}")
 elif args.awin:
     if platform.system() == "Linux":
         final_disk = final_disk.replace("/",r"\\")

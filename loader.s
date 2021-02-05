@@ -148,7 +148,6 @@ clear_apple_loop:
 
 	JSR DECOMPRESS_LZSA2_FAST
 
-	LDA #FILE_DATA_3D_2
 	JSR $6000
 	.endif
 

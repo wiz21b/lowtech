@@ -1044,6 +1044,9 @@ bs_precalc:
 	.include "build/bs_precalc.s"
 	.include "../build/alphabet2.s"
 	.include "../build/hgr_ofs.s"
+	.include "../lib.s"
+	.include "block_draw.s"
+
 div3:
 	;;  Converts color X (so from 0 to 270/2, beacuse a color
 	;;  pixel is made of 2 bits) to byte offset.
@@ -1057,7 +1060,6 @@ modulo3:
 	.endrep
 
 
-	.include "../lib.s"
 
 
 mem_copy:
@@ -1151,7 +1153,6 @@ RELd1:	sta $2000,x
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-	.include "block_draw.s"
 mainlogo0:
 	.incbin "build/imphobia0.blk"
 mainlogo1:

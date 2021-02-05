@@ -21,6 +21,7 @@
 
 	.include "defs.s"
 	.include "build/xbin_lines_const.s"
+	.include "build/toc_equs.inc"
 
 MOCK_6522_T1CL	=	$C404	; 6522 #1 t1 low order latches
 MOCK_6522_T1CH	=	$C405	; 6522 #1 t1 high order counter
@@ -70,6 +71,7 @@ dummy_pointer	= 254
 
 	.segment "CODE"
 
+	LDA #FILE_DATA_3D_2
 	STA next_file_to_load
 				;JSR init_disk_read	; Must be done before any read sector
 
@@ -95,6 +97,7 @@ dummy_pointer	= 254
 
 
 loop_infinite:
+
 	;jmp loop_infinite
 	;; jsr draw_tile_line
 
@@ -137,6 +140,7 @@ demo3:
 	jsr draw_to_page2
 
 all_lines:
+
 	copy_16 line_data_ptr, line_data_ptr1
 	LDA #1
 	STA color
@@ -160,6 +164,9 @@ all_lines:
 	;; Page flipping mode
 
 all_lines:
+	INC $2080
+	INC $4080
+
 	jsr draw_to_page4
 
 	;; Clear past frame

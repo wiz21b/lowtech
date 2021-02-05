@@ -438,7 +438,10 @@ first_iteration:
 
 
 still_stuff_to_read:
-	;; At this point we either are more tracks left to
+	LDX current_track
+	INC $2000,X
+	INC $4000,X
+	;; At this point we either have more tracks left to
 	;; read or we still have sectors to read in the current
 	;; track (the last track).
 
@@ -621,7 +624,8 @@ wait_sector_zero:
 
 	.proc init_file_load
 
-	;; A  = file index in the table of content
+	;; A  = file index in the table of content. Set bit 7 for
+	;; fast load.
 
 	;; The table of content is made of bytes :
 	;; 1st track, 1st sector, last track, last sector, 1st memory page
@@ -637,7 +641,8 @@ wait_sector_zero:
 	;; Configure the kind of loading we want
 
 	CMP #128		; N = bit 7 of A - 128
-	BPL slow_load
+	;BPL slow_load
+	BCC slow_load		; branch if A < 128
 	LDX #<choregraphy_fast
 	STX disk_irq_handler2::read_sector_state + 1
 	LDX #>choregraphy_fast

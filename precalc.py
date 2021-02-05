@@ -25,8 +25,8 @@ import networkx as nx
 import portion
 
 from utils import *
-from parse_svg import parse_animals
-from gz3 import longest_paths_search
+#from parse_svg import parse_animals
+#from gz3 import longest_paths_search
 
 HGR_OFFSET = 2
 
