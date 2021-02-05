@@ -1,8 +1,5 @@
-	END_OF_TRACK = $FE
-	END_OF_MOVIE = $FF
-	PICTURE_LOAD = $FD
 
-;;; This code is (c) 2019-2020 Stéphane Champailler
+;;; This code is (c) 2019-2021 Stéphane Champailler
 ;;; It is published under the terms of the
 ;;; GNU GPL License Version 3.
 
@@ -17,24 +14,28 @@
 	.import useless_sector
 	.import sector_status
 	.import handle_track_progress
+	.import txt_ofs
+	.import sect, old_sect, ace_jump, base_jump_pause, ticks
+	.import distance_to_next_sector, sector_status
 
 
 	.include "defs.s"
 	.include "build/xbin_lines_const.s"
 	.include "build/toc_equs.inc"
 
-MOCK_6522_T1CL	=	$C404	; 6522 #1 t1 low order latches
-MOCK_6522_T1CH	=	$C405	; 6522 #1 t1 high order counter
-
+	END_OF_TRACK = $FE
+	END_OF_MOVIE = $FF
+	PICTURE_LOAD = $FD
 	ONE_PAGE = 0
 	GR_ONLY = 0
 
-x_shift = $84
-
-	debug_ptr = $86
-	debug_ptr2 = $88
+	x_shift = $84
 
 
+	;; Zero page addresses
+
+debug_ptr = $86
+debug_ptr2 = $88
 tile_ptr2a	= 212
 
 notb_line_code_ptr_lo = 214
@@ -65,8 +66,6 @@ mul2 = dummy_ptr+1
 dummy_ptr2	= 252
 dummy_ptr	= 254
 dummy_pointer	= 254
-
-;BYTES_PER_LINE	= threed_line_size_marker - line_data_frame1
 
 
 	.segment "CODE"
@@ -502,88 +501,6 @@ go_on:
 
 	.endproc
 
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; .proc draw_or_erase_multiple_lines_old
-
-;; one_more_line:
-
-;; 	JSR draw_or_erase_a_line
-
-;; 	add_const_to_16 line_data_ptr, BYTES_PER_LINE
-
-;; 	LDY #0
-;; 	LDA (line_data_ptr),Y
-
-;; 	AND #31
-;; 	CMP #3
-;; 	BMI one_more_line	; A < 3 ?
-
-;; 	BEQ end_of_frame	; A = 3 => end of frame
-
-;; 	CMP #4
-;; 	BEQ end_of_all_frames
-
-;; 	;; A = 5 : end of data file,
-;; 	;store_16 line_data_ptr, $E000
-
-
-;; 	;; Since we draw on alternating pages, we'll come
-;; 	;; here twice in sequence at the end of each block.
-;; 	;; We thus make sure we don't do the same work
-;; 	;; twice.
-
-;; ;; 	INC end_of_block
-;; ;; 	LDA end_of_block
-;; ;; 	CMP #2
-;; ;; 	BNE dont_init_load
-;; ;; 	LDA #0
-;; ;; 	STA end_of_block
-
-;; 	;; Guard against delay in the track read
-
-;; ;; wait_read:
-;; ;; 	LDA read_in_pogress
-;; ;; 	CMP #0
-;; ;; 	BNE wait_read
-
-
-;; 	;; This is a huge hack to avoid counting the right moment
-;; 	;;  to start loading data (rememebr we're dealing with two
-;; 	;; buffers, with skip frames, redraws, etc. where it's quite
-;; 	;; difficult to know when to start loading new data)
-;; 	;; FIXME Although it works, I'm sure this wastes some time.
-
-;; 	LDA #2
-;; 	STA end_of_block
-
-
-;; load_already_initiated:
-;; dont_init_load:
-
-;; 	LDA line_data_ptr + 1
-;; 	AND #$F0
-;; 	EOR #($D0 ^ $E0)
-;; 	STA line_data_ptr + 1
-;; 	LDA #0
-;; 	STA line_data_ptr
-
-
-;; 	;; FIXME 	add_const_to_16 line_data_ptr, BYTES_PER_LINE
-;; 	CLC
-;; 	RTS
-
-;; end_of_all_frames:
-;; 	store_16 line_data_ptr, lines_data
-;; 	SEC
-;; 	RTS
-
-;; end_of_frame:
-;; 	add_const_to_16 line_data_ptr, 1
-;; 	CLC
-;; 	RTS
-
-;; 	.endproc
 end_of_block:	.byte 255
 
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -600,246 +517,10 @@ wait_read2:
 	.endproc
 
 
-	.import txt_ofs
-	.import sect, old_sect, ace_jump, base_jump_pause, ticks
-	.import distance_to_next_sector, sector_status
-
-;; ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; 	.proc instru_read_sector_in_track
-
-;; 	LDA stop_count
-;; 	BNE dont_stop
-;; full_freeze:
-;; 	;JMP full_freeze
-
-;; dont_stop:
-;; 	LDA read_in_pogress
-;; 	BNE do_read
-;; 	RTS
-;; do_read:
-
-;; 	LDA ace_jump
-;; 	BEQ no_ace_jump
-;; 	STA $7D0+38
-;; 	RTS
-
-;; no_ace_jump:
-
-;; 	LDA base_jump_pause
-;; 	BEQ no_jump_pause
-
-;; 	LDA ticks
-;; wait:
-;; 	CMP ticks
-;; 	BEQ wait
-;; 	DEC base_jump_pause
-;; 	RTS
-
-;; no_jump_pause:
-;; 	JSR read_sector_in_track
-
-;; 	.if  ::DEBUG = 1
-
-;; 	LDA useless_sector
-;; 	BNE failed_a_sector
-
-;; 	LDX sect
-;; 	LDA #'!'+$80
-;; 	STA $7d0 + 20,X
-;; 	RTS
-
-;; failed_a_sector:
-;; 	DEC stop_count
-
-;; 	.import current_track
-;; 	LDX current_track
-;; 	LDA hexa,X
-;; 	CLC
-;; 	STA $7d0+17
-
-;; 	LDX #15
-;; copy_status:
-;; 	LDA #'.'+$80
-;; 	STA $7D0,X
-;; 	STA $7D0+20,X
-
-;; 	LDA sector_status,X
-;; 	BEQ empty_status
-;; not_empty_status:
-;; 	LDA #'-'
-;; 	BNE draw_status
-;; empty_status:
-;; 	LDA #'.'
-;; draw_status:
-;; 	CLC
-;; 	ADC #$80
-;; 	STA $7D0,X
-;; 	DEX
-;; 	BPL copy_status
-
-;; mark_sector:
-;; 	LDX #23*2
-;; 	LDA txt_ofs+1,X
-;; 	STA debug_ptr + 1
-;; 	LDA txt_ofs,X
-;; 	STA debug_ptr
-
-;; 	LDA useless_sector
-;; 	ASL
-;; 	ASL
-;; 	ASL
-;; 	ASL
-;; 	ASL
-;; 	ASL
-;; 	STA smc1 + 1
-
-;; 	LDY sect
-;; 	CPY #15
-;; 	BMI good_sect
-;; 	LDY #20
-;; 	LDA #'?'+$80
-;; 	BNE show_sect
-;; good_sect:
-;; 	LDA hexa,Y
-;; show_sect:
-;; 	CLC
-;; smc1:
-;; 	ADC #0
-
-;; 	STA $7D0,Y
-
-;; 	;; LDY old_sect
-;; 	;; LDA #'X'
-;; 	;; STA $7D0,Y
-
-
-;; 	JSR distance_to_next_sector
-
-;; 	.import ace_jump_target
-;; 	.import CLOCK_SPEED
-
-;; 	PHA
-;; 	lda	#<CLOCK_SPEED	; 40
-;; 	sta	MOCK_6522_T1CL	; write into low-order latch
-;; 	lda	#>CLOCK_SPEED	; 9C
-;; 	sta	MOCK_6522_T1CH	; write into high-order latch,
-;; 	PLA
-
-;; 	STA ace_jump
-
-;; 	;; A = ticks to wait for ace jump
-;; 	CLC
-;; 	ROR
-;; 	TAX
-;; 	LDA hexa,X
-;; 	CLC
-;; 	ADC #$80
-;; 	STA $7d0 + 19
-
-;; 	TYA			; Y = distance
-;; 	TAX
-;; 	LDA hexa,X
-;; 	CLC
-;; 	ADC #$80
-;; 	STA $7d0 + 18
-;; 	TYA
-
-;; 	CLC
-;; 	ADC sect
-;; 	AND #15
-;; 	STA ace_jump_target
-;; 	TAX
-;; 	LDA $7D0,X
-;; 	SEC
-;; 	SBC #$80
-;; 	STA $7D0,X
-
-;; 	.endif 				; debug
-
-;; 	RTS
-
-;; useless_sectors:	.byte 0
-;; stop_count:	.byte 23
-
-;; 	.endproc
-
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; 	.proc skip_a_frame
-
-;; one_more_line:
-
-;; 	add_const_to_16 line_data_ptr, BYTES_PER_LINE
-
-;; 	LDY #0
-;; 	LDA (line_data_ptr),Y
-
-;; 	AND #31			; 5 bits
-;; 	CMP #3
-;; 	BMI one_more_line	; A < 3 ?
-;; 	BEQ end_of_frame	; A = 3 => end of frame
-
-;; 	CMP #4
-;; 	BEQ end_of_all_frames
-
-;; 	; A = 5 : end of memory block
-;; end_of_memblock:
-;; 	jsr wait_disk_read
-
-;; 	;; A = 5 end of block
-;; 	LDA line_data_ptr + 1
-;; 	AND #$F0
-;; 	EOR #($D0 ^ $E0)
-;; 	STA line_data_ptr + 1
-;; 	LDA #0
-;; 	STA line_data_ptr
-;; 	RTS
-
-;; end_of_all_frames:
-;; 	store_16 line_data_ptr, lines_data
-;; 	RTS
-
-;; end_of_frame:
-;; 	add_const_to_16 line_data_ptr, 1
-;; 	RTS
-
-;; 	.endproc
-
 
 .proc draw_or_erase_a_line
 
-	;; line_data_ptr must be set
-	;; color must be set
-
-	;; LDY #6
-
-	;; LDA (line_data_ptr),Y
-	;; STA x1
-	;; INY
-	;; LDA (line_data_ptr),Y
-	;; STA x1 + 1
-
-	;; INY
-	;; LDA (line_data_ptr),Y
-	;; STA y1
-
-	;; INY
-	;; LDA (line_data_ptr),Y
-	;; STA x2
-	;; INY
-	;; LDA (line_data_ptr),Y
-	;; STA x2 + 1
-
-	;; INY
-	;; LDA (line_data_ptr),Y
-	;; STA y2
-
 	.include "compu_line.s"
-
-
-
 
 slope65536:	.word 0
 slope256_2:	.word 0
@@ -1066,18 +747,6 @@ tile_loop:
 ;; 	.endproc
 
 
-
-
-
-
-
-	;; .repeat 256/7+1,I
-	;; .repeat 7
-	;; .byte	I
-	;; .endrep
-	;; .endrep
-
-
 	;; Tools
 	.include "lib.s"
 
@@ -1175,50 +844,6 @@ clear_hgr_line_loop:
 	RTS
 	.endproc
 
-;; 	;PT3_LOC = $0C00
-;; 	.include "pt3_lib/zp.inc"
-
-;; 	;; https://github.com/deater/dos33fsprogs/tree/master/pt3_lib
-;; start_player:
-;; 	lda	#0
-;; 	sta	DONE_PLAYING
-;; 	lda	#1
-;; 	sta LOOP
-
-;; 	;jsr	mockingboard_detect
-;; 	;jsr	mockingboard_patch
-;; 	jsr	mockingboard_init
-;; 	jsr	mockingboard_setup_interrupt
-
-;; 	;============================
-;; 	; Init the Mockingboard
-;; 	;============================
-
-;; 	jsr	reset_ay_both
-;; 	jsr	clear_ay_both
-
-;; 	;==================
-;; 	; init song
-;; 	;==================
-
-;; 	jsr	pt3_init_song
-
-;; 	;============================
-;; 	; Enable 6502 interrupts
-;; 	;============================
-;; 	cli ; clear interrupt mask
-
-;; 	RTS
-
-	;; ; some firmware locations
-	;; .include "pt3_lib/hardware.inc"
-	;; .include "pt3_lib/pt3_lib_core.s"
-	;; .include "pt3_lib/pt3_lib_init.s"
-	;; .include "pt3_lib/pt3_lib_mockingboard_setup.s"
-	;; .include "pt3_lib/interrupt_handler.s"
-	;; ; if you're self patching, detect has to be after
-	;; ; interrupt_handler.s
-	;; .include "pt3_lib/pt3_lib_mockingboard_detect.s"
 
 	;; DATA ////////////////////////////////////////////////////
 	.include "build/precalc.s"
@@ -1242,21 +867,9 @@ div7:
 one_over_x:
 	.include "build/divtbl.s"
 
-
-
-
-
-
 	;; /////////////////////////////////////////////////////////
 	;; D000 SEGMENT
 	;; /////////////////////////////////////////////////////////
 
 	.segment "RAM_D000"
-
-
 lines_data:
-
-;; line_data_frame1:
-;; line_data_frame2:
-
-;	.include "build/lines.s"
