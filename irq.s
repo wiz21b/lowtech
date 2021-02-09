@@ -32,7 +32,7 @@ interrupt_handler_music:
 	tya
 	pha			; save Y
 
-	inc $402
+	;inc $402
 
 	;; FIXME this must be SMC'ed to handle MockingBoard
 	;; on another port.

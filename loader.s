@@ -19,6 +19,7 @@ dummy_pointer = 254
 	.export FILE_ICEBERG_LOAD_ADDR
 	.export current_pattern_smc, current_line_smc, current_subframe_smc
 
+	;; Clear Apple ][ logo at top of text screen
 	LDA #$A0		; space
 clear_apple_loop:
 	clear_apple = * + 1
@@ -161,8 +162,20 @@ the_end:
 	JSR load_file
 	.endif
 
-	LDA #FILE_VERTI_SCROLL
+	LDA #FILE_VERTI_SCROLL + 128
 	JSR load_file
+
+	VERTI_SCROLL_ADDRESS = $6000
+	LDA #<FILE_VERTI_SCROLL_LOAD_ADDR
+	STA LZSA_SRC_LO
+	LDA #>FILE_VERTI_SCROLL_LOAD_ADDR
+	STA LZSA_SRC_HI
+	LDA #<VERTI_SCROLL_ADDRESS
+	STA LZSA_DST_LO
+	LDA #>VERTI_SCROLL_ADDRESS
+	STA LZSA_DST_HI
+	JSR DECOMPRESS_LZSA2_FAST
+
 	JSR $6000
 
 
@@ -236,12 +249,7 @@ txt_ofs:
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	.include "lib.s"
-
-;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
 	.include "decompress_fast_v2.s"
-
 	.include "read_sector.s" ; RWTS code
 
 	;.byte "---MUSIC"
@@ -259,9 +267,14 @@ disk_toc:
 	.include "build/toc_equs.inc"
 	.include "build/toc_data.inc"
 	.include "file_load.s"
-	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
 
 	;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;; Stuff after this JUNK mark will be used during loader's init
+	;; and will be erased by other data afterwards.
+
+	.byte "JUNK"
+	.include "pt3_lib/pt3_lib_mockingboard_detect.s"
+	.include "file_load_init.s"
 
 
 	.proc start_player
@@ -281,9 +294,3 @@ disk_toc:
 
 	rts
 	.endproc
-
-	;; Stuff after this JUNK mark will be used during loader's init
-	;; and will be erased by other data afterwards.
-
-	.byte "JUNK"
-	.include "file_load_init.s"

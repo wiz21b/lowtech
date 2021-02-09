@@ -176,19 +176,25 @@ music_long:
 	set_timer_to_target twice_full_sector_time ; Roughly 1/40th of a second
 	BVC pt3_and_exit_interrupt
 
-sector_already_read:
-	set_timer_to_target data_time_plus_tolerance
-	;; Because of preceding call,s I cannot guarantee
-	;; the the oVerflow flag is properly set for a
-	;; short branch... So I JMP.
-	JMP exit_interrupt
 
 read_sector:
 	;; INC $2005
 	;; INC $4005
 	JSR read_any_sector_in_track
-	BCC sector_already_read
 
+	;; Because of preceding call,s I cannot guarantee
+	;; the the oVerflow flag is properly set for a
+	;; short branch... If I don't do that, I have to JMP
+	;; which is 3 bytes and there are 2 JMP =< 6 bytes
+	;; So with CLV + 2 BVC, that's 5 bytes, which is smaller.
+	CLV
+	BCS sector_was_read
+
+sector_already_read:
+	set_timer_to_target data_time_plus_tolerance
+	BVC exit_interrupt
+
+sector_was_read:
 	;; This is tricky ! Doing a pause right after a disk read
 	;; ensures that the next PT3 beat will be played
 	;; at the right time but also it makes sure we
@@ -197,7 +203,7 @@ read_sector:
 	;; interrupts.
 
 	set_timer_to_const TOLERANCE
-	JMP exit_interrupt
+	BVC exit_interrupt
 
 pt3_and_exit_interrupt:
 	JSR pt3_irq_handler
@@ -640,14 +646,14 @@ wait_sector_zero:
 
 	;; Configure the kind of loading we want
 
-	CMP #128		; N = bit 7 of A - 128
+	CMP #128		; N flag = bit 7 of A - 128
 	;BPL slow_load
 	BCC slow_load		; branch if A < 128
 	LDX #<choregraphy_fast
 	STX disk_irq_handler2::read_sector_state + 1
 	LDX #>choregraphy_fast
 	STX disk_irq_handler2::read_sector_state + 2
-	BNE done_config_choregraphy
+	JMP done_config_choregraphy
 slow_load:
 	LDX #<choregraphy_slow
 	STX disk_irq_handler2::read_sector_state + 1

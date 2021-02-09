@@ -281,7 +281,10 @@ class LoaderTOC:
         free_sectors = 0
         self._disk.save()
 
-        print("-"*45)
+        print("-"*37)
+        print("            1111111111222222222223333")
+        print("  01234567890123456789012345678901234")
+        print("-"*37)
         sector_map = self._disk.sector_map
         for sector in range( SECTORS_PER_TRACK):
             all_sect = [sector_map[t][sector] for t in range(TRACKS_PER_DISK)]
@@ -298,7 +301,8 @@ class LoaderTOC:
             print(f"{sector:X} {t}")
 
         print()
-        print("{} free sectors = {} bytes".format(free_sectors, free_sectors*SECTOR_SIZE))
+        used_sectors = TRACKS_PER_DISK*SECTORS_PER_TRACK - free_sectors
+        print("{} free sectors = {} bytes; {} sectors used = {} bytes".format(free_sectors, free_sectors*SECTOR_SIZE, used_sectors, used_sectors*SECTOR_SIZE))
         print("-"*45)
 
 

@@ -613,7 +613,7 @@ copy_block:
 	.proc draw_text_line_animated
 
 
-	TEXT_PANE_START = 7
+	TEXT_PANE_START = 12
 	LINE_HEIGHT = 12
 
 	LDA #TEXT_PANE_START
@@ -728,6 +728,8 @@ pt3_last_line:	.byte 0
 	ASL			; times 4 (letter_tables entries are
 	ASL			; 2x2 bytes long)
 	TAX
+
+	LDX #0
 
 	;; indirect pointer to "lo" table
 	LDA letter_tables2,X

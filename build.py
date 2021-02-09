@@ -57,7 +57,7 @@ elif platform.system() == "Linux":
     ACMDER = r"java -jar ../bad_apple/AppleCommander-1.3.5.13-ac.jar"
     ACME = r"acme"
     APPLEWIN = r"/opt/wine-staging/bin/wine /home/stefan/AppleWin1.29.16.0/Applewin.exe"
-    MAME = "mame"
+    MAME = "/mnt/data2/mame0228/mame64"
     LZSA = "lzsa/lzsa"
     DSK2WOZ = "./dsk2woz"
 else:
@@ -120,7 +120,7 @@ MESSAGE2 = ["This demo was",
             "Fonts",
             "",
             "   Astrolab",
-            "   by Chequered Ink",
+            "   by ChequeredInk",
             "",
             "   8bit pusab",
             "   by Seba Perez",
@@ -593,6 +593,26 @@ run(f"{CA65} -o {BUILD_DIR}/vscroll.o -t apple2 --listing {BUILD_DIR}/vscroll.tx
 run(f"{LD65} -o {BUILD_DIR}/VSCROLL {BUILD_DIR}/vscroll.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
 
+def crunch_for_ram_load(path, toc_disk, toc_name, code_start=0x6000):
+    orig_size = os.path.getsize(path)
+    f = crunch(path)
+    crunched_size = os.path.getsize(f)
+    mem_limit = 0xBE00
+    pages = (crunched_size + 255) // 256
+
+    # Code will start at 0x6000 (right after HGR). It will end here :
+    end_of_code = code_start + (orig_size + 255)
+
+    # Now we look a twhere the crunched code will start
+    # Remeber that while decrunching, decrunched data will overwrite crunched data
+    td_start_page = (mem_limit >> 8) - pages # BA is the best I can do
+    print(f"Crunch {f} ({orig_size}), {pages} pages, crunched data start on page {td_start_page:X}")
+    assert end_of_code < mem_limit, "Too big ! {:4X} > {:4X}".format(end_of_code, mem_limit)
+
+    toc_disk.update_file(f, td_start_page, toc_name)
+
+crunch_for_ram_load(f"{BUILD_DIR}/VSCROLL", toc_disk, "verti_scroll")
+
 run(f"{CA65} -I . -o {BUILD_DIR}/big_scroll.o --listing {BUILD_DIR}/bscroll.txt -t apple2 {additional_options} bigscroll/scroll.s")
 run(f"{LD65} -o {BUILD_DIR}/BSCROLL {BUILD_DIR}/big_scroll.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_bscroll.out")
 
@@ -602,22 +622,24 @@ run(f"{LD65} -o {BUILD_DIR}/THREED {BUILD_DIR}/td.o {BUILD_DIR}/loader.o -C link
 shutil.copyfile(f"{BUILD_DIR}/datad000.o",f"{BUILD_DIR}/threed_data")
 
 
-orig_size = os.path.getsize( f"{BUILD_DIR}/THREED")
-f = crunch(f"{BUILD_DIR}/THREED")
-size = os.path.getsize(f)
-mem_limit = 0xBE00
-pages = (size + 255) // 256
+crunch_for_ram_load(f"{BUILD_DIR}/THREED", toc_disk, "threed")
 
-# Code will start at 0x6000 (right after HGR). It will end here :
-end_of_code = 0x6000 + (orig_size + 255)
+# orig_size = os.path.getsize( f"{BUILD_DIR}/THREED")
+# f = crunch(f"{BUILD_DIR}/THREED")
+# size = os.path.getsize(f)
+# mem_limit = 0xBE00
+# pages = (size + 255) // 256
 
-# Now we look a twhere the crunched code will start
-# Remeber that while decrunching, decrunched data will overwrite crunched data
-td_start_page = (mem_limit >> 8) - pages # BA is the best I can do
-print(f"Crunch {f} ({orig_size}), {pages} pages, crunched data start on page {td_start_page:X}")
-assert end_of_code < mem_limit, "Too big ! {:4X} > {:4X}".format(end_of_code, mem_limit)
+# # Code will start at 0x6000 (right after HGR). It will end here :
+# end_of_code = 0x6000 + (orig_size + 255)
 
-toc_disk.update_file(f, td_start_page, "threed")
+# # Now we look a twhere the crunched code will start
+# # Remeber that while decrunching, decrunched data will overwrite crunched data
+# td_start_page = (mem_limit >> 8) - pages # BA is the best I can do
+# print(f"Crunch {f} ({orig_size}), {pages} pages, crunched data start on page {td_start_page:X}")
+# assert end_of_code < mem_limit, "Too big ! {:4X} > {:4X}".format(end_of_code, mem_limit)
+
+# toc_disk.update_file(f, td_start_page, "threed")
 
 # main_music_start_page = 1 + (0x6000 + os.path.getsize(f"{BUILD_DIR}/BSCROLL") + 255) // 256
 # toc_disk.update_file(MAIN_MUSIC, main_music_start_page, "main_music")
@@ -679,7 +701,7 @@ final_disk = os.path.join(BUILD_DIR_ABSOLUTE, final_disk)
 if args.mame:
     # -resolution 1200x900
     # -sound none
-    run(f"{MAME} apple2e -sound none -volume -12 -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {final_disk}")
+    run(f"{MAME} apple2e -volume -12 -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {final_disk}")
 elif args.awin:
     if platform.system() == "Linux":
         final_disk = final_disk.replace("/",r"\\")
