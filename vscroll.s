@@ -7,6 +7,7 @@
 
 
 	.include "defs.s"
+	.import current_pattern_smc, current_line_smc, current_subframe_smc
 
 DEBUG = 0
 ONE_PAGE = 0
@@ -122,6 +123,12 @@ loop_infinite:
  	LDA #SCROLL_BOTTOM_LINE
 	STA y_pos
 	JSR scroll_one_line
+
+	;;  This doesn't work too well
+;; 	LDA current_subframe_smc+1
+;; sync_to_beat:
+;; 	CMP current_subframe_smc+1
+;; 	BEQ sync_to_beat
 
 	jmp loop_infinite
 

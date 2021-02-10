@@ -445,8 +445,8 @@ first_iteration:
 
 still_stuff_to_read:
 	LDX current_track
-	INC $2000,X
-	INC $4000,X
+	;; INC $2000,X
+	;; INC $4000,X
 	;; At this point we either have more tracks left to
 	;; read or we still have sectors to read in the current
 	;; track (the last track).

@@ -75,7 +75,6 @@ class AppleDisk:
         self.filename = filename
 
         self.sector_map = [ [None] * SECTORS_PER_TRACK for i in range(TRACKS_PER_DISK)]
-        self.reset_data_tracking()
         self.set_track_sector( 0,0)
 
         if not filename:
@@ -87,10 +86,10 @@ class AppleDisk:
     def set_filename(self, filename):
         self.filename = filename
 
-    def reset_data_tracking(self):
-        self.nb_writes = 0
-
     def set_sector(self, track : int, logical_sector : int, data : bytearray):
+        """ Write data to a specific secto
+        """
+
         assert len(data) == SECTOR_SIZE
         assert type(data) == bytearray
         assert 0 <= track < TRACKS_PER_DISK
@@ -109,9 +108,22 @@ class AppleDisk:
         return self._sector
 
     def set_track_sector( self, track, sector):
+        """ Reset curren track/sector position
+        """
+
         self._track, self._sector = track, sector
 
     def write_data( self, data, load_page, ident=None):
+        """ Write data in contiguous sector. Operates as a stream.
+        That is, the track/sector position will be moved from
+        sector to sector, track to track, to write all the data.
+        In this way, you can call this function to write contiguous
+        data (for example, complete file) one by one.
+
+        Return a tuple (first sector pos, first track pos, last
+        sector pos, last track pos).
+
+        """
         assert data
 
 
@@ -154,17 +166,16 @@ class AppleDisk:
 
         #print("init_track_read {},{},{},{},${:x}\t; {} bytes, {} pages".format( first_sector[0],first_sector[1],last_sector[0],last_sector[1], load_page, len(data), (len(data) + 255)//SECTOR_SIZE))
         #print(f"{sectors_written} sectors written")
-        self.nb_writes += 1
 
         return (first_sector[0],first_sector[1],
                 last_sector[0],last_sector[1],
                 load_page)
 
     def save(self):
-        assert self.filename
+        assert self.filename, "Please specify a proper filename first"
 
-        with open( self.filename,"wb") as fout:
-            fout.write( self._disk)
+        with open(self.filename, "wb") as fout:
+            fout.write(self._disk)
 
 
 
@@ -236,7 +247,6 @@ class LoaderTOC:
         # position the other file (ie not the loader) correctly
         # on the disk.
 
-        self._disk.reset_data_tracking()
         self._disk.set_track_sector( 0, 1)
 
         toc = []

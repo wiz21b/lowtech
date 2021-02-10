@@ -163,8 +163,8 @@ all_lines:
 	;; Page flipping mode
 
 all_lines:
-	INC $2080
-	INC $4080
+	;; INC $2080
+	;; INC $4080
 
 	jsr draw_to_page4
 

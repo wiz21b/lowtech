@@ -36,6 +36,8 @@ import os.path
 import platform
 import glob
 import numpy as np
+from datetime import date
+
 from PIL import Image, ImageFilter, ImageFont, ImageDraw
 from utils import *
 from bigscroll.make_logo import make_all
@@ -93,17 +95,18 @@ MESSAGE2 = ["This demo was",
             "Greetings go to",
             "",
             "   Imphobia",
-            "   Fennarinarsa FT",
+            "   Fenarinarsa FT",
             "   Grouik FT",
             "   Apple France",
             "   Peter Ferrie",
             "   Deater",
-            "   Tom Greene",
             "   Marc Golombeck",
+            "   Tom Greene",
             "   Tom Harte",
+            "   Jean Michel",
             "",
             "",
-            "Additional Credits",
+            "Additional Code",
             "",
             "   PT3 player",
             "   by Vince Weaver",
@@ -193,7 +196,11 @@ def make_credits_part():
     new_blocs = make_bitmap_font("data/Little Conquest.ttf", LITTLE_CONQUEST_ALPHABET)
     with open(f"{BUILD_DIR}/alphabet.s","w") as fout:
         generate_font_data( fout, "f1", new_blocs, LITTLE_CONQUEST_ALPHABET, nb_ROLs=4)
+        today = date.today()
+        version = f"VERSION:{today.day}.{today.month}.{today.year}"
+        fout.write(f"\n\t.byte \"{version}\"\n")
         message_to_font( fout, "", MESSAGE2, LITTLE_CONQUEST_ALPHABET)
+
 
     # https://www.istockphoto.com/be/vectoriel/iceberg-main-illustration-dessin%C3%A9e-convertie-au-vecteur-gm1038069650-277863881
     # libre de droit
@@ -521,7 +528,7 @@ for i,fn in enumerate( sorted( glob.glob(f"{BUILD_DIR}/xbin_lines[0-9]*"))):
 #       (f"{BUILD_DIR}/VSCROLL",0x60,"verti_scroll")]
 
 
-toc_disk = LoaderTOC(f"{BUILD_DIR}/NEW.DSK")
+toc_disk = LoaderTOC(f"{BUILD_DIR}/LOWTECH.DSK")
 
 
 if td_files[-1][1] == 0xD0:
@@ -683,10 +690,10 @@ if platform.system() == "Linux":
     run(f"source-highlight --src-lang asm -f html --doc -c asm-style.css  --lang-def asm.lang --output-dir={BUILD_DIR} hline.s")
 
 if args.dsk:
-    final_disk = "NEW.DSK"
+    final_disk = "LOWTECH.DSK"
 else:
-    run(f"{DSK2WOZ} {BUILD_DIR}/NEW.DSK {BUILD_DIR}/NEW.WOZ")
-    final_disk = "NEW.WOZ"
+    run(f"{DSK2WOZ} {BUILD_DIR}/LOWTECH.DSK {BUILD_DIR}/LOWTECH.WOZ")
+    final_disk = "LOWTECH.WOZ"
 
 if args.build:
     exit()
