@@ -708,6 +708,7 @@ final_disk = os.path.join(BUILD_DIR_ABSOLUTE, final_disk)
 if args.mame:
     # -resolution 1200x900
     # -sound none
+    # Change MB slot : /mnt/data2/mame0228/mame64 apple2e -volume -12 -window -switchres -speed 1 -skip_gameinfo -rp bios -sl4 "" -sl7 "mockingboard" -flop1 /home/stefan/Dropbox/demo2/build/LOWTECH.WOZ
     run(f"{MAME} apple2e -volume -12 -window -switchres -speed 1 -skip_gameinfo -rp bios -flop1 {final_disk}")
 elif args.awin:
     if platform.system() == "Linux":
