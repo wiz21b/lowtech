@@ -97,13 +97,14 @@ MESSAGE2 = ["This demo was",
             "   Imphobia",
             "   Fenarinarsa FT",
             "   Grouik FT",
-            "   Apple France",
             "   Peter Ferrie",
             "   Deater",
             "   Marc Golombeck",
             "   Tom Greene",
             "   Tom Harte",
             "   Jean Michel",
+            "   XtoF",
+            "   Apple France",
             "",
             "",
             "Additional Code",
@@ -713,4 +714,6 @@ if args.mame:
 elif args.awin:
     if platform.system() == "Linux":
         final_disk = final_disk.replace("/",r"\\")
-    run(f"{APPLEWIN} -d1 {final_disk} -conf ~/applewin.ini")
+        run(f"{APPLEWIN} -d1 {final_disk} -conf ~/applewin.ini")
+    else:
+        run(f"{APPLEWIN} -no-printscreen-dlg -d1 {final_disk} -conf c:\\applewin.ini")
