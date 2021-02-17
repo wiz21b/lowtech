@@ -86,7 +86,7 @@ LITTLE_CONQUEST_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 MESSAGE2 = ["This demo was",
             "written by Wiz of",
             "Imphobia in 2020",
-            "",
+            "and 2021",
             "",
             "Keeping the spirit",
             "alive !",
@@ -157,8 +157,7 @@ MESSAGE2 = ["This demo was",
             "",
             "",
             "",
-            "",
-            ]
+            ""]
 
 def compute_hgr_offsets(fo):
     make_lo_hi_ptr_table( fo, "hgr2_offsets", [hgr_address(y,page=0x2000,format=1) for y in range(APPLE_YRES)])
