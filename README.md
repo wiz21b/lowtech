@@ -119,9 +119,9 @@ proportional.
 
 ## Loading
 
-I had to make a fast load (based on someone else's code), that is
+I had to make a fast loader (based Peter Ferrie's code), that is
 using a bootloader which does the bare minimum.  I also use LZSA
-compression (based on someone else's code).  In the end, I made a
+compression (using Peter Ferrie's version).  In the end, I made a
 complete disk building program to make sure to position the files
 exactly where we need them in order to reduce read head movement.
 
@@ -129,7 +129,7 @@ exactly where we need them in order to reduce read head movement.
 
 Tools I used :
 
-* [Blender](https://www.blender.org/) for drawing the 3D
+* [Blender](https://www.blender.org/) for drawing and scripting the 3D sequence
 * [Godot](https://godotengine.org/) to tile the big scroll
 * [ca65](https://www.cc65.org) and [acme](https://sourceforge.net/projects/acme-crossass) for assembly
 * [python](https://www.python.org/) to precompute lots of stuff and build the demo disk
