@@ -65,7 +65,6 @@ mul1 = dummy_ptr
 mul2 = dummy_ptr+1
 dummy_ptr2	= 252
 dummy_ptr	= 254
-dummy_pointer	= 254
 
 
 	.segment "CODE"

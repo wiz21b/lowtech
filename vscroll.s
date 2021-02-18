@@ -13,7 +13,6 @@ DEBUG = 0
 ONE_PAGE = 0
 
 	text_pointer	= 240
-	dummy_pointer	= 242
 	hgr_ptr = 244
 	letter_pos = 247
 	x_pos	= 248
@@ -690,9 +689,9 @@ draw_iceberg:
 	;; X = page : $20 or $40
 
 	sta smc + 1
-	STX dummy_pointer + 1
+	STX dummy_ptr + 1
 	LDX #0
-	STX dummy_pointer
+	STX dummy_ptr
 
 	ldx #$20
 
@@ -705,11 +704,11 @@ smc:
 
 	LDY #0
 clear_block:
-	STA (dummy_pointer), Y
+	STA (dummy_ptr), Y
 	DEY
 	BNE clear_block
 
-	INC dummy_pointer + 1
+	INC dummy_ptr + 1
 	DEX
 	BNE clear_hgr_loop
 

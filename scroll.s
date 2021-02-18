@@ -1044,9 +1044,9 @@ read_any_sector:
 	.align $100 		; FIXME do nothing
 bs_precalc:
 	.include "build/bs_precalc.s"
-	.include "../build/alphabet2.s"
-	.include "../build/hgr_ofs.s"
-	.include "../lib.s"
+	.include "build/alphabet2.s"
+	.include "build/hgr_ofs.s"
+	.include "lib.s"
 	.include "block_draw.s"
 
 div3:

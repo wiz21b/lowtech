@@ -6,7 +6,6 @@
 
 
 	.include "defs.s"
-dummy_pointer = 254
 
 	;MUSIC = 1
 	RUN_CHECK_DISK = 0

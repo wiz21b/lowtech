@@ -40,7 +40,7 @@ from datetime import date
 
 from PIL import Image, ImageFilter, ImageFont, ImageDraw
 from utils import *
-from bigscroll.make_logo import make_all
+from make_logo import make_all
 from divtest import test_div_tables
 
 if platform.system() == "Windows":
@@ -426,7 +426,7 @@ print("Builing demo")
 
 
 
-make_all( BUILD_DIR, "bigscroll/data")
+make_all( BUILD_DIR, DATA_DIR)
 
 
 
@@ -557,7 +557,7 @@ toc_disk.add_files([(f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
 toc_disk.generate_unconfigured_toc(f"{BUILD_DIR}")
 
 
-run(f"{CA65} -o {BUILD_DIR}/loader.o -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
+run(f"{CA65} -I src_ext -o {BUILD_DIR}/loader.o -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
 run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_loader.out")
 
 
@@ -620,7 +620,7 @@ def crunch_for_ram_load(path, toc_disk, toc_name, code_start=0x6000):
 
 crunch_for_ram_load(f"{BUILD_DIR}/VSCROLL", toc_disk, "verti_scroll")
 
-run(f"{CA65} -I . -o {BUILD_DIR}/big_scroll.o --listing {BUILD_DIR}/bscroll.txt -t apple2 {additional_options} bigscroll/scroll.s")
+run(f"{CA65} -I . -o {BUILD_DIR}/big_scroll.o --listing {BUILD_DIR}/bscroll.txt -t apple2 {additional_options} scroll.s")
 run(f"{LD65} -o {BUILD_DIR}/BSCROLL {BUILD_DIR}/big_scroll.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_bscroll.out")
 
 
@@ -662,14 +662,14 @@ with open(f"{BUILD_DIR}/fstbt_pages.s","w") as fout:
 # Now we know the loader size, we can build the
 # fastboot sector correctly.
 
-run(f"{ACME} -DPAYLOAD_ADDR=${payload_page:02X}00 -DPAYLOAD_NB_PAGES={loader_pages} -DJUMP_ADDRESS=${loader_page_base:02X}00 -o {BUILD_DIR}/fstbt.o fstbt.s")
+run(f"{ACME} -DPAYLOAD_ADDR=${payload_page:02X}00 -DPAYLOAD_NB_PAGES={loader_pages} -DJUMP_ADDRESS=${loader_page_base:02X}00 -o {BUILD_DIR}/fstbt.o src_ext/fstbt.s")
 
 toc_disk.set_boot_sector(f"{BUILD_DIR}/fstbt.o")
 
 toc_disk.generate_disk(f"{BUILD_DIR}")
 
 # Now we have the correct TOC, we rebuild the loader with it.
-run(f"{CA65} -o {BUILD_DIR}/loader.o  -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader_final.txt {additional_options} loader.s")
+run(f"{CA65} -I src_ext -o {BUILD_DIR}/loader.o  -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader_final.txt {additional_options} loader.s")
 run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_loader_final.out")
 
 toc_disk.update_file( f"{BUILD_DIR}/LOADER", loader_page_base, "loader")

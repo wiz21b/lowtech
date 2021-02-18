@@ -20,6 +20,8 @@
 
 	;; FIXME Reuse the on efrom the PT3 player
 
+dummy_pointer	= 254
+
 .macro store_8 target, const
 	lda #(const)
 	sta target
