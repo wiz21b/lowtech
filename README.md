@@ -1,7 +1,10 @@
-# Lowtech's dev notes
+# Lowtech demo
 
-Below are some explanations of how Lowtech works. It might
-be interesting for the curious reader.
+Lowtech demo is a demo written for the Apple 2+/e written
+by Wiz of Imphobia during 2020 and 2021. Just download
+the WOZ file and run it in your favourite emulator
+(right now, Mame and AppleWin will read it and emulate it
+correctly).
 
 I take the opportunity to thank all people who gave me
 time and information when I was asking questions as well
@@ -11,7 +14,12 @@ make that demo (which, for all practical situation, means
 no demo at all).
 
 
-# The scroller
+# Dev notes
+
+Below are some explanations of how Lowtech works. It might
+be interesting for the curious reader.
+
+## The scroller
 
 The big scroll at the beginning of the demo is just an application of
 delta drawing : I just draw and erase the part of the images that need
@@ -28,7 +36,7 @@ by the same set of other tiles. So you could maybe draw several
 tiles at once, reducing the number of index lookups in the tile table
 as well a JSR/RTS needed to call the tile drawing code.
 
-# The disk I/O routine
+## The disk I/O routine
 
 The disk I/O routine is probably the part I'm most proud of because
 without it that demo would not have been possible, especially the 3D part.
@@ -47,7 +55,7 @@ waiting for the sector to come below the read head.
 Thanks to that disk I/O routine, I can load data while playing music
 and doing demo effects.
 
-# The 3D
+## The 3D
 
 The 3D part is built upon something that has nothing to do with 3D,
 that is a disk I/O routine, see above.
@@ -91,14 +99,14 @@ biggest problem is to draw the first/last tile of line because they
 are never drawn in full; that's quite like clipping and leads to
 tedioous computations (which still have bugs...)
 
-# Vertical scroll
+## Vertical scroll
 
 Nothing fancy except that I have to do double buffering and handling a
 scroll like that is a bit complicated.  The memcopy routine is quite
 optimized. I also had fun making sure the letter positionning is
 proportional.
 
-# Loading
+## Loading
 
 I had to make a fast load (based on someone else's code), that is
 using a bootloader which does the bare minimum.  I also use LZ4
@@ -106,7 +114,7 @@ compression (based on someone else's code).  In the end, I made a
 complete disk building program to make sure to position the files
 exactly where we need them in order to reduce read head movement.
 
-# Technical notes
+## Technical notes
 
 Tools I used :
 
