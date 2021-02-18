@@ -110,7 +110,7 @@ exactly where we need them in order to reduce read head movement.
 
 I used :
 
-* Blender for drawing the 3D
+* [Blender](https://www.blender.org/) for drawing the 3D
 * Godot to tile the big scroll
 * ca65 and acme for assembly
 * python to precompute lots of stuff and build the demo disk
