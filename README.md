@@ -42,18 +42,21 @@ The disk I/O routine is probably the part I'm most proud of because
 without it that demo would not have been possible, especially the 3D part.
 
 That routine allows the floppy disk to be
-read while music is playing.  So the whole magic is to interleave
+read while music is playing.
+So the whole magic is to interleave
 music and disk I/O in a seamless way. That's very tricky to achieve
 and to this day I'm still not sure it is 100% optimized. As you may
 know, reading disk on the Apple ][ requires the CPU fulltime (because
 it reads nibble by nibble, so while you read, you can't draw, you
-can't play music, you certainly can't be interrupted by IRQ).  So the
+can't play music, you certainly can't be interrupted by an IRQ).  So the
 whole point is to make sure we start the reading when a sector is
 available and not too much before, else the CPU will spend time
 waiting for the sector to come below the read head.
 
 Thanks to that disk I/O routine, I can load data while playing music
 and doing demo effects.
+
+The sectors are read with a copy of RWTS code (thanks Apple :-)).
 
 ## The 3D
 
@@ -109,7 +112,7 @@ proportional.
 ## Loading
 
 I had to make a fast load (based on someone else's code), that is
-using a bootloader which does the bare minimum.  I also use LZ4
+using a bootloader which does the bare minimum.  I also use LZSA
 compression (based on someone else's code).  In the end, I made a
 complete disk building program to make sure to position the files
 exactly where we need them in order to reduce read head movement.
@@ -125,7 +128,10 @@ Tools I used :
 * [julia](https://julialang.org/) to precompute and optimize 3D
 * [Rgb2Hires](https://github.com/Pixinn/Rgb2Hires) to quickly get pictures to Apple format
 * [dsk2woz](https://github.com/TomHarte/dsk2woz) to make *.woz disk images (slightly modified to introduce irregular timings)
+* [LZSA](https://github.com/emmanuel-marty/lzsa) to crunch data
+* [PT3 player](http://www.deater.net/weave/vmwprod/pt3_player/) to play music
 * [grafx2](https://gitlab.com/GrafX2/grafX2) to pixel edit drawings
+* [VortexTracker](https://bulba.untergrund.net/vortex_e.htm) to make music (yes I did my own music, for the worse :-) I promise I've tried to get a real musician onboard but nobody answered my mails)
 * [AppleWin](https://github.com/audetto/AppleWin), [AIPC](https://github.com/sosaria7/appleinpc), [Mame](https://www.mamedev.org/) emulators
 * [wine](https://www.winehq.org/) to run AppleWin on Linux
 * [emacs](https://www.gnu.org/software/emacs/) and [Debian](https://www.debian.org/) as my work environment
