@@ -1,31 +1,31 @@
 # Lowtech demo
 
-Lowtech demo is a demo written for the Apple 2+/e written
-by Wiz of Imphobia during 2020 and 2021. Just download
-the WOZ file and run it in your favourite emulator
-(right now, Mame and AppleWin will read it and emulate it
+Lowtech demo is a demo written for the Apple 2+/e by
+[Wiz](https://demozoo.org/sceners/16323/) of
+[Imphobia](https://demozoo.org/groups/11375/) during 2020
+and 2021. Just download the WOZ file and run it in your favourite
+emulator (right now, Mame and AppleWin will read it and emulate it
 correctly).
 
-I take the opportunity to thank all people who gave me
-time and information when I was asking questions as well
-as all of those who gave away the tools they wrote.
-Without that generosity I would have taken years to
-make that demo (which, for all practical situation, means
-no demo at all).
+I take the opportunity to thank all people who gave me time and
+information when I was asking questions as well as all of those who
+gave away the tools they wrote.  Without that generosity I would have
+taken years to make that demo (which, for all practical situations,
+means no demo at all).
 
 
 # Running the demo on real hardware
 
-You'll need a real floppy disk (memcard, emulators, etc.
-don't have proper timings), a MockingBoard (or compatible)
-64KB of memory. You can just prepare a regular floppy
-with the disk image, there's no fancy sector format.
-
+You'll need a real floppy disk (memcard, emulators, etc.  don't have
+proper timings), a MockingBoard (or compatible) and 64KB of
+memory. You can just prepare a regular floppy with the released DSK
+image, there's no fancy sector format.  An Apple 2e seems the best fit
+(that's where the demo was tested anyway, twice).
 
 # Dev notes
 
-Below are some explanations of how Lowtech works. It might
-be interesting for the curious reader.
+Below are some explanations of how Lowtech works. It might be
+interesting for the curious reader.
 
 ## The scroller
 
@@ -47,19 +47,19 @@ as well a JSR/RTS needed to call the tile drawing code.
 ## The disk I/O routine
 
 The disk I/O routine is probably the part I'm most proud of because
-without it that demo would not have been possible, especially the 3D part.
+without it that demo would not have been possible, especially the 3D
+part.
 
-That routine allows the floppy disk to be
-read while music is playing.
-So the whole magic is to interleave
-music and disk I/O in a seamless way. That's very tricky to achieve
-and to this day I'm still not sure it is 100% optimized. As you may
-know, reading disk on the Apple ][ requires the CPU fulltime (because
-it reads nibble by nibble, so while you read, you can't draw, you
-can't play music, you certainly can't be interrupted by an IRQ).  So the
-whole point is to make sure we start the reading when a sector is
-available and not too much before, else the CPU will spend time
-waiting for the sector to come below the read head.
+That routine allows the floppy disk to be read while music is playing.
+So the whole magic is to interleave music and disk I/O in a seamless
+way. That's very tricky to achieve and to this day I'm still not sure
+it is 100% optimized. As you may know, reading disk on the Apple ][
+requires the CPU fulltime (because it reads nibble by nibble, so while
+you read, you can't draw, you can't play music, you certainly can't be
+interrupted by an IRQ).  So the whole point is to make sure we start
+the reading when a sector is available and not too much before, else
+the CPU will spend time waiting for the sector to come below the read
+head.
 
 Thanks to that disk I/O routine, I can load data while playing music
 and doing demo effects.
@@ -82,12 +82,11 @@ The first piece of code that is needed is something to import data
 from Blender. I import the meshes as well as the camera
 transformations. A bit of algebra is needed here :-)
 
-Then computing hidden face removal on
-simple vector graphics is not easy. Using z-buffer is riddled with
-numerical issues so I actually compute the exact intersections between
-each edges. So I basically check for intersection between edges and
-triangles. This is n² but given that I have not many edges/faces
-its bearable.
+Then computing hidden face removal on simple vector graphics is not
+easy. Using z-buffer is riddled with numerical issues so I actually
+compute the exact intersections between each edges. So I basically
+check for intersection between edges and triangles. This is n² but
+given that I have not many edges/faces its bearable.
 
 Once that is done I have a collection of edges. To reduce the number
 of vertices to a minimum, I have to order the edges. For example, if
@@ -119,11 +118,11 @@ proportional.
 
 ## Loading
 
-I had to make a fast loader (based Peter Ferrie's code), that is
-using a bootloader which does the bare minimum.  I also use LZSA
-compression (using Peter Ferrie's version).  In the end, I made a
-complete disk building program to make sure to position the files
-exactly where we need them in order to reduce read head movement.
+I had to make a fast loader (based Peter Ferrie's code), that is using
+a bootloader which does the bare minimum.  I also use LZSA compression
+(using Peter Ferrie's version).  In the end, I made a complete disk
+building program to make sure to position the files exactly where we
+need them in order to reduce read head movement.
 
 ## Technical notes
 
@@ -147,12 +146,13 @@ Tools I used :
 ## Building the demo
 
 First, make sure to prepare the 3D data by installing and running the
-Blender plugin `ExportAnimationAsSTLs.py`.  Then make sure to
-have a compiled version of `src_ext/dsk2woz.c`
+Blender plugin `ExportAnimationAsSTLs.py`.  Then make sure to have a
+compiled version of `src_ext/dsk2woz.c`
 
-Then all build is done via
-the `build.py`tool. Make sure it has access to all other tools it
-needs (check the code to update the paths to those tools if needed).
+Then all build is done via the `build.py`tool. Make sure it has access
+to all other tools it needs (check the code to update the paths to
+those tools if needed).
+
 ```Bash
 julia threed_crunch.jl   # This takes long (about a minute)
 python --precalc --music --awin   # This will run the emulator too
