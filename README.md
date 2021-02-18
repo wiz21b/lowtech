@@ -14,6 +14,14 @@ make that demo (which, for all practical situation, means
 no demo at all).
 
 
+# Running the demo on real hardware
+
+You'll need a real floppy disk (memcard, emulators, etc.
+don't have proper timings), a MockingBoard (or compatible)
+64KB of memory. You can just prepare a regular floppy
+with the disk image, there's no fancy sector format.
+
+
 # Dev notes
 
 Below are some explanations of how Lowtech works. It might
@@ -145,7 +153,7 @@ have a compiled version of `src_ext/dsk2woz.c`
 Then all build is done via
 the `build.py`tool. Make sure it has access to all other tools it
 needs (check the code to update the paths to those tools if needed).
-```
+```Bash
 julia threed_crunch.jl   # This takes long (about a minute)
 python --precalc --music --awin   # This will run the emulator too
 ```
