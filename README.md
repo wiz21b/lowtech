@@ -3,6 +3,14 @@
 Below are some explanations of how Lowtech works. It might
 be interesting for the curious reader.
 
+I take the opportunity to thank all people who gave me
+time and information when I was asking questions as well
+as all of those who gave away the tools they wrote.
+Without that generosity I would have taken years to
+make that demo (which, for all practical situation, means
+no demo at all).
+
+
 # The scroller
 
 The big scroll at the beginning of the demo is just an application of
@@ -97,3 +105,18 @@ using a bootloader which does the bare minimum.  I also use LZ4
 compression (based on someone else's code).  In the end, I made a
 complete disk building program to make sure to position the files
 exactly where we need them in order to reduce read head movement.
+
+# Technical notes
+
+I used :
+
+* Blender for drawing the 3D
+* Godot to tile the big scroll
+* ca65 and acme for assembly
+* python to precompute lots of stuff and build the demo disk
+* julia to precompute and optimize 3D
+* Rgb2Hgr to quickly get pictures to Apple format
+* grafx2 to pixel edit drawings
+* AppleWin, AIPC, Mame emulators
+* wine to run AppleWin on Linux
+* emacs and Debian as my work environment
