@@ -108,15 +108,15 @@ exactly where we need them in order to reduce read head movement.
 
 # Technical notes
 
-I used :
+Tools I used :
 
 * [Blender](https://www.blender.org/) for drawing the 3D
-* Godot to tile the big scroll
-* ca65 and acme for assembly
-* python to precompute lots of stuff and build the demo disk
-* julia to precompute and optimize 3D
-* Rgb2Hgr to quickly get pictures to Apple format
-* grafx2 to pixel edit drawings
-* AppleWin, AIPC, Mame emulators
-* wine to run AppleWin on Linux
-* emacs and Debian as my work environment
+* [Godot](https://godotengine.org/) to tile the big scroll
+* [ca65](https://www.cc65.org) and [acme](https://sourceforge.net/projects/acme-crossass) for assembly
+* [python](https://www.python.org/) to precompute lots of stuff and build the demo disk
+* [julia](https://julialang.org/) to precompute and optimize 3D
+* [Rgb2Hires](https://github.com/Pixinn/Rgb2Hires) to quickly get pictures to Apple format
+* [grafx2](https://gitlab.com/GrafX2/grafX2) to pixel edit drawings
+* [AppleWin](https://github.com/audetto/AppleWin), [AIPC](https://github.com/sosaria7/appleinpc), [Mame](https://www.mamedev.org/) emulators
+* [wine](https://www.winehq.org/) to run AppleWin on Linux
+* [emacs](https://www.gnu.org/software/emacs/) and [Debian](https://www.debian.org/) as my work environment
