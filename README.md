@@ -124,6 +124,7 @@ Tools I used :
 * [python](https://www.python.org/) to precompute lots of stuff and build the demo disk
 * [julia](https://julialang.org/) to precompute and optimize 3D
 * [Rgb2Hires](https://github.com/Pixinn/Rgb2Hires) to quickly get pictures to Apple format
+* [dsk2woz](https://github.com/TomHarte/dsk2woz) to make *.woz disk images (slightly modified to introduce irregular timings)
 * [grafx2](https://gitlab.com/GrafX2/grafX2) to pixel edit drawings
 * [AppleWin](https://github.com/audetto/AppleWin), [AIPC](https://github.com/sosaria7/appleinpc), [Mame](https://www.mamedev.org/) emulators
 * [wine](https://www.winehq.org/) to run AppleWin on Linux
