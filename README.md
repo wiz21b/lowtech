@@ -135,3 +135,17 @@ Tools I used :
 * [AppleWin](https://github.com/audetto/AppleWin), [AIPC](https://github.com/sosaria7/appleinpc), [Mame](https://www.mamedev.org/) emulators
 * [wine](https://www.winehq.org/) to run AppleWin on Linux
 * [emacs](https://www.gnu.org/software/emacs/) and [Debian](https://www.debian.org/) as my work environment
+
+## Building the demo
+
+First, make sure to prepare the 3D data by installing and running the
+Blender plugin `ExportAnimationAsSTLs.py`.  Then make sure to
+have a compiled version of `src_ext/dsk2woz.c`
+
+Then all build is done via
+the `build.py`tool. Make sure it has access to all other tools it
+needs (check the code to update the paths to those tools if needed).
+```
+julia threed_crunch.jl   # This takes long (about a minute)
+python --precalc --music --awin   # This will run the emulator too
+```
