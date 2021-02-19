@@ -159,5 +159,6 @@ those tools if needed).
 
 ```Bash
 julia threed_crunch.jl   # This takes long (about a minute)
+python disk.py   # Prepare disk I/O sync table
 python --precalc --music --awin   # This will run the emulator too
 ```
