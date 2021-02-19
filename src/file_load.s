@@ -61,10 +61,10 @@ first_track_iteration:	.byte 0
 
 choregraphy:
 choregraphy_fast:
-	.include "build/choregraphy_fast.inc"
+	.include "choregraphy_fast.inc"
 	.byte LOOP_STATES
 choregraphy_slow:
-	.include "build/choregraphy_slow.inc"
+	.include "choregraphy_slow.inc"
 	.byte LOOP_STATES
 
 ;; STAND_BY_STATE_NDX = * - read_sector_states

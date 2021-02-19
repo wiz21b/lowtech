@@ -263,8 +263,8 @@ txt_ofs:
 	; interrupt_handler.s
 	;.byte "---FILE_LOAD"
 disk_toc:
-	.include "build/toc_equs.inc"
-	.include "build/toc_data.inc"
+	.include "toc_equs.inc"
+	.include "toc_data.inc"
 	.include "file_load.s"
 
 	;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

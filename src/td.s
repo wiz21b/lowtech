@@ -20,8 +20,8 @@
 
 
 	.include "defs.s"
-	.include "build/xbin_lines_const.s"
-	.include "build/toc_equs.inc"
+	.include "xbin_lines_const.s"
+	.include "toc_equs.inc"
 
 	END_OF_TRACK = $FE
 	END_OF_MOVIE = $FF
@@ -845,7 +845,7 @@ clear_hgr_line_loop:
 
 
 	;; DATA ////////////////////////////////////////////////////
-	.include "build/precalc.s"
+	.include "precalc.s"
 	.proc read_any_sector
 	RTS
 	.endproc
@@ -860,11 +860,11 @@ div7:
 	.byte I / 7		; integer division, no rounding
 	.endrep
 
-	.include "build/htiles.s"
-	.include "build/tiles.s"
-	.include "build/tiles_lr.s"
+	.include "htiles.s"
+	.include "tiles.s"
+	.include "tiles_lr.s"
 one_over_x:
-	.include "build/divtbl.s"
+	.include "divtbl.s"
 
 	;; /////////////////////////////////////////////////////////
 	;; D000 SEGMENT

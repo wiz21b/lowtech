@@ -591,14 +591,14 @@ letter_tables:
 
 
 vscroll_move:
-	.include "build/vscroll1.s"
+	.include "vscroll1.s"
 vscroll_move_p2:
-	.include "build/vscroll2.s"
+	.include "vscroll2.s"
 
 	.align $100
 picture_data:
-	.include "build/alphabet.s"
-	.include "build/hgr_ofs.s"
+	.include "alphabet.s"
+	.include "hgr_ofs.s"
 
 div3:
 	;;  Converts color X (so from 0 to 270/2, beacuse a color
@@ -658,7 +658,7 @@ LVBL2:
 	;; .endrepeat
 
 	.include "block_draw.s"
-	.include "build/toc_equs.inc"
+	.include "toc_equs.inc"
 
 draw_iceberg:
 	LDA #20

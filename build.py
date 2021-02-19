@@ -557,7 +557,7 @@ toc_disk.add_files([(f"{BUILD_DIR}/LOADER", 0x0A, "loader"),
 toc_disk.generate_unconfigured_toc(f"{BUILD_DIR}")
 
 
-run(f"{CA65} -I src_ext -o {BUILD_DIR}/loader.o -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} loader.s")
+run(f"{CA65} -I build -I src_ext  -o {BUILD_DIR}/loader.o -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader.txt {additional_options} src/loader.s")
 run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_loader.out")
 
 
@@ -596,7 +596,7 @@ gen_code_vertical_scroll()
 cut_cursor_animation()
 make_credits_part()
 
-run(f"{CA65} -o {BUILD_DIR}/vscroll.o -t apple2 --listing {BUILD_DIR}/vscroll.txt {additional_options} vscroll.s")
+run(f"{CA65} -I build -o {BUILD_DIR}/vscroll.o -t apple2 --listing {BUILD_DIR}/vscroll.txt {additional_options} src/vscroll.s")
 run(f"{LD65} -o {BUILD_DIR}/VSCROLL {BUILD_DIR}/vscroll.o -C link.cfg --mapfile {BUILD_DIR}/map.out")
 
 
@@ -620,11 +620,11 @@ def crunch_for_ram_load(path, toc_disk, toc_name, code_start=0x6000):
 
 crunch_for_ram_load(f"{BUILD_DIR}/VSCROLL", toc_disk, "verti_scroll")
 
-run(f"{CA65} -I . -o {BUILD_DIR}/big_scroll.o --listing {BUILD_DIR}/bscroll.txt -t apple2 {additional_options} scroll.s")
+run(f"{CA65} -I . -o {BUILD_DIR}/big_scroll.o --listing {BUILD_DIR}/bscroll.txt -t apple2 {additional_options} src/scroll.s")
 run(f"{LD65} -o {BUILD_DIR}/BSCROLL {BUILD_DIR}/big_scroll.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_bscroll.out")
 
 
-run(f"{CA65} -o {BUILD_DIR}/td.o -t apple2 --listing {BUILD_DIR}/td.txt {additional_options} td.s")
+run(f"{CA65} -I build -o {BUILD_DIR}/td.o -t apple2 --listing {BUILD_DIR}/td.txt {additional_options} src/td.s")
 run(f"{LD65} -o {BUILD_DIR}/THREED {BUILD_DIR}/td.o {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/td_map.out")
 shutil.copyfile(f"{BUILD_DIR}/datad000.o",f"{BUILD_DIR}/threed_data")
 
@@ -669,7 +669,7 @@ toc_disk.set_boot_sector(f"{BUILD_DIR}/fstbt.o")
 toc_disk.generate_disk(f"{BUILD_DIR}")
 
 # Now we have the correct TOC, we rebuild the loader with it.
-run(f"{CA65} -I src_ext -o {BUILD_DIR}/loader.o  -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader_final.txt {additional_options} loader.s")
+run(f"{CA65} -I build -I src_ext -o {BUILD_DIR}/loader.o  -DPT3_LOC=${TUNE_ADDRESS:X} -t apple2 --listing {BUILD_DIR}/loader_final.txt {additional_options} src/loader.s")
 run(f"{LD65} -o {BUILD_DIR}/LOADER {BUILD_DIR}/loader.o -C link.cfg --mapfile {BUILD_DIR}/map_loader_final.out")
 
 toc_disk.update_file( f"{BUILD_DIR}/LOADER", loader_page_base, "loader")
@@ -686,8 +686,8 @@ if platform.system() == "Linux":
     # Generate listing (you can print in firefox, 2 pages side by side)
 
     shutil.copyfile("asm-style.css",f"{BUILD_DIR}/asm-style.css")
-    run(f"source-highlight --src-lang asm -f html --doc -c asm-style.css  --lang-def asm.lang --output-dir={BUILD_DIR} vline.s")
-    run(f"source-highlight --src-lang asm -f html --doc -c asm-style.css  --lang-def asm.lang --output-dir={BUILD_DIR} hline.s")
+    run(f"source-highlight --src-lang asm -f html --doc -c asm-style.css  --lang-def asm.lang --output-dir={BUILD_DIR} src/vline.s")
+    run(f"source-highlight --src-lang asm -f html --doc -c asm-style.css  --lang-def asm.lang --output-dir={BUILD_DIR} src/hline.s")
 
 if args.dsk:
     final_disk = "LOWTECH.DSK"
