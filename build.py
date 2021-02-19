@@ -425,7 +425,6 @@ print("Builing demo")
 # memory_map()
 
 
-
 make_all( BUILD_DIR, DATA_DIR)
 
 
@@ -502,7 +501,8 @@ for i,fn in enumerate( sorted( glob.glob(f"{BUILD_DIR}/xbin_lines[0-9]*"))):
 
     td_files.append( (fn, page, f"data_3d_{i}") )
 
-
+if not td_files:
+    raise Exception("Didn't find 3D files, did you run the Julia code ?")
 
 
 
