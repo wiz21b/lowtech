@@ -1,5 +1,12 @@
 # Lowtech demo
 
+
+<p align="center">
+  <img src="data/Screenshot_20210219_135012.png" width="350" title="Screenshot of the demo - A scrolling text">
+  <img src="data/Screenshot_20210219_135212.png" width="350" title="Screenshot of the demo - An XWing in 3D">
+</p>
+
+
 Lowtech demo is a demo written for the Apple ]\[+/e by
 [Wiz](https://demozoo.org/sceners/16323/) of
 [Imphobia](https://demozoo.org/groups/11375/) during 2020
@@ -128,7 +135,7 @@ a bootloader which does the bare minimum.  I also use LZSA compression
 building program to make sure to position the files exactly where we
 need them in order to reduce read head movement.
 
-## Technical notes
+## Tools used to create the demo
 
 Tools I used :
 
@@ -159,6 +166,6 @@ those tools if needed).
 
 ```Bash
 julia threed_crunch.jl   # This takes long (about a minute)
-python disk.py   # Prepare disk I/O sync table
+python disk.py   # Prepare disk I/O sync table (choregraphy files)
 python --precalc --music --awin   # This will run the emulator too
 ```
