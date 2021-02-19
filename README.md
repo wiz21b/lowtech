@@ -1,9 +1,9 @@
 # Lowtech demo
 
-Lowtech demo is a demo written for the Apple 2+/e by
+Lowtech demo is a demo written for the Apple ]\[+/e by
 [Wiz](https://demozoo.org/sceners/16323/) of
 [Imphobia](https://demozoo.org/groups/11375/) during 2020
-and 2021. Just download the WOZ file and run it in your favourite
+and 2021. Just download the WOZ file (see releases) and run it in your favourite
 emulator (right now, Mame and AppleWin will read it and emulate it
 correctly).
 
