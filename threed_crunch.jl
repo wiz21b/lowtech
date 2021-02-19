@@ -13,7 +13,7 @@ import Base.unsafe_convert
 #=
 =#
 
-include("inter.jl")
+include("intervals.jl")
 
 const X_RES = 256 # 1066 # 256 # 1066
 const Y_RES = 192 # 600 # 192 # 600
