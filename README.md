@@ -53,7 +53,7 @@ part.
 That routine allows the floppy disk to be read while music is playing.
 So the whole magic is to interleave music and disk I/O in a seamless
 way. That's very tricky to achieve and to this day I'm still not sure
-it is 100% optimized. As you may know, reading disk on the Apple ][
+it is 100% optimized. As you may know, reading disk on the Apple ]\[
 requires the CPU fulltime (because it reads nibble by nibble, so while
 you read, you can't draw, you can't play music, you certainly can't be
 interrupted by an IRQ).  So the whole point is to make sure we start
@@ -91,16 +91,20 @@ given that I have not many edges/faces its bearable.
 Once that is done I have a collection of edges. To reduce the number
 of vertices to a minimum, I have to order the edges. For example, if
 you have egde AB,CB,CD you can store : ABCD (avoiding to store B and C
-twice). When you have 40 edges that problem becomes complicated as it
+twice). When you have 40 edges that problem becomes tricky as it
 is akin to a travelling salesman problem which is NP complete. Even
-with a few dozens of edge that problem is not practical in Python.  A
-rewrite in a faster language was needed, I choose Julia.  Then I used
+with a few dozens of edges that problem is not practical in Python.  A
+rewrite in a faster language was needed, I chose Julia.  Then I used
 mostly brute force + some heuristics to find a close to optimal set of
-paths covering all edges.
+paths covering all edges (those of you who know about graph theory will
+be at home here). Note that I have also tried a solution based on a
+SAT-solver but it wasn't fast at all (which is expected as the SAT-solver,
+although very smart, has no specific heuristics for graph stuff, I guess;
+but SAT solvers are so cool I couldn't resist :-) )
 
 Finally, once all the edges are stored, I just have to draw them. This
 implies a division which is quite common and efficient. Then we
-proceed to actual drawing. This is special on the Apple ][. I
+proceed to actual drawing. This is special on the Apple ]\[. I
 basically cut each line in 7x7 tiles and the line is drawn one tile at
 a time. The key insight here is that you don't need many tiles
 (precomputed, in memory) to draw all possible lines.  Finally, lots of
