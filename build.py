@@ -58,10 +58,11 @@ elif platform.system() == "Linux":
     LD65 = r"ld65"
     ACMDER = r"java -jar ../bad_apple/AppleCommander-1.3.5.13-ac.jar"
     ACME = r"acme"
-    APPLEWIN = r"/opt/wine-staging/bin/wine /home/stefan/AppleWin1.29.16.0/Applewin.exe"
+    APPLEWIN = r"/opt/wine-staging/bin/wine64 /home/stefan/AppleWin1.29.16.0/Applewin.exe"
     MAME = "/mnt/data2/mame0228/mame64"
     LZSA = "lzsa/lzsa"
     DSK2WOZ = "./dsk2woz"
+    CLKSIGNAL = "/mnt/data2/CLK-2021-02-02/OSBindings/SDL/clksignal"
 else:
     raise Exception("Unsupported system : {}".format(platform.system()))
 
@@ -82,7 +83,7 @@ MESSAGE = ["IN 2020, 50M TONS",
            "HAIL THE AGE OF..."]
 
 
-LITTLE_CONQUEST_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789,.!"
+LITTLE_CONQUEST_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789,.!/:"
 MESSAGE2 = ["This demo was",
             "written by Wiz of",
             "Imphobia in 2020",
@@ -147,8 +148,10 @@ MESSAGE2 = ["This demo was",
             "distributed under",
             "the GPLv3 license.",
             "",
-            "schampailler at ",
-            "   skynet.be",
+            "https://github.com",
+            " /wiz21b/lowtech",
+            # "schampailler at ",
+            # "   skynet.be",
             "",
             "",
             "",

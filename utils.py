@@ -2052,6 +2052,10 @@ def generate_font_data( fout, prefix, new_blocs, alphabet, nb_ROLs=4):
                 letter = "DOT"
             elif letter == ",":
                 letter = "COMA"
+            elif letter == "/":
+                letter = "SLASH"
+            elif letter == ":":
+                letter = "COLON"
             elif letter == "!":
                 letter = "EXCLAM"
 
