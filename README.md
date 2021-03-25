@@ -92,8 +92,9 @@ transformations. A bit of algebra is needed here :-)
 Then computing hidden face removal on simple vector graphics is not
 easy. Using z-buffer is riddled with numerical issues so I actually
 compute the exact intersections between each edges. So I basically
-check for intersection between edges and triangles. This is n² but
-given that I have not many edges/faces its bearable.
+check for intersection between edges and triangles. This is o(n²) but
+given that I have not many edges/faces its bearable provided you don't
+let Python do it (I've used Julia here).
 
 Once that is done I have a collection of edges. To reduce the number
 of vertices to a minimum, I have to order the edges. For example, if
@@ -101,7 +102,7 @@ you have egde AB,CB,CD you can store : ABCD (avoiding to store B and C
 twice). When you have 40 edges that problem becomes tricky as it
 is akin to a travelling salesman problem which is NP complete. Even
 with a few dozens of edges that problem is not practical in Python.  A
-rewrite in a faster language was needed, I chose Julia.  Then I used
+rewrite in a faster language was needed, I chose Julia again.  Then I used
 mostly brute force + some heuristics to find a close to optimal set of
 paths covering all edges (those of you who know about graph theory will
 be at home here). Note that I have also tried a solution based on a
@@ -110,7 +111,7 @@ although very smart, has no specific heuristics for graph stuff, I guess;
 but SAT solvers are so cool I couldn't resist :-) )
 
 Finally, once all the edges are stored, I just have to draw them. This
-implies a division which is quite common and efficient. Then we
+implies a division which is done with a smart table look up. Then we
 proceed to actual drawing. This is special on the Apple ]\[. I
 basically cut each line in 7x7 tiles and the line is drawn one tile at
 a time. The key insight here is that you don't need many tiles
@@ -118,7 +119,7 @@ a time. The key insight here is that you don't need many tiles
 tricks are used to make sure the code goes as fast as possible. The
 biggest problem is to draw the first/last tile of line because they
 are never drawn in full; that's quite like clipping and leads to
-tedioous computations (which still have bugs...)
+tedious computations (which still have bugs...)
 
 ## Vertical scroll
 
@@ -150,7 +151,7 @@ Tools I used :
 * [PT3 player](http://www.deater.net/weave/vmwprod/pt3_player/) to play music
 * [grafx2](https://gitlab.com/GrafX2/grafX2) to pixel edit drawings
 * [VortexTracker](https://bulba.untergrund.net/vortex_e.htm) to make music (yes I did my own music, for the worse :-) I promise I've tried to get a real musician onboard but nobody answered my mails)
-* [AppleWin](https://github.com/audetto/AppleWin), [AIPC](https://github.com/sosaria7/appleinpc), [Mame](https://www.mamedev.org/) emulators
+* [AppleWin](https://github.com/audetto/AppleWin), [AIPC](https://github.com/sosaria7/appleinpc), [Mame](https://www.mamedev.org/), [Shamus Apple2 emulator](http://shamusworld.gotdns.org/apple2/) emulators
 * [wine](https://www.winehq.org/) to run AppleWin on Linux
 * [emacs](https://www.gnu.org/software/emacs/) and [Debian](https://www.debian.org/) as my work environment
 
