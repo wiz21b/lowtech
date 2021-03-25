@@ -154,6 +154,28 @@ Tools I used :
 * [wine](https://www.winehq.org/) to run AppleWin on Linux
 * [emacs](https://www.gnu.org/software/emacs/) and [Debian](https://www.debian.org/) as my work environment
 
+## Recording the video
+
+Recording the video was not easy as the support for that in emulator
+is rather missing. The only emulator that does it is Mame but the
+recording doesn't have the NTSC display simulation in it.
+
+So what I did is this. First I took a copy of Shamus'
+[Apple2 emulator](http://shamusworld.gotdns.org/apple2/).
+Its source code is easy to work with and it's accurate enough for my
+needs. I have hacked it so that it can record the HGR memory of
+each frame (8Kb per frame, not much). Once I had the frames,
+I have converted to png with NTSC artefacts using [hgr2rgb](https://github.com/Michaelangel007/hgr2rgbntsc).
+Then I put back all the frames together in a video.
+Now, Shamus's emulator doesn't play sound. So I recorded
+sound with Mame and the remixed it in my video. Cool.
+Bad news is that Mame's 1/60th of a second is not quite like
+Shamus' 1/60th of a second. So I had to do a bit of synchronisation.
+Awful. All of that is done in `shamus.sh` shell script.
+
+
+
+
 ## Building the demo
 
 First, make sure to prepare the 3D data by installing and running the
