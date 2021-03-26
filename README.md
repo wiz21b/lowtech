@@ -1,18 +1,18 @@
 # Lowtech demo
 
-
-<p align="center">
-  <img src="data/Screenshot_20210219_135012.png" width="350" title="Screenshot of the demo - A scrolling text">
-  <img src="data/Screenshot_20210219_135212.png" width="350" title="Screenshot of the demo - An XWing in 3D">
-</p>
-
-
 Lowtech demo is a demo written for the Apple ]\[+/e by
 [Wiz](https://demozoo.org/sceners/16323/) of
 [Imphobia](https://demozoo.org/groups/11375/) during 2020
 and 2021. Just download the WOZ file (see releases) and run it in your favourite
 emulator (right now, Mame and AppleWin will read it and emulate it
 correctly).
+
+Watch it on YouTube : 
+<p align="center">
+  
+[<img align="center" src="https://img.youtube.com/vi/Dlmrd0howLw/maxresdefault.jpg" width="20%" title="A video showing the Lowtech demo">](https://www.youtube.com/watch?v=Dlmrd0howLw)
+
+</p>
 
 I take the opportunity to thank all people who gave me time and
 information when I was asking questions as well as all of those who
