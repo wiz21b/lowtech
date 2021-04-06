@@ -12,7 +12,7 @@ Watch it on YouTube :
   
 [<img align="center" src="https://img.youtube.com/vi/Dlmrd0howLw/maxresdefault.jpg" width="20%" title="A video showing the Lowtech demo">](https://www.youtube.com/watch?v=Dlmrd0howLw)
 
-Run it on yourself : [DSK and WOZ](https://github.com/wiz21b/lowtech/releases/tag/Revision)
+Run it on yourself : [WOZ disk image](https://github.com/wiz21b/lowtech/releases/tag/Revision)
 
 </p>
 
